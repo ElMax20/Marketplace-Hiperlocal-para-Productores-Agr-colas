@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raíz & Barrio | Mercado Campesino Hiperlocal - Del Huerto a tu Casa</title>
+  
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
+  
+  <!-- Google Fonts: Playfair Display + Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            forest: {
+              50: '#f2f7f4',
+              100: '#e1ede6',
+              600: '#2b6348',
+              700: '#214e38',
+              800: '#1a3d2f',
+              900: '#132d22',
+              950: '#0b1d16',
+            },
+            terracotta: {
+              50: '#fdf4f0',
+              100: '#fbe7de',
+              500: '#c85a32',
+              600: '#b04a25',
+              700: '#943b1c',
+            },
+            cream: {
+              50: '#fdfbf7',
+              100: '#f9f6f0',
+              200: '#f1ede4',
+            }
+          },
+          fontFamily: {
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Leaflet CSS & JS for Interactive Map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body class="bg-[#FAF7F2] text-stone-800 antialiased selection:bg-[#c85a32] selection:text-white">
+
+  <!-- =======================================================================
+       1. BARRA SUPERIOR DE ANUNCIOS (Top Notification Banner)
+       ======================================================================= -->
+  <aside class="bg-[#1a3d2f] text-stone-100 text-xs py-2 px-4 transition-all">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1 text-center sm:text-left">
+      <div class="flex items-center justify-center gap-2 font-medium">
+        <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>🌿 Entregas sin costo de envío a partir de <strong>$40.000</strong></span>
+        <span class="hidden md:inline text-stone-400">|</span>
+        <span class="hidden md:inline">Próxima ruta de cosecha: <strong>Miércoles y Sábados</strong></span>
+      </div>
+      <div class="flex items-center gap-4 text-stone-300 text-[11px]">
+        <button class="open-role-modal hover:text-white transition flex items-center gap-1">
+          <span>⚙️ Panel de Roles (Productor / Admin)</span>
+        </button>
+        <span class="hidden sm:inline">|</span>
+        <a href="#nodos" class="hover:text-white transition">Nodos de Recolección</a>
+      </div>
+    </div>
+  </aside>
+
+  <!-- =======================================================================
+       2. NAVEGADOR PRINCIPAL (Header & Navbar)
+       ======================================================================= -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80 shadow-sm transition-all">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20 gap-4">
+        
+        <!-- Logotipo -->
+        <a href="#" class="flex items-center gap-3 group shrink-0">
+          <div class="w-10 h-10 rounded-xl bg-[#1a3d2f] text-emerald-300 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18m0-18C7.5 3 4 6.5 4 11c0 3.5 2 6.5 5 7.5M12 3c4.5 0 8 3.5 8 8 0 3.5-2 6.5-5 7.5" />
+            </svg>
+          </div>
+          <div class="flex flex-col">
+            <span class="font-serif text-2xl font-bold tracking-tight text-[#1a3d2f] leading-none">raíz & barrio</span>
+            <span class="text-[10px] uppercase font-bold tracking-widest text-[#c85a32] mt-1">Mercado Campesino</span>
+          </div>
+        </a>
+
+        <!-- Barra de Búsqueda -->
+        <div class="hidden lg:flex flex-1 max-w-md mx-4">
+          <div class="relative w-full">
+            <input 
+              type="text" 
+              placeholder="Buscar hortalizas, frutas, canastas, fincas..." 
+              class="w-full bg-[#f6f4ee] border border-stone-200 text-stone-800 placeholder-stone-400 text-sm rounded-full py-2.5 pl-11 pr-4 focus:outline-none focus:border-[#1a3d2f] focus:bg-white focus:ring-1 focus:ring-[#1a3d2f] transition"
+            >
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+              </svg>
+            </div>
+          </div>
+        </div>
+
+        <!-- Selector de Ubicación / Entrega -->
+        <div class="hidden md:flex items-center gap-2 border border-stone-200 rounded-full px-3.5 py-1.5 bg-stone-50 hover:bg-stone-100 transition cursor-pointer text-xs">
+          <svg class="w-4 h-4 text-[#c85a32]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          <div class="flex flex-col text-left">
+            <span class="text-[10px] text-stone-400 font-medium uppercase tracking-wider">Entregar en:</span>
+            <span class="font-semibold text-stone-800">Chapinero Alto, Bogotá ▾</span>
+          </div>
+        </div>
+
+        <!-- Acciones del Usuario & Carrito -->
+        <div class="flex items-center gap-2.5 sm:gap-3">
+          
+          <!-- Iniciar sesión / Perfil -->
+          <button class="open-role-modal text-stone-700 hover:text-[#1a3d2f] text-xs font-semibold px-2 py-2 sm:px-3 sm:py-2 transition hidden sm:inline-flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+            <span>Ingresar</span>
+          </button>
+
+          <!-- Botón "Soy Productor" (Terracotta) -->
+          <button class="open-role-modal bg-[#c85a32] hover:bg-[#b04a25] text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-sm hover:shadow transition-all flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            <span>Soy Productor</span>
+          </button>
+
+          <!-- Carrito de Compras -->
+          <button id="cart-toggle-btn" class="relative p-2.5 bg-[#f6f4ee] hover:bg-stone-200/70 text-stone-800 rounded-full transition" aria-label="Abrir carrito">
+            <svg class="w-5 h-5 text-[#1a3d2f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+            </svg>
+            <span id="cart-badge" class="absolute -top-1 -right-1 bg-[#c85a32] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">1</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Barra de Categorías / Menú Secundario -->
+      <nav class="hidden md:flex items-center justify-between border-t border-stone-100 py-2.5 text-xs font-medium text-stone-600">
+        <div class="flex items-center space-x-7">
+          <a href="#canastas" class="hover:text-[#1a3d2f] hover:font-semibold transition flex items-center gap-1 text-stone-900 font-semibold">
+            Canastas de la Semana
+            <svg class="w-3 h-3 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </a>
+          <a href="#cosecha" class="hover:text-[#1a3d2f] hover:font-semibold transition flex items-center gap-1">
+            Verduras & Hortalizas
+            <svg class="w-3 h-3 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </a>
+          <a href="#cosecha" class="hover:text-[#1a3d2f] hover:font-semibold transition flex items-center gap-1">
+            Frutas de Temporada
+            <svg class="w-3 h-3 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </a>
+          <a href="#cosecha" class="hover:text-[#1a3d2f] hover:font-semibold transition flex items-center gap-1">
+            Huevos y Lácteos
+            <svg class="w-3 h-3 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </a>
+          <a href="#nodos" class="hover:text-[#1a3d2f] hover:font-semibold transition flex items-center gap-1 text-[#c85a32] font-semibold">
+            <span class="w-1.5 h-1.5 rounded-full bg-[#c85a32]"></span>
+            Nodos de Recolección (18)
+          </a>
+          <a href="#agricultores" class="hover:text-[#1a3d2f] hover:font-semibold transition">Nuestros Agricultores</a>
+        </div>
+        <div class="flex items-center text-[#1a3d2f] font-semibold gap-1 text-[11px]">
+          <span class="text-emerald-700">✓ 85% directo al campesino</span>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- =======================================================================
+         3. SECCIÓN HERO (Lo bueno del campo, a la vuelta de tu casa)
+         ======================================================================= -->
+    <section class="relative pt-8 pb-16 md:pt-14 md:pb-24 overflow-hidden">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
+          
+          <!-- Columna Izquierda: Texto y Llamados a la Acción -->
+          <div class="lg:col-span-6 space-y-6">
+            
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#faece6] text-[#c85a32] text-xs font-bold uppercase tracking-wider">
+              <span class="w-2 h-2 rounded-full bg-[#c85a32]"></span>
+              Productos frescos directo del productor
+            </div>
+
+            <h1 class="font-serif text-4xl sm:text-5xl lg:text-6xl text-[#1a3d2f] font-normal tracking-tight leading-[1.12]">
+              Lo bueno del campo,<br>
+              <span class="italic font-light">a la vuelta de tu casa.</span>
+            </h1>
+
+            <p class="text-base sm:text-lg text-stone-600 leading-relaxed max-w-xl">
+              Conectamos agricultores locales con familias urbanas. Alimentos cosechados bajo pedido, a precios justos y sin intermediarios.
+            </p>
+
+            <!-- Botones Principales -->
+            <div class="flex flex-wrap items-center gap-4 pt-2">
+              <a href="#canastas" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-sm font-semibold px-7 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2 group">
+                <span>Explorar Canastas</span>
+                <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                </svg>
+              </a>
+              <a href="#nodos" class="border border-stone-300 hover:border-[#1a3d2f] bg-white/70 hover:bg-white text-stone-800 text-sm font-semibold px-6 py-3.5 rounded-full transition-all flex items-center gap-2">
+                <svg class="w-4 h-4 text-[#c85a32]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                <span>Ver Puntos de Recolección</span>
+              </a>
+            </div>
+
+            <!-- Mini Garantías de Confianza -->
+            <div class="pt-4 border-t border-stone-200/70 flex flex-wrap items-center gap-6 text-xs text-stone-600 font-medium">
+              <div class="flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-emerald-700" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Cero intermediarios</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-emerald-700" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Cosechado bajo demanda</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <svg class="w-4 h-4 text-emerald-700" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                <span>Precios fijos y transparentes</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Columna Derecha: Tarjeta Fotográfica con Flotantes -->
+          <div class="lg:col-span-6 relative">
+            <div class="relative mx-auto max-w-lg lg:max-w-none">
+              
+              <!-- Imagen Principal -->
+              <div class="overflow-hidden rounded-3xl shadow-2xl border-4 border-white aspect-[4/3] sm:aspect-[16/11]">
+                <img 
+                  src="assets/images/hero_basket.jpg" 
+                  alt="Canasta campesina con hortalizas frescas" 
+                  class="w-full h-full object-cover transform hover:scale-105 transition-transform duration-700"
+                >
+              </div>
+
+              <!-- Badge Flotante Superior Izquierdo -->
+              <div class="absolute -top-4 -left-4 sm:top-6 sm:left-6 bg-white/95 backdrop-blur-md px-3.5 py-2 rounded-2xl shadow-lg border border-stone-200/80 flex items-center gap-2">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
+                <div>
+                  <p class="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Origen Trazable</p>
+                  <p class="text-xs font-bold text-[#1a3d2f]">📍 Finca El Mirador · Subachoque</p>
+                </div>
+              </div>
+
+              <!-- Tarjeta Flotante Inferior Derecha -->
+              <div class="absolute -bottom-6 -right-2 sm:bottom-6 sm:right-6 bg-white/95 backdrop-blur-md p-3.5 sm:p-4 rounded-2xl shadow-xl border border-stone-200/80 flex items-center gap-3 max-w-xs">
+                <div class="w-10 h-10 rounded-xl bg-[#faece6] text-[#c85a32] flex items-center justify-center shrink-0">
+                  <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-xs font-bold text-stone-800">Cosechado en menos de 24h</p>
+                  <p class="text-[11px] text-stone-500 leading-tight">De la tierra a tu mesa directo este Miércoles.</p>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         4. FRANJA DE VALOR / BENEFICIOS (Value Props 4 Pilares)
+         ======================================================================= -->
+    <section class="border-y border-stone-200/70 bg-[#F4EFE6] py-8">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+          
+          <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center text-[#1a3d2f] shrink-0 border border-stone-200/60">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+              </svg>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-[#1a3d2f] uppercase tracking-wide">Del huerto a tu mesa</h4>
+              <p class="text-xs text-stone-600 mt-0.5">Cosechado pocas horas antes de la entrega.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center text-[#c85a32] shrink-0 border border-stone-200/60">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"/>
+              </svg>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-[#1a3d2f] uppercase tracking-wide">Comercio 100% justo</h4>
+              <p class="text-xs text-stone-600 mt-0.5">El 85% del valor llega directo al campesino.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center text-[#1a3d2f] shrink-0 border border-stone-200/60">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-[#1a3d2f] uppercase tracking-wide">Puntos de recogida cercanos</h4>
+              <p class="text-xs text-stone-600 mt-0.5">Retira gratis en cafeterías y librerías locales.</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-white shadow-sm flex items-center justify-center text-emerald-700 shrink-0 border border-stone-200/60">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.033 8.033 0 01-15.357-2m15.357 2H15"/>
+              </svg>
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-[#1a3d2f] uppercase tracking-wide">Sostenible y sin plástico</h4>
+              <p class="text-xs text-stone-600 mt-0.5">Canastas retornables y empaque compostable.</p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         5. SECCIÓN 1: "LA COSECHA DE HOY" (Today's harvest / Seasonal products)
+         ======================================================================= -->
+    <section id="cosecha" class="py-16 md:py-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Encabezado con Contador -->
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10 pb-6 border-b border-stone-200/80">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-widest text-[#c85a32]">Productos frescos del día</span>
+          <h2 class="font-serif text-3xl sm:text-4xl text-[#1a3d2f] font-normal mt-1">La cosecha de hoy</h2>
+          <p class="text-sm text-stone-600 mt-1">Cosecha fresca disponible para entrega este Miércoles. Cupos limitados por agricultor.</p>
+        </div>
+
+        <!-- Widget Contador Regresivo -->
+        <div class="bg-white p-3.5 rounded-2xl border border-stone-200 shadow-sm flex items-center gap-4 shrink-0">
+          <div class="text-left">
+            <p class="text-[10px] uppercase font-bold text-stone-500 tracking-wider">Próximo cierre de pedidos</p>
+            <p class="text-xs text-stone-700">Ruta Miércoles:</p>
+          </div>
+          <div class="flex items-center gap-1.5 font-mono text-xs font-bold text-[#1a3d2f]">
+            <div class="bg-[#f6f4ee] px-2 py-1.5 rounded-lg border border-stone-200 text-center min-w-[34px]">
+              <span id="cd-hours">08</span><span class="block text-[8px] font-sans text-stone-500">h</span>
+            </div>
+            <span class="text-stone-400">:</span>
+            <div class="bg-[#f6f4ee] px-2 py-1.5 rounded-lg border border-stone-200 text-center min-w-[34px]">
+              <span id="cd-minutes">42</span><span class="block text-[8px] font-sans text-stone-500">m</span>
+            </div>
+            <span class="text-stone-400">:</span>
+            <div class="bg-[#f6f4ee] px-2 py-1.5 rounded-lg border border-stone-200 text-center min-w-[34px]">
+              <span id="cd-seconds">15</span><span class="block text-[8px] font-sans text-stone-500">s</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid de 4 Productos de Temporada -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        
+        <!-- Producto 1: Tomate de huerta -->
+        <div 
+          class="card-hover bg-white rounded-2xl border border-stone-200 overflow-hidden flex flex-col"
+          data-product-id="tomate-huerta"
+          data-product-title="Tomate de huerta"
+          data-product-price="6400"
+          data-product-unit="kg"
+          data-product-image="assets/images/tomates.jpg"
+          data-product-origin="Finca El Rosal • Subachoque"
+        >
+          <div class="relative aspect-square overflow-hidden bg-stone-100">
+            <img src="assets/images/tomates.jpg" alt="Tomates de huerta" class="w-full h-full object-cover">
+            <span class="absolute top-3 left-3 bg-[#c85a32] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
+              -15% hoy
+            </span>
+          </div>
+          <div class="p-4 flex-1 flex flex-col justify-between">
+            <div>
+              <p class="text-[11px] text-stone-500 font-medium">Finca El Rosal • Subachoque</p>
+              <h3 class="font-serif text-lg text-stone-900 font-semibold mt-0.5">Tomate de huerta</h3>
+              <div class="flex items-center gap-1 text-[11px] text-amber-500 mt-1">
+                <span>★★★★★</span>
+                <span class="text-stone-500 font-medium">(4.9 · 42 reseñas)</span>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
+              <div>
+                <span class="text-lg font-bold text-[#1a3d2f]">$6.400</span>
+                <span class="text-xs text-stone-500">/ kg</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <div class="qty-stepper flex items-center border border-stone-200 rounded-lg bg-stone-50">
+                  <button class="btn-minus px-2 py-1 text-stone-600 hover:text-stone-900 text-xs font-bold">-</button>
+                  <input type="text" value="1" readonly class="w-7 text-center bg-transparent text-xs font-bold text-stone-800">
+                  <button class="btn-plus px-2 py-1 text-stone-600 hover:text-stone-900 text-xs font-bold">+</button>
+                </div>
+                <button class="btn-add-product bg-[#1a3d2f] hover:bg-[#255440] text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">
+                  + Añadir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Producto 2: Aguacate Hass -->
+        <div 
+          class="card-hover bg-white rounded-2xl border border-stone-200 overflow-hidden flex flex-col"
+          data-product-id="aguacate-hass"
+          data-product-title="Aguacate Hass"
+          data-product-price="10200"
+          data-product-unit="kg"
+          data-product-image="assets/images/aguacates.jpg"
+          data-product-origin="Huerta Don Pedro • La Calera"
+        >
+          <div class="relative aspect-square overflow-hidden bg-stone-100">
+            <img src="assets/images/aguacates.jpg" alt="Aguacate Hass" class="w-full h-full object-cover">
+            <span class="absolute top-3 left-3 bg-[#24503E] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
+              Recién cosechado
+            </span>
+          </div>
+          <div class="p-4 flex-1 flex flex-col justify-between">
+            <div>
+              <p class="text-[11px] text-stone-500 font-medium">Huerta Don Pedro • La Calera</p>
+              <h3 class="font-serif text-lg text-stone-900 font-semibold mt-0.5">Aguacate Hass</h3>
+              <div class="flex items-center gap-1 text-[11px] text-amber-500 mt-1">
+                <span>★★★★★</span>
+                <span class="text-stone-500 font-medium">(4.8 · 36 reseñas)</span>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
+              <div>
+                <span class="text-lg font-bold text-[#1a3d2f]">$10.200</span>
+                <span class="text-xs text-stone-500">/ kg</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <div class="qty-stepper flex items-center border border-stone-200 rounded-lg bg-stone-50">
+                  <button class="btn-minus px-2 py-1 text-stone-600 hover:text-stone-900 text-xs font-bold">-</button>
+                  <input type="text" value="1" readonly class="w-7 text-center bg-transparent text-xs font-bold text-stone-800">
+                  <button class="btn-plus px-2 py-1 text-stone-600 hover:text-stone-900 text-xs font-bold">+</button>
+                </div>
+                <button class="btn-add-product bg-[#1a3d2f] hover:bg-[#255440] text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">
+                  + Añadir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Producto 3: Zanahoria de tierra -->
+        <div 
+          class="card-hover bg-white rounded-2xl border border-stone-200 overflow-hidden flex flex-col"
+          data-product-id="zanahoria-tierra"
+          data-product-title="Zanahoria de tierra"
+          data-product-price="4000"
+          data-product-unit="kg"
+          data-product-image="assets/images/zanahorias.jpg"
+          data-product-origin="Finca La Esperanza • Choachí"
+        >
+          <div class="relative aspect-square overflow-hidden bg-stone-100">
+            <img src="assets/images/zanahorias.jpg" alt="Zanahoria de tierra" class="w-full h-full object-cover">
+            <span class="absolute top-3 left-3 bg-amber-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
+              Sin químicos
+            </span>
+          </div>
+          <div class="p-4 flex-1 flex flex-col justify-between">
+            <div>
+              <p class="text-[11px] text-stone-500 font-medium">Finca La Esperanza • Choachí</p>
+              <h3 class="font-serif text-lg text-stone-900 font-semibold mt-0.5">Zanahoria de tierra</h3>
+              <div class="flex items-center gap-1 text-[11px] text-amber-500 mt-1">
+                <span>★★★★★</span>
+                <span class="text-stone-500 font-medium">(5.0 · 29 reseñas)</span>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
+              <div>
+                <span class="text-lg font-bold text-[#1a3d2f]">$4.000</span>
+                <span class="text-xs text-stone-500">/ kg</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <div class="qty-stepper flex items-center border border-stone-200 rounded-lg bg-stone-50">
+                  <button class="btn-minus px-2 py-1 text-stone-600 hover:text-stone-900 text-xs font-bold">-</button>
+                  <input type="text" value="1" readonly class="w-7 text-center bg-transparent text-xs font-bold text-stone-800">
+                  <button class="btn-plus px-2 py-1 text-stone-600 hover:text-stone-900 text-xs font-bold">+</button>
+                </div>
+                <button class="btn-add-product bg-[#1a3d2f] hover:bg-[#255440] text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">
+                  + Añadir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Producto 4: Fresas de temporada -->
+        <div 
+          class="card-hover bg-white rounded-2xl border border-stone-200 overflow-hidden flex flex-col"
+          data-product-id="fresas-temporada"
+          data-product-title="Fresas de temporada"
+          data-product-price="8000"
+          data-product-unit="500g"
+          data-product-image="assets/images/fresas.jpg"
+          data-product-origin="Valle de Sopó • Cundinamarca"
+        >
+          <div class="relative aspect-square overflow-hidden bg-stone-100">
+            <img src="assets/images/fresas.jpg" alt="Fresas de temporada" class="w-full h-full object-cover">
+            <span class="absolute top-3 left-3 bg-[#c85a32] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
+              Dulces & Frescas
+            </span>
+          </div>
+          <div class="p-4 flex-1 flex flex-col justify-between">
+            <div>
+              <p class="text-[11px] text-stone-500 font-medium">Valle de Sopó • Cundinamarca</p>
+              <h3 class="font-serif text-lg text-stone-900 font-semibold mt-0.5">Fresas de temporada</h3>
+              <div class="flex items-center gap-1 text-[11px] text-amber-500 mt-1">
+                <span>★★★★★</span>
+                <span class="text-stone-500 font-medium">(4.9 · 51 reseñas)</span>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
+              <div>
+                <span class="text-lg font-bold text-[#1a3d2f]">$8.000</span>
+                <span class="text-xs text-stone-500">/ 500g</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <div class="qty-stepper flex items-center border border-stone-200 rounded-lg bg-stone-50">
+                  <button class="btn-minus px-2 py-1 text-stone-600 hover:text-stone-900 text-xs font-bold">-</button>
+                  <input type="text" value="1" readonly class="w-7 text-center bg-transparent text-xs font-bold text-stone-800">
+                  <button class="btn-plus px-2 py-1 text-stone-600 hover:text-stone-900 text-xs font-bold">+</button>
+                </div>
+                <button class="btn-add-product bg-[#1a3d2f] hover:bg-[#255440] text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">
+                  + Añadir
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Enlace inferior -->
+      <div class="text-center mt-10">
+        <a href="#canastas" class="inline-flex items-center gap-2 text-sm font-bold text-[#1a3d2f] hover:text-[#c85a32] transition group">
+          <span>Ver todos los productos frescos (28 disponibles)</span>
+          <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+          </svg>
+        </a>
+      </div>
+
+    </section>
+
+    <!-- =======================================================================
+         6. SECCIÓN 2: "TU CANASTA, AL RITMO DE LA TIERRA" (Canastas Semanales)
+         ======================================================================= -->
+    <section id="canastas" class="py-16 md:py-24 bg-[#F2EDE4]/60 border-y border-stone-200/70">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-widest text-[#c85a32]">Ahorra y apoya con suscripción semanal</span>
+            <h2 class="font-serif text-3xl sm:text-4xl text-[#1a3d2f] font-normal mt-1">Tu canasta, al ritmo de la tierra.</h2>
+            <p class="text-sm text-stone-600 mt-1">Alimentos seleccionados según su punto óptimo de maduración natural en las huertas.</p>
+          </div>
+          <a href="#canastas" class="text-xs font-bold text-[#1a3d2f] hover:text-[#c85a32] flex items-center gap-1 transition">
+            Comparar las canastas ➔
+          </a>
+        </div>
+
+        <!-- Grid de 2 Canastas Destacadas -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          
+          <!-- Canasta 1: Familiar -->
+          <div 
+            class="card-hover bg-white rounded-3xl border border-stone-200/90 overflow-hidden shadow-sm flex flex-col sm:flex-row"
+            data-basket-id="canasta-familiar"
+            data-basket-title="Canasta Huerto Familiar"
+            data-basket-price="58000"
+            data-basket-image="assets/images/canasta_familiar.jpg"
+          >
+            <div class="relative sm:w-1/2 aspect-[4/3] sm:aspect-auto">
+              <img src="assets/images/canasta_familiar.jpg" alt="Canasta Huerto Familiar" class="w-full h-full object-cover">
+              <span class="absolute top-4 left-4 bg-[#c85a32] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+                Más Popular
+              </span>
+            </div>
+            <div class="p-6 sm:p-8 sm:w-1/2 flex flex-col justify-between">
+              <div>
+                <p class="text-xs font-semibold text-stone-500 uppercase tracking-wide">Para 3 a 5 personas</p>
+                <h3 class="font-serif text-2xl text-[#1a3d2f] font-bold mt-1">Canasta Huerto Familiar</h3>
+                
+                <ul class="mt-4 space-y-2 text-xs text-stone-600">
+                  <li class="flex items-center gap-2">
+                    <span class="text-emerald-700 font-bold">✓</span>
+                    <span>8 a 10 variedades de verduras y hortalizas</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span class="text-emerald-700 font-bold">✓</span>
+                    <span>3 variedades de fruta de temporada</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span class="text-emerald-700 font-bold">✓</span>
+                    <span>Hierbas aromáticas frescas de huerta</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span class="text-emerald-700 font-bold">✓</span>
+                    <span>Trazabilidad directa a 3 fincas de origen</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between">
+                <div>
+                  <span class="text-2xl font-bold text-[#1a3d2f]">$58.000</span>
+                  <span class="text-xs text-stone-500 block">/ entrega semanal</span>
+                </div>
+                <button class="btn-add-basket bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-3 rounded-full transition shadow-md">
+                  Pedir canasta
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Canasta 2: Agroecológica Esencial -->
+          <div 
+            class="card-hover bg-white rounded-3xl border border-stone-200/90 overflow-hidden shadow-sm flex flex-col sm:flex-row"
+            data-basket-id="canasta-esencial"
+            data-basket-title="Canasta Agroecológica Esencial"
+            data-basket-price="38000"
+            data-basket-image="assets/images/canasta_esencial.jpg"
+          >
+            <div class="relative sm:w-1/2 aspect-[4/3] sm:aspect-auto">
+              <img src="assets/images/canasta_esencial.jpg" alt="Canasta Agroecológica Esencial" class="w-full h-full object-cover">
+              <span class="absolute top-4 left-4 bg-[#24503E] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+                Ideal para parejas
+              </span>
+            </div>
+            <div class="p-6 sm:p-8 sm:w-1/2 flex flex-col justify-between">
+              <div>
+                <p class="text-xs font-semibold text-stone-500 uppercase tracking-wide">Para 1 a 2 personas</p>
+                <h3 class="font-serif text-2xl text-[#1a3d2f] font-bold mt-1">Canasta Agroecológica Esencial</h3>
+                
+                <ul class="mt-4 space-y-2 text-xs text-stone-600">
+                  <li class="flex items-center gap-2">
+                    <span class="text-emerald-700 font-bold">✓</span>
+                    <span>5 a 6 variedades indispensables de huerta</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span class="text-emerald-700 font-bold">✓</span>
+                    <span>2 frutas estacionales cosechadas al punto</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span class="text-emerald-700 font-bold">✓</span>
+                    <span>Media docena de huevos campesinos pastoreo</span>
+                  </li>
+                  <li class="flex items-center gap-2">
+                    <span class="text-emerald-700 font-bold">✓</span>
+                    <span>Empaque de yute retornable sin costo</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div class="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between">
+                <div>
+                  <span class="text-2xl font-bold text-[#1a3d2f]">$38.000</span>
+                  <span class="text-xs text-stone-500 block">/ entrega semanal</span>
+                </div>
+                <button class="btn-add-basket bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-3 rounded-full transition shadow-md">
+                  Pedir canasta
+                </button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Banner Informativo de Flexibilidad -->
+        <div class="mt-8 bg-white/80 rounded-2xl p-4 border border-stone-200/80 flex items-center justify-center gap-3 text-xs text-stone-600 text-center">
+          <span class="text-base">💡</span>
+          <span><strong>100% Flexible y sin ataduras:</strong> Puedes pausar tus entregas, cambiar tu punto de retiro o cancelar tu canasta semanal cuando quieras sin costo alguno.</span>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         7. SECCIÓN 3: "EL CAMPO TIENE UN PUNTO DE ENCUENTRO" (Mapa y Nodos)
+         ======================================================================= -->
+    <section id="nodos" class="py-16 md:py-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <!-- Encabezado -->
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+        <div>
+          <span class="text-xs font-bold uppercase tracking-widest text-[#c85a32]">Nodos logísticos de barrio</span>
+          <h2 class="font-serif text-3xl sm:text-4xl text-[#1a3d2f] font-normal mt-1">El campo tiene un punto de encuentro.</h2>
+          <p class="text-sm text-stone-600 mt-1">Elige entrega directa o retira gratis en tu nodo comunitario más cercano mientras disfrutas de un café.</p>
+        </div>
+        <a href="#nodos" class="text-xs font-bold text-[#1a3d2f] hover:text-[#c85a32] flex items-center gap-1 transition">
+          Consultar mapa interactivo ➔
+        </a>
+      </div>
+
+      <!-- Layout de 2 Columnas: Mapa Interactivo a la izquierda, Tarjetas a la derecha -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Mapa Interactivo (Leaflet) -->
+        <div class="lg:col-span-7 bg-white p-2 sm:p-3 rounded-3xl border border-stone-200 shadow-md">
+          <div class="relative w-full h-[450px] sm:h-[480px] rounded-2xl overflow-hidden">
+            <div id="leaflet-map"></div>
+            
+            <!-- Badge Flotante en el mapa -->
+            <div class="absolute top-4 left-4 z-[400] bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-xl shadow-md border border-stone-200 text-xs font-semibold text-[#1a3d2f] flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span>3 Nodos activos en Bogotá</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de Nodos de Recolección -->
+        <div class="lg:col-span-5 space-y-4">
+          
+          <!-- Nodo 1 (Activo por defecto) -->
+          <div 
+            id="card-node-1"
+            class="p-5 rounded-2xl border-2 border-[#1a3d2f] bg-[#f4f7f4] ring-2 ring-[#1a3d2f]/20 cursor-pointer transition-all duration-200"
+          >
+            <div class="flex items-start justify-between">
+              <div>
+                <span class="inline-block px-2.5 py-0.5 rounded-md bg-[#1a3d2f] text-white text-[10px] font-bold uppercase tracking-wider">
+                  Nodo Chapinero Alto
+                </span>
+                <h4 class="font-serif text-lg font-bold text-[#1a3d2f] mt-1.5">Sede Barrio San Fernando</h4>
+                <p class="text-xs text-stone-600 mt-0.5">Calle 58 # 3-21 (Café del Bosque)</p>
+              </div>
+              <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+              </div>
+            </div>
+            
+            <div class="mt-3 pt-3 border-t border-stone-200/80 flex items-center justify-between text-xs">
+              <span class="text-stone-600 font-medium">🕒 Miércoles: 3:00 PM – 7:30 PM</span>
+              <span class="text-emerald-700 font-bold">14 canastas asignadas</span>
+            </div>
+          </div>
+
+          <!-- Nodo 2 -->
+          <div 
+            id="card-node-2"
+            class="p-5 rounded-2xl border border-stone-200 bg-white hover:border-[#1a3d2f]/60 cursor-pointer transition-all duration-200"
+          >
+            <div class="flex items-start justify-between">
+              <div>
+                <span class="inline-block px-2.5 py-0.5 rounded-md bg-stone-100 text-stone-700 text-[10px] font-bold uppercase tracking-wider">
+                  Nodo Teusaquillo
+                </span>
+                <h4 class="font-serif text-lg font-bold text-stone-900 mt-1.5">Sede Teusaquillo · Casa Taller</h4>
+                <p class="text-xs text-stone-600 mt-0.5">Carrera 19 # 34-12 (Librería & Huerto)</p>
+              </div>
+              <div class="w-8 h-8 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+              </div>
+            </div>
+            
+            <div class="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
+              <span class="text-stone-600 font-medium">🕒 Miércoles: 2:30 PM – 7:00 PM</span>
+              <span class="text-stone-500 font-medium">8 canastas asignadas</span>
+            </div>
+          </div>
+
+          <!-- Nodo 3 -->
+          <div 
+            id="card-node-3"
+            class="p-5 rounded-2xl border border-stone-200 bg-white hover:border-[#1a3d2f]/60 cursor-pointer transition-all duration-200"
+          >
+            <div class="flex items-start justify-between">
+              <div>
+                <span class="inline-block px-2.5 py-0.5 rounded-md bg-stone-100 text-stone-700 text-[10px] font-bold uppercase tracking-wider">
+                  Nodo Usaquén
+                </span>
+                <h4 class="font-serif text-lg font-bold text-stone-900 mt-1.5">Sede Usaquén · Mercado Verde</h4>
+                <p class="text-xs text-stone-600 mt-0.5">Calle 119 # 6-18 (Café Despensa)</p>
+              </div>
+              <div class="w-8 h-8 rounded-full bg-stone-100 text-stone-500 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/></svg>
+              </div>
+            </div>
+            
+            <div class="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between text-xs">
+              <span class="text-stone-600 font-medium">🕒 Sábados: 9:00 AM – 2:00 PM</span>
+              <span class="text-stone-500 font-medium">22 canastas asignadas</span>
+            </div>
+          </div>
+
+          <!-- Postulación para nuevos locales -->
+          <div class="p-4 rounded-2xl bg-[#F9EFEB] border border-[#f3d9ce] flex items-center gap-3">
+            <span class="text-2xl">☕</span>
+            <div class="flex-1">
+              <p class="text-xs font-bold text-[#c85a32]">¿Tienes un café, librería o espacio en tu barrio?</p>
+              <p class="text-[11px] text-stone-600 mt-0.5">Conviértete en Punto de Recolección aliado y genera tráfico vecinal positivo.</p>
+            </div>
+            <button class="open-role-modal text-xs font-bold text-[#c85a32] hover:underline shrink-0">
+              Postularme ➔
+            </button>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- =======================================================================
+         8. SECCIÓN 4: "CONOCE A NUESTROS AGRICULTORES" (Farmers Showcase)
+         ======================================================================= -->
+    <section id="agricultores" class="py-16 md:py-24 bg-[#FAF7F2] border-t border-stone-200/70">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-widest text-[#c85a32]">Transparencia y origen garantizado</span>
+            <h2 class="font-serif text-3xl sm:text-4xl text-[#1a3d2f] font-normal mt-1">Conoce a nuestros agricultores.</h2>
+            <p class="text-sm text-stone-600 mt-1">Detrás de cada alimento hay familias campesinas, saberes ancestrales y amor por la tierra.</p>
+          </div>
+          <a href="#agricultores" class="text-xs font-bold text-[#1a3d2f] hover:text-[#c85a32] flex items-center gap-1 transition">
+            Nuestros agricultores (24) ➔
+          </a>
+        </div>
+
+        <!-- Grid de 3 Agricultores -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+          
+          <!-- Agricultor 1: Familia Ramírez -->
+          <div class="card-hover bg-white rounded-3xl border border-stone-200 overflow-hidden flex flex-col">
+            <div class="relative aspect-[4/3] overflow-hidden bg-stone-100">
+              <img src="assets/images/agricultor_1.jpg" alt="Familia Ramírez" class="w-full h-full object-cover">
+              <span class="absolute top-4 left-4 bg-white/95 backdrop-blur-sm text-[#1a3d2f] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+                Subachoque • 42 km
+              </span>
+            </div>
+            <div class="p-6 flex-1 flex flex-col justify-between">
+              <div>
+                <h3 class="font-serif text-xl font-bold text-stone-900">Familia Ramírez</h3>
+                <p class="text-xs font-semibold text-[#c85a32] mt-0.5">Finca El Rosal</p>
+                <p class="text-xs text-stone-600 mt-3 leading-relaxed">
+                  Tres generaciones dedicadas al cultivo de papa criolla nativa, zanahorias y hortalizas bajo manejo orgánico y cuidado del agua de páramo.
+                </p>
+              </div>
+              <div class="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between">
+                <span class="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md">
+                  🌱 Papa nativa & Hortalizas
+                </span>
+                <a href="#agricultores" class="text-xs font-bold text-[#1a3d2f] hover:text-[#c85a32] transition">
+                  Visitar finca virtual ➔
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Agricultor 2: Huerta El Renacer -->
+          <div class="card-hover bg-white rounded-3xl border border-stone-200 overflow-hidden flex flex-col">
+            <div class="relative aspect-[4/3] overflow-hidden bg-stone-100">
+              <img src="assets/images/agricultor_2.jpg" alt="Huerta El Renacer" class="w-full h-full object-cover">
+              <span class="absolute top-4 left-4 bg-white/95 backdrop-blur-sm text-[#1a3d2f] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+                Choachí • 38 km
+              </span>
+            </div>
+            <div class="p-6 flex-1 flex flex-col justify-between">
+              <div>
+                <h3 class="font-serif text-xl font-bold text-stone-900">Huerta El Renacer</h3>
+                <p class="text-xs font-semibold text-[#c85a32] mt-0.5">Doña Esperanza & Hijos</p>
+                <p class="text-xs text-stone-600 mt-3 leading-relaxed">
+                  Pioneros en agricultura regenerativa y biofertilizantes propios. Cosechan lechugas crujientes, acelgas y aromáticas sin una sola gota de pesticidas.
+                </p>
+              </div>
+              <div class="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between">
+                <span class="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md">
+                  🥬 Hojas verdes & Aromáticas
+                </span>
+                <a href="#agricultores" class="text-xs font-bold text-[#1a3d2f] hover:text-[#c85a32] transition">
+                  Visitar finca virtual ➔
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Agricultor 3: Cooperativa La Unión -->
+          <div class="card-hover bg-white rounded-3xl border border-stone-200 overflow-hidden flex flex-col">
+            <div class="relative aspect-[4/3] overflow-hidden bg-stone-100">
+              <img src="assets/images/agricultor_3.jpg" alt="Cooperativa La Unión" class="w-full h-full object-cover">
+              <span class="absolute top-4 left-4 bg-white/95 backdrop-blur-sm text-[#1a3d2f] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+                Boyacá • 85 km
+              </span>
+            </div>
+            <div class="p-6 flex-1 flex flex-col justify-between">
+              <div>
+                <h3 class="font-serif text-xl font-bold text-stone-900">Cooperativa La Unión</h3>
+                <p class="text-xs font-semibold text-[#c85a32] mt-0.5">14 Familias Asociadas</p>
+                <p class="text-xs text-stone-600 mt-3 leading-relaxed">
+                  Asociación de pequeños productores enfocados en frutas andinas de ladera, mora de castilla y huevos de gallinas felices alimentadas con maíz criollo.
+                </p>
+              </div>
+              <div class="mt-6 pt-4 border-t border-stone-100 flex items-center justify-between">
+                <span class="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-md">
+                  🍓 Frutas de altura & Huevos
+                </span>
+                <a href="#agricultores" class="text-xs font-bold text-[#1a3d2f] hover:text-[#c85a32] transition">
+                  Visitar finca virtual ➔
+                </a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         9. SECCIÓN 5: "LA FRESCURA SE COMPARTE" (Reseñas & Testimonios)
+         ======================================================================= -->
+    <section class="py-16 md:py-24 bg-[#F2EDE4]/70 border-y border-stone-200/70">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+          
+          <!-- Columna Izquierda: Puntuación & Resumen -->
+          <div class="lg:col-span-4 space-y-4">
+            <span class="text-xs font-bold uppercase tracking-widest text-[#c85a32]">Reseñas verificadas</span>
+            <h2 class="font-serif text-3xl sm:text-4xl text-[#1a3d2f] font-normal">La frescura se comparte.</h2>
+            
+            <div class="pt-2">
+              <div class="flex items-baseline gap-2">
+                <span class="font-serif text-5xl font-bold text-[#1a3d2f]">4.9</span>
+                <span class="text-stone-500 text-sm">/ 5 estrellas</span>
+              </div>
+              <div class="flex text-amber-500 text-lg mt-1">★★★★★</div>
+              <p class="text-xs text-stone-600 mt-2 font-medium">
+                Basado en más de <strong>1.450 entregas</strong> en Bogotá.
+              </p>
+              <p class="text-xs text-stone-500 mt-1 leading-relaxed">
+                El 98% de nuestros clientes destaca la diferencia innegable de frescura frente al supermercado convencional.
+              </p>
+            </div>
+
+            <div class="pt-4">
+              <button class="bg-[#1a3d2f] text-white hover:bg-[#255440] text-xs font-semibold px-5 py-2.5 rounded-full transition shadow-sm">
+                Ver todas las valoraciones ➔
+              </button>
+            </div>
+          </div>
+
+          <!-- Columna Derecha: Tarjetas de Reseñas -->
+          <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-3 gap-5">
+            
+            <!-- Reseña 1 -->
+            <div class="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <img src="assets/images/review_1.jpg" alt="Unboxing canasta" class="w-full h-32 object-cover rounded-xl mb-3">
+                <div class="flex text-amber-500 text-xs mb-2">★★★★★</div>
+                <p class="text-xs text-stone-700 italic leading-relaxed">
+                  “La lechuga y las espinacas llegaron con el rocío de la mañana. Nada que ver con lo del supermercado; dura el doble en la nevera.”
+                </p>
+              </div>
+              <div class="mt-4 pt-3 border-t border-stone-100">
+                <p class="text-xs font-bold text-stone-800">Camila V.</p>
+                <p class="text-[11px] text-stone-500">Chapinero Alto</p>
+              </div>
+            </div>
+
+            <!-- Reseña 2 -->
+            <div class="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <img src="assets/images/review_2.jpg" alt="Cocinando con frescos" class="w-full h-32 object-cover rounded-xl mb-3">
+                <div class="flex text-amber-500 text-xs mb-2">★★★★★</div>
+                <p class="text-xs text-stone-700 italic leading-relaxed">
+                  “Saber que el 85% de mi pago va directo a la familia Ramírez en Subachoque me reconforta enormemente. Además, el sabor es de otro planeta.”
+                </p>
+              </div>
+              <div class="mt-4 pt-3 border-t border-stone-100">
+                <p class="text-xs font-bold text-stone-800">Andrés M.</p>
+                <p class="text-[11px] text-stone-500">Teusaquillo</p>
+              </div>
+            </div>
+
+            <!-- Reseña 3 -->
+            <div class="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm flex flex-col justify-between">
+              <div>
+                <img src="assets/images/review_3.jpg" alt="Recogida en café" class="w-full h-32 object-cover rounded-xl mb-3">
+                <div class="flex text-amber-500 text-xs mb-2">★★★★★</div>
+                <p class="text-xs text-stone-700 italic leading-relaxed">
+                  “El sistema de recoger en la cafetería del barrio funciona perfecto. Ahorro el costo de envío y ya me tienen la canasta empacada en yute.”
+                </p>
+              </div>
+              <div class="mt-4 pt-3 border-t border-stone-100">
+                <p class="text-xs font-bold text-stone-800">Paula R.</p>
+                <p class="text-[11px] text-stone-500">Usaquén</p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+    <!-- =======================================================================
+         10. BANNER CTA PRE-FOOTER (Lo que nos alimenta, también nos une)
+         ======================================================================= -->
+    <section class="bg-[#1a3d2f] text-white py-14 md:py-16">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+          <div class="space-y-2">
+            <h2 class="font-serif text-3xl sm:text-4xl font-normal">Lo que nos alimenta, también nos une.</h2>
+            <p class="text-sm text-stone-300 max-w-xl">Únete a más de 3.200 familias que ya comen fresco, sano y directo del campo colombiano.</p>
+          </div>
+          <a href="#canastas" class="bg-white hover:bg-stone-100 text-[#1a3d2f] font-bold text-sm px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all duration-200 shrink-0">
+            Empezar mi pedido ➔
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =======================================================================
+       11. PIE DE PÁGINA (Footer)
+       ======================================================================= -->
+  <footer class="bg-[#122a20] text-stone-300 pt-16 pb-12 border-t border-emerald-950">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10 pb-12 border-b border-stone-800/80">
+        
+        <!-- Columna Marca -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-800/40 text-emerald-400 flex items-center justify-center border border-emerald-700/50">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v18m0-18C7.5 3 4 6.5 4 11c0 3.5 2 6.5 5 7.5M12 3c4.5 0 8 3.5 8 8 0 3.5-2 6.5-5 7.5" />
+              </svg>
+            </div>
+            <div class="flex flex-col">
+              <span class="font-serif text-2xl font-bold tracking-tight text-white leading-none">raíz & barrio</span>
+              <span class="text-[10px] uppercase font-bold tracking-widest text-[#c85a32] mt-1">Mercado Campesino Hiperlocal</span>
+            </div>
+          </div>
+
+          <p class="text-xs text-stone-400 leading-relaxed max-w-sm">
+            Plataforma hiperlocal de comercio justo orientada a conectar de forma transparente y directa a pequeños productores agrícolas con consumidores urbanos.
+          </p>
+
+          <div class="flex items-center gap-3 pt-2 text-stone-400 text-sm">
+            <a href="#" class="w-8 h-8 rounded-full bg-stone-800 hover:bg-stone-700 hover:text-white flex items-center justify-center transition">📷</a>
+            <a href="#" class="w-8 h-8 rounded-full bg-stone-800 hover:bg-stone-700 hover:text-white flex items-center justify-center transition">📘</a>
+            <a href="#" class="w-8 h-8 rounded-full bg-stone-800 hover:bg-stone-700 hover:text-white flex items-center justify-center transition">💬</a>
+          </div>
+        </div>
+
+        <!-- Columna 1: Explorar -->
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-white mb-4">Canastas & Cosecha</h4>
+          <ul class="space-y-2.5 text-xs text-stone-400">
+            <li><a href="#canastas" class="hover:text-white transition">Canasta Familiar Semanal</a></li>
+            <li><a href="#canastas" class="hover:text-white transition">Canasta Agroecológica Esencial</a></li>
+            <li><a href="#cosecha" class="hover:text-white transition">Verduras de Temporada</a></li>
+            <li><a href="#cosecha" class="hover:text-white transition">Frutas Andinas Cosechadas</a></li>
+            <li><a href="#cosecha" class="hover:text-white transition">Huevos de Libre Pastoreo</a></li>
+          </ul>
+        </div>
+
+        <!-- Columna 2: Logística y Nodos -->
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-white mb-4">Red Comunitaria</h4>
+          <ul class="space-y-2.5 text-xs text-stone-400">
+            <li><a href="#nodos" class="hover:text-white transition">Nodos de Recolección (Mapa)</a></li>
+            <li><a href="#agricultores" class="hover:text-white transition">Historias de Agricultores</a></li>
+            <li><a href="#" class="open-role-modal hover:text-white transition">Postular Local como Punto</a></li>
+            <li><a href="#" class="hover:text-white transition">Rutas de Reparto Consolidadas</a></li>
+            <li><a href="#" class="hover:text-white transition">Empaques Retornables</a></li>
+          </ul>
+        </div>
+
+        <!-- Columna 3: Para Productores & Admin -->
+        <div>
+          <h4 class="text-xs font-bold uppercase tracking-wider text-white mb-4">Productores & Admin</h4>
+          <ul class="space-y-2.5 text-xs text-stone-400">
+            <li><a href="#" class="open-role-modal text-[#c85a32] font-semibold hover:underline">Acceso Productores</a></li>
+            <li><a href="#" class="open-role-modal hover:text-white transition">Publicar Cosecha Semanal</a></li>
+            <li><a href="#" class="open-role-modal hover:text-white transition">Panel de Liquidación Equitativa</a></li>
+            <li><a href="#" class="open-role-modal hover:text-white transition">Monitoreo de KPIs Logísticos</a></li>
+            <li><a href="#" class="open-role-modal hover:text-white transition">Criterios Agroecológicos</a></li>
+          </ul>
+        </div>
+
+      </div>
+
+      <!-- Barra Inferior de Copyright & Métodos de Pago -->
+      <div class="pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-[11px] text-stone-500">
+        <p>© 2026 Raíz & Barrio. Todos los derechos reservados. Comercio hiperlocal C2C / B2C.</p>
+        <div class="flex items-center gap-4">
+          <span>Pagos Seguros vía:</span>
+          <span class="bg-stone-800 px-2 py-1 rounded text-stone-300 font-bold text-[10px]">PSE</span>
+          <span class="bg-stone-800 px-2 py-1 rounded text-stone-300 font-bold text-[10px]">NEQUI</span>
+          <span class="bg-stone-800 px-2 py-1 rounded text-stone-300 font-bold text-[10px]">DAVIPLATA</span>
+          <span class="bg-stone-800 px-2 py-1 rounded text-stone-300 font-bold text-[10px]">TARJETAS</span>
+        </div>
+      </div>
+
+    </div>
+  </footer>
+
+  <!-- =======================================================================
+       12. DRAWER DEL CARRITO DE COMPRAS (Off-Canvas Cart)
+       ======================================================================= -->
+  <div id="cart-backdrop" class="fixed inset-0 drawer-backdrop z-50 hidden transition-opacity"></div>
+  
+  <div 
+    id="cart-drawer" 
+    class="fixed inset-y-0 right-0 max-w-md w-full bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col"
+  >
+    <!-- Cabecera del Carrito -->
+    <div class="p-5 border-b border-stone-200 flex items-center justify-between bg-stone-50">
+      <div class="flex items-center gap-2">
+        <svg class="w-5 h-5 text-[#1a3d2f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+        </svg>
+        <h3 class="font-serif text-lg font-bold text-stone-800">Tu Canasta de Compra</h3>
+      </div>
+      <button id="cart-close-btn" class="p-2 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-200/60 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+
+    <!-- Indicador de Envío Gratis -->
+    <div id="cart-free-shipping-hint" class="bg-[#F9EFEB] text-[#c85a32] text-xs px-4 py-2.5 font-medium border-b border-[#f3d9ce] text-center">
+      🌱 Agrega más productos para envío a domicilio sin costo.
+    </div>
+
+    <!-- Lista de Artículos -->
+    <div id="cart-items-container" class="flex-1 overflow-y-auto p-5 space-y-1">
+      <!-- Generado dinámicamente vía app.js -->
+    </div>
+
+    <!-- Selección de Método de Entrega -->
+    <div class="p-5 border-t border-stone-200 bg-stone-50/80 space-y-4">
+      <div class="space-y-2">
+        <label class="text-[11px] font-bold uppercase tracking-wider text-stone-600 block">Método de Entrega:</label>
+        
+        <label class="flex items-center justify-between p-2.5 rounded-xl border border-stone-200 bg-white cursor-pointer hover:border-[#1a3d2f]">
+          <div class="flex items-center gap-2">
+            <input type="radio" name="cart-delivery" value="pickup" checked class="text-[#1a3d2f] focus:ring-[#1a3d2f]">
+            <span class="text-xs font-semibold text-stone-800">Retiro gratis en Nodo de Recolección</span>
+          </div>
+          <span class="text-xs font-bold text-emerald-700">$0</span>
+        </label>
+
+        <label class="flex items-center justify-between p-2.5 rounded-xl border border-stone-200 bg-white cursor-pointer hover:border-[#1a3d2f]">
+          <div class="flex items-center gap-2">
+            <input type="radio" name="cart-delivery" value="home" class="text-[#1a3d2f] focus:ring-[#1a3d2f]">
+            <span class="text-xs font-semibold text-stone-800">Entrega a domicilio consolidada</span>
+          </div>
+          <span class="text-xs font-bold text-stone-700">$6.500</span>
+        </label>
+      </div>
+
+      <!-- Resumen de Costos -->
+      <div class="space-y-1.5 pt-2 border-t border-stone-200 text-xs text-stone-600">
+        <div class="flex justify-between">
+          <span>Subtotal productos:</span>
+          <span id="cart-subtotal" class="font-bold text-stone-800">$0</span>
+        </div>
+        <div class="flex justify-between">
+          <span>Entrega:</span>
+          <span id="cart-shipping" class="font-bold text-stone-800">$0</span>
+        </div>
+        <div class="flex justify-between text-base font-bold text-[#1a3d2f] pt-2 border-t border-stone-200">
+          <span>Total a pagar:</span>
+          <span id="cart-total">$0</span>
+        </div>
+      </div>
+
+      <!-- Botón de Proceder al Pago -->
+      <button 
+        onclick="alert('¡Excelente! En la siguiente fase conectaremos la pasarela de pagos integrada (PSE, Tarjetas, Nequi).');" 
+        class="w-full bg-[#1a3d2f] hover:bg-[#255440] text-white py-3.5 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2"
+      >
+        <span>Confirmar Pedido y Pagar</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+      </button>
+
+      <p class="text-[10px] text-center text-stone-400">85% de este importe se liquida de forma directa y equitativa al agricultor.</p>
+    </div>
+  </div>
+
+  <!-- =======================================================================
+       13. MODAL DE ARQUITECTURA DE PERFILES (Consumidor, Productor, Administrador)
+       ======================================================================= -->
+  <div id="role-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm hidden">
+    <div class="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl relative border border-stone-200 animate-slide-up">
+      
+      <button id="close-role-modal" class="absolute top-5 right-5 p-2 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+
+      <div class="text-left mb-6">
+        <span class="inline-block px-3 py-1 rounded-full bg-[#faece6] text-[#c85a32] text-xs font-bold uppercase tracking-wider">
+          Arquitectura de la Plataforma
+        </span>
+        <h3 class="font-serif text-2xl text-[#1a3d2f] font-bold mt-2">Plataforma Hiperlocal: 3 Perfiles Clave</h3>
+        <p class="text-xs text-stone-600 mt-1">Conectando la huerta con la mesa mediante tecnología colaborativa.</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        
+        <!-- Perfil 1: Productor -->
+        <div class="p-4 rounded-2xl bg-stone-50 border border-stone-200 hover:border-[#c85a32] transition">
+          <div class="w-9 h-9 rounded-xl bg-[#faece6] text-[#c85a32] flex items-center justify-center font-bold text-lg mb-3">
+            🚜
+          </div>
+          <h4 class="font-serif text-base font-bold text-stone-900">1. Productor</h4>
+          <p class="text-[11px] text-stone-500 mt-1">Interfaz simplificada para:</p>
+          <ul class="text-[11px] text-stone-600 mt-2 space-y-1">
+            <li>• Publicar cosecha estacional</li>
+            <li>• Armar canastas fijas</li>
+            <li>• Stock en tiempo real</li>
+            <li>• Consultar liquidaciones</li>
+          </ul>
+        </div>
+
+        <!-- Perfil 2: Consumidor -->
+        <div class="p-4 rounded-2xl bg-[#f4f7f4] border-2 border-[#1a3d2f] transition">
+          <div class="w-9 h-9 rounded-xl bg-[#1a3d2f] text-white flex items-center justify-center font-bold text-lg mb-3">
+            🛒
+          </div>
+          <h4 class="font-serif text-base font-bold text-[#1a3d2f]">2. Consumidor (Actual)</h4>
+          <p class="text-[11px] text-stone-500 mt-1">Experiencia de compra:</p>
+          <ul class="text-[11px] text-stone-600 mt-2 space-y-1">
+            <li>• Catálogo georreferenciado</li>
+            <li>• Carrito y canasta fija</li>
+            <li>• Selección de punto de acopio</li>
+            <li>• Reseñas y trazabilidad</li>
+          </ul>
+        </div>
+
+        <!-- Perfil 3: Administrador -->
+        <div class="p-4 rounded-2xl bg-stone-50 border border-stone-200 hover:border-[#1a3d2f] transition">
+          <div class="w-9 h-9 rounded-xl bg-stone-200 text-stone-800 flex items-center justify-center font-bold text-lg mb-3">
+            📊
+          </div>
+          <h4 class="font-serif text-base font-bold text-stone-900">3. Administrador</h4>
+          <p class="text-[11px] text-stone-500 mt-1">Supervisión integral:</p>
+          <ul class="text-[11px] text-stone-600 mt-2 space-y-1">
+            <li>• Liquidación equitativa</li>
+            <li>• Gestión catálogo general</li>
+            <li>• Nodos de acopio y mapas</li>
+            <li>• Monitoreo de KPIs logísticos</li>
+          </ul>
+        </div>
+
+      </div>
+
+      <div class="mt-6 pt-4 border-t border-stone-200 flex items-center justify-between">
+        <span class="text-xs text-stone-500">Diseñado según requerimientos del Marketplace Hiperlocal.</span>
+        <button onclick="document.getElementById('role-modal').classList.add('hidden');" class="bg-[#1a3d2f] text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-[#255440] transition">
+          Entendido, continuar explorando
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/app.js"></script>
+</body>
+</html>
