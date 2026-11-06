@@ -6,7 +6,9 @@
 document.addEventListener('DOMContentLoaded', () => {
   initCountdown();
   initCart();
-  initMap();
+  if (window.google && window.google.maps) {
+    initGoogleMap();
+  }
   initQuantitySteppers();
   initRoleModal();
   initSmoothScroll();
@@ -229,10 +231,11 @@ function updateCartBadge() {
 }
 
 /* ==========================================================================
-   3. Mapa Interactivo de Nodos de Recolección (Leaflet)
+   3. Mapa Interactivo de Nodos de Recolección (Google Maps API)
    ========================================================================== */
-let mapInstance = null;
-let mapMarkers = [];
+let googleMapInstance = null;
+let googleMarkers = [];
+let activeInfoWindow = null;
 
 const pickupNodes = [
   {
@@ -270,74 +273,104 @@ const pickupNodes = [
   }
 ];
 
-function initMap() {
-  const mapElement = document.getElementById('leaflet-map');
-  if (!mapElement) return;
+function getPinIcon(isActive) {
+  const bgColor = isActive ? '#c85a32' : '#1a3d2f';
+  const scale = isActive ? 1.15 : 1.0;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+    <filter id="pinShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+    <circle cx="20" cy="18" r="16" fill="${bgColor}" stroke="#ffffff" stroke-width="2.5" filter="url(#pinShadow)"/>
+    <path d="M20 10c-3.3 0-6 2.7-6 6 0 4.5 6 11 6 11s6-6.5 6-11c0-3.3-2.7-6-6-6zm0 8.5c-1.4 0-2.5-1.1-2.5-2.5s1.1-2.5 2.5-2.5 2.5 1.1 2.5 2.5-1.1 2.5-2.5 2.5z" fill="#ffffff"/>
+  </svg>`;
+  return {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+    scaledSize: new google.maps.Size(40 * scale, 40 * scale),
+    anchor: new google.maps.Point(20 * scale, 36 * scale)
+  };
+}
 
-  // Centro en Bogotá (zona Chapinero/Teusaquillo)
-  mapInstance = L.map('leaflet-map', {
-    center: [4.655, -74.055],
+window.initGoogleMap = function() {
+  const mapElement = document.getElementById('google-map') || document.getElementById('leaflet-map');
+  if (!mapElement || !window.google || !window.google.maps) return;
+
+  activeInfoWindow = new google.maps.InfoWindow();
+
+  // Estilos orgánicos y armónicos con la estética de Raíz & Barrio
+  googleMapInstance = new google.maps.Map(mapElement, {
+    center: { lat: 4.655, lng: -74.055 },
     zoom: 12,
+    mapTypeControl: false,
+    streetViewControl: false,
+    fullscreenControl: true,
     zoomControl: true,
-    scrollWheelZoom: false
+    styles: [
+      { "featureType": "all", "elementType": "geometry.fill", "stylers": [{ "weight": "2.00" }] },
+      { "featureType": "all", "elementType": "geometry.stroke", "stylers": [{ "color": "#9c9c9c" }] },
+      { "featureType": "all", "elementType": "labels.text", "stylers": [{ "color": "#4b5563" }] },
+      { "featureType": "landscape", "elementType": "all", "stylers": [{ "color": "#f5f1eb" }] },
+      { "featureType": "landscape.man_made", "elementType": "geometry.fill", "stylers": [{ "color": "#fcfbf9" }] },
+      { "featureType": "landscape.natural", "elementType": "geometry.fill", "stylers": [{ "color": "#eef4ec" }] },
+      { "featureType": "poi", "elementType": "all", "stylers": [{ "visibility": "off" }] },
+      { "featureType": "poi.park", "elementType": "geometry.fill", "stylers": [{ "visibility": "on" }, { "color": "#d7e8d0" }] },
+      { "featureType": "road", "elementType": "all", "stylers": [{ "saturation": -100 }, { "lightness": 40 }] },
+      { "featureType": "road.highway", "elementType": "all", "stylers": [{ "visibility": "simplified" }, { "color": "#e2ded6" }] },
+      { "featureType": "road.arterial", "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
+      { "featureType": "transit", "elementType": "all", "stylers": [{ "visibility": "off" }] },
+      { "featureType": "water", "elementType": "all", "stylers": [{ "color": "#cde5e8" }, { "visibility": "on" }] }
+    ]
   });
 
-  // Mapa claro y minimalista (CartoDB Positron / OSM)
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-    attribution: '&copy; <a href="https://carto.com/">CartoDB</a>',
-    subdomains: 'abcd',
-    maxZoom: 19
-  }).addTo(mapInstance);
+  googleMarkers = [];
 
-  // Agregar pines para cada nodo
   pickupNodes.forEach((node, index) => {
-    const icon = L.divIcon({
-      className: 'custom-div-icon',
-      html: `
-        <div class="custom-map-marker ${index === 0 ? 'active' : ''}" id="marker-${node.id}">
-          <svg style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-          </svg>
-        </div>
-      `,
-      iconSize: [38, 38],
-      iconAnchor: [19, 38]
+    const isDefault = index === 0;
+    const marker = new google.maps.Marker({
+      position: { lat: node.lat, lng: node.lng },
+      map: googleMapInstance,
+      title: node.venue,
+      icon: getPinIcon(isDefault),
+      animation: google.maps.Animation.DROP
     });
 
-    const marker = L.marker([node.lat, node.lng], { icon: icon }).addTo(mapInstance);
-    
-    marker.bindPopup(`
-      <div style="font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; max-width: 220px; line-height: 1.4;">
+    const infoContent = `
+      <div style="font-family: 'Plus Jakarta Sans', system-ui, sans-serif; font-size: 13px; max-width: 220px; line-height: 1.4; padding: 4px;">
         <span style="font-size: 10px; font-weight: 700; text-transform: uppercase; color: #c85a32; letter-spacing: 0.5px;">Punto de Recolección</span>
         <h4 style="font-size: 14px; font-weight: 700; color: #1a3d2f; margin: 4px 0 2px 0;">${node.venue}</h4>
-        <p style="color: #4b5563; margin-bottom: 4px;">${node.address}</p>
-        <p style="font-size: 11px; color: #15803d; font-weight: 600;">🕒 ${node.schedule}</p>
-        <button onclick="selectPickupNode('${node.id}')" style="margin-top: 8px; width: 100%; background: #1a3d2f; color: white; border: none; border-radius: 6px; padding: 6px 8px; font-size: 11px; font-weight: 600; cursor: pointer;">
+        <p style="color: #4b5563; margin-bottom: 4px; font-size: 12px;">${node.address}</p>
+        <p style="font-size: 11px; color: #15803d; font-weight: 600; margin-bottom: 6px;">🕒 ${node.schedule}</p>
+        <button onclick="selectPickupNode('${node.id}')" style="width: 100%; background: #1a3d2f; color: white; border: none; border-radius: 6px; padding: 6px 8px; font-size: 11px; font-weight: 600; cursor: pointer;">
           Elegir este nodo
         </button>
       </div>
-    `);
+    `;
 
-    mapMarkers.push({ id: node.id, marker });
+    marker.addListener('click', () => {
+      selectPickupNode(node.id);
+    });
+
+    googleMarkers.push({ id: node.id, marker, infoContent });
+
+    if (isDefault) {
+      activeInfoWindow.setContent(infoContent);
+      activeInfoWindow.open(googleMapInstance, marker);
+    }
   });
 
-  // Interacción con las tarjetas laterales
+  // Interacción al hacer clic en las tarjetas laterales
   pickupNodes.forEach(node => {
     const cardEl = document.getElementById(`card-${node.id}`);
     if (cardEl) {
-      cardEl.addEventListener('click', () => {
-        selectPickupNode(node.id);
-      });
+      cardEl.onclick = () => selectPickupNode(node.id);
     }
   });
-}
+};
 
 window.selectPickupNode = function(nodeId) {
   const node = pickupNodes.find(n => n.id === nodeId);
   if (!node) return;
 
-  // Actualizar clases de tarjetas
+  // Actualizar estilos de tarjetas
   pickupNodes.forEach(n => {
     const el = document.getElementById(`card-${n.id}`);
     if (el) {
@@ -349,30 +382,21 @@ window.selectPickupNode = function(nodeId) {
         el.classList.add('border-stone-200', 'bg-white');
       }
     }
+  });
 
-    const markerEl = document.getElementById(`marker-${n.id}`);
-    if (markerEl) {
-      if (n.id === nodeId) {
-        markerEl.classList.add('active');
-      } else {
-        markerEl.classList.remove('active');
+  // Actualizar pines e InfoWindow en Google Maps
+  googleMarkers.forEach(item => {
+    const isActive = item.id === nodeId;
+    if (item.marker && item.marker.setIcon) {
+      item.marker.setIcon(getPinIcon(isActive));
+      if (isActive && googleMapInstance && activeInfoWindow) {
+        googleMapInstance.panTo({ lat: node.lat, lng: node.lng });
+        googleMapInstance.setZoom(14);
+        activeInfoWindow.setContent(item.infoContent);
+        activeInfoWindow.open(googleMapInstance, item.marker);
       }
     }
   });
-
-  // Centrar mapa
-  if (mapInstance) {
-    mapInstance.flyTo([node.lat, node.lng], 14, {
-      duration: 1.2
-    });
-
-    const targetMarker = mapMarkers.find(m => m.id === nodeId);
-    if (targetMarker) {
-      setTimeout(() => {
-        targetMarker.marker.openPopup();
-      }, 700);
-    }
-  }
 
   showToast(`Punto seleccionado: ${node.venue} (${node.name.split('/')[0].trim()})`);
 };

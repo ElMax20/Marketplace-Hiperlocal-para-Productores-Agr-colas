@@ -89,7 +89,8 @@ body {
   transform: scale(1.05);
 }
 
-/* Leaflet Map Customization */
+/* Interactive Map Customization */
+#google-map,
 #leaflet-map {
   width: 100%;
   height: 100%;
