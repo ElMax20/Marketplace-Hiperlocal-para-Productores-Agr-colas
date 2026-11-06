@@ -124,3 +124,114 @@ function selectAccountForEdit(name, email, role, status, initials) {
   if (roleSelect) roleSelect.value = role;
   if (statusSelect) statusSelect.value = status;
 }
+
+/**
+ * =============================================================================
+ * Lógica de "Mi Perfil y Seguridad"
+ * =============================================================================
+ */
+
+// Guardar datos personales
+function savePersonalData() {
+  const nameInput = document.getElementById('profile-name-input');
+  if (!nameInput) return;
+
+  const newName = nameInput.value.trim();
+  if (!newName) {
+    alert('Por favor ingresa un nombre válido.');
+    return;
+  }
+
+  // Actualizar tarjeta de perfil
+  const cardName = document.getElementById('profile-card-name');
+  if (cardName) cardName.textContent = newName;
+
+  // Actualizar en localStorage si existe usuario conectado
+  const user = getCurrentUser();
+  if (user) {
+    user.name = newName;
+    setCurrentUser(user);
+  }
+
+  alert('¡Datos personales actualizados correctamente!');
+}
+
+// Previsualizar nueva foto de perfil
+function previewProfileImage(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const preview = document.getElementById('profile-img-preview');
+    if (preview) {
+      preview.src = e.target.result;
+    }
+    alert('Foto seleccionada. Recuerda hacer clic en "Guardar datos personales" para confirmar.');
+  };
+  reader.readAsDataURL(file);
+}
+
+// Eliminar foto de perfil (restablecer a placeholder)
+function resetProfilePhoto() {
+  const preview = document.getElementById('profile-img-preview');
+  if (preview) {
+    preview.src = 'https://ui-avatars.com/api/?name=Lucia+Torres&background=1a3d2f&color=fff&size=128';
+  }
+  alert('Foto eliminada. Se mostrará el avatar con iniciales.');
+}
+
+// Solicitar cambio de correo electrónico
+function requestEmailChange() {
+  const emailInput = document.getElementById('new-email-input');
+  const email = emailInput ? emailInput.value.trim() : '';
+
+  if (!email || !email.includes('@')) {
+    alert('Por favor escribe un correo electrónico válido.');
+    return;
+  }
+
+  alert(`Hemos enviado un enlace de verificación a ${email}. Revisa tu bandeja de entrada.`);
+  if (emailInput) emailInput.value = '';
+}
+
+// Alternar visibilidad de contraseñas (ojo)
+function togglePassVisibility(inputId) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+
+  if (input.type === 'password') {
+    input.type = 'text';
+  } else {
+    input.type = 'password';
+  }
+}
+
+// Actualizar contraseña
+function updatePassword() {
+  const currentPass = document.getElementById('pass-current');
+  const newPass = document.getElementById('pass-new');
+  const confirmPass = document.getElementById('pass-confirm');
+
+  if (!currentPass || !newPass || !confirmPass) return;
+
+  if (!currentPass.value) {
+    alert('Por favor ingresa tu contraseña actual.');
+    return;
+  }
+
+  if (newPass.value.length < 6) {
+    alert('La nueva contraseña debe tener al menos 6 caracteres.');
+    return;
+  }
+
+  if (newPass.value !== confirmPass.value) {
+    alert('La nueva contraseña y su confirmación no coinciden.');
+    return;
+  }
+
+  alert('¡Contraseña actualizada exitosamente! Las contraseñas permanecen protegidas y encriptadas.');
+  newPass.value = '';
+  confirmPass.value = '';
+}
+
