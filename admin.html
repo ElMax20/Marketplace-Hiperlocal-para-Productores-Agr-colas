@@ -714,7 +714,7 @@
                 <button onclick="alert('Guardado en borrador'); switchAdminTab('productos');" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2.5 rounded-xl transition">
                   Guardar borrador
                 </button>
-                <button onclick="alert('¡Producto publicado con éxito en la tienda!'); switchAdminTab('productos');" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition">
+                <button type="button" onclick="publishProductToSupabase()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition">
                   Publicar producto
                 </button>
               </div>
@@ -1061,7 +1061,7 @@
               Este rol solo permite gestionar los productos de su propia finca y su perfil personal.
             </p>
 
-            <button onclick="alert('Cambios guardados con éxito');" class="w-full bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold py-2.5 rounded-xl shadow-sm transition">
+            <button type="button" onclick="saveAccountChangesToSupabase()" class="w-full bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold py-2.5 rounded-xl shadow-sm transition">
               ✓ Guardar cambios de cuenta
             </button>
 
@@ -1781,6 +1781,7 @@
 
   </div>
 
+  <script src="js/supabase.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/admin.js"></script>
 </body>

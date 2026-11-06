@@ -141,9 +141,9 @@ function closeLoginModal() {
 }
 
 /**
- * Valida las credenciales ingresadas según el botón/tipo seleccionado
+ * Valida las credenciales ingresadas contra Supabase (con fallback local)
  */
-function handleAuthSubmit(event) {
+async function handleAuthSubmit(event) {
   if (event) event.preventDefault();
 
   const userField = document.getElementById('auth-username');
@@ -158,7 +158,83 @@ function handleAuthSubmit(event) {
     return false;
   }
 
-  // 1. Caso Administrador: puede ingresar por ambos accesos
+  // 1. Consulta en Base de Datos Supabase
+  let dbUser = null;
+  if (window.supabase && typeof window.supabase.login === 'function') {
+    try {
+      dbUser = await window.supabase.login(username, password);
+    } catch (e) {
+      console.warn('Error en Supabase login:', e);
+    }
+  }
+
+  // Si existe en Supabase
+  if (dbUser) {
+    const role = (dbUser.role || '').toLowerCase();
+
+    // A. Administrador (acceso universal)
+    if (role === 'administrador' || role === 'admin') {
+      const adminUser = {
+        id: dbUser.id,
+        username: dbUser.username,
+        role: 'admin',
+        name: dbUser.full_name || 'Lucía Torres',
+        email: dbUser.email || 'lucia@raizybarrio.co'
+      };
+      setCurrentUser(adminUser);
+      closeLoginModal();
+      window.location.href = 'admin.html';
+      return false;
+    }
+
+    // B. Acceso CLIENTE
+    if (currentAuthType === 'cliente') {
+      if (role === 'productor') {
+        showAuthError('⚠️ Esta cuenta es de Productor. Por favor ingresa a través del botón "Soy Productor".');
+        return false;
+      }
+      if (role === 'cliente') {
+        const clienteUser = {
+          id: dbUser.id,
+          username: dbUser.username,
+          role: 'cliente',
+          name: dbUser.full_name || dbUser.username,
+          email: dbUser.email
+        };
+        setCurrentUser(clienteUser);
+        closeLoginModal();
+        updateAuthUI();
+        if (typeof showToast === 'function') {
+          showToast(`¡Bienvenido, ${clienteUser.name}! Sesión validada en Supabase.`);
+        }
+        return false;
+      }
+    }
+
+    // C. Acceso PRODUCTOR
+    if (currentAuthType === 'productor') {
+      if (role === 'cliente') {
+        showAuthError('⚠️ Esta cuenta es de Cliente / Comprador. Por favor ingresa a través del botón "Ingresar".');
+        return false;
+      }
+      if (role === 'productor') {
+        const prodUser = {
+          id: dbUser.id,
+          username: dbUser.username,
+          role: 'productor',
+          name: dbUser.full_name || dbUser.username,
+          finca: dbUser.farm_name || 'Huerta El Renacer',
+          email: dbUser.email
+        };
+        setCurrentUser(prodUser);
+        closeLoginModal();
+        window.location.href = 'productor.html';
+        return false;
+      }
+    }
+  }
+
+  // 2. Fallback de desarrollo local si no hay conexión a internet
   if (username === AUTH_ACCOUNTS.admin.username && password === AUTH_ACCOUNTS.admin.password) {
     setCurrentUser(AUTH_ACCOUNTS.admin);
     closeLoginModal();
@@ -166,14 +242,11 @@ function handleAuthSubmit(event) {
     return false;
   }
 
-  // 2. Si está en el acceso de CLIENTE
   if (currentAuthType === 'cliente') {
-    // Si intenta ingresar con cuenta de productor
     if (username === AUTH_ACCOUNTS.productor.username) {
       showAuthError('⚠️ Esta cuenta es de Productor. Por favor ingresa a través del botón "Soy Productor".');
       return false;
     }
-
     if (username === AUTH_ACCOUNTS.cliente.username && password === AUTH_ACCOUNTS.cliente.password) {
       setCurrentUser(AUTH_ACCOUNTS.cliente);
       closeLoginModal();
@@ -185,14 +258,11 @@ function handleAuthSubmit(event) {
     }
   }
 
-  // 3. Si está en el acceso de PRODUCTOR
   if (currentAuthType === 'productor') {
-    // Si intenta ingresar con cuenta de cliente
     if (username === AUTH_ACCOUNTS.cliente.username) {
       showAuthError('⚠️ Esta cuenta es de Cliente / Comprador. Por favor ingresa a través del botón "Ingresar".');
       return false;
     }
-
     if (username === AUTH_ACCOUNTS.productor.username && password === AUTH_ACCOUNTS.productor.password) {
       setCurrentUser(AUTH_ACCOUNTS.productor);
       closeLoginModal();
@@ -202,7 +272,7 @@ function handleAuthSubmit(event) {
   }
 
   // Credenciales erróneas
-  showAuthError('Usuario o contraseña incorrectos. Revisa los datos de prueba indicados abajo.');
+  showAuthError('Usuario o contraseña incorrectos en Supabase.');
   return false;
 }
 

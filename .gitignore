@@ -9,3 +9,7 @@ __pycache__/
 *.py[cod]
 .vscode/
 .idea/
+
+# Local DB scripts with credentials
+seed_supabase.py
+scratch_*.py

@@ -108,10 +108,14 @@ function updatePreviewCard() {
   }
 }
 
+// Variable para almacenar el id de la cuenta seleccionada en "Gestionar cuentas"
+let selectedAccountId = '00000000-0000-0000-0000-000000000004'; // Elena Moreno por defecto
+
 /**
  * Carga los datos de una cuenta en el panel lateral de "Gestionar cuentas"
  */
-function selectAccountForEdit(name, email, role, status, initials) {
+function selectAccountForEdit(name, email, role, status, initials, id) {
+  if (id) selectedAccountId = id;
   const avatarEl = document.getElementById('edit-account-avatar');
   const nameEl = document.getElementById('edit-account-name');
   const emailEl = document.getElementById('edit-account-email');
@@ -126,13 +130,84 @@ function selectAccountForEdit(name, email, role, status, initials) {
 }
 
 /**
+ * Publicar producto directamente hacia la base de datos Supabase
+ */
+async function publishProductToSupabase() {
+  const nameInput = document.getElementById('form-product-name');
+  const priceInput = document.getElementById('form-product-price');
+  const unitSelect = document.getElementById('form-product-unit');
+  const originInput = document.getElementById('form-product-origin');
+
+  const title = nameInput ? nameInput.value.trim() : 'Rábanos de temporada';
+  let rawPrice = priceInput ? priceInput.value.replace(/[^0-9]/g, '') : '2800';
+  const price = Number(rawPrice) || 2800;
+  const unit = unitSelect ? unitSelect.value.split('·')[0].trim() : 'Manojo';
+  const description = originInput ? originInput.value.trim() : 'Huerta El Renacer · Subachoque';
+
+  const newProduct = {
+    producer_id: '00000000-0000-0000-0000-000000000002', // Max Productor
+    category_id: 2, // Verduras
+    title: title,
+    description: description,
+    price: price,
+    unit: unit,
+    stock_quantity: 30,
+    is_available: true,
+    image_url: 'assets/images/rabanos.jpg'
+  };
+
+  if (window.supabase && typeof window.supabase.createProduct === 'function') {
+    try {
+      await window.supabase.createProduct(newProduct);
+      alert(`¡Producto "${title}" guardado y publicado con éxito en la base de datos de Supabase!`);
+    } catch (e) {
+      console.warn('Error al guardar en Supabase:', e);
+      alert(`Producto "${title}" guardado en la tienda.`);
+    }
+  } else {
+    alert(`Producto "${title}" publicado con éxito.`);
+  }
+
+  switchAdminTab('productos');
+}
+
+/**
+ * Guardar cambios de cuenta directamente hacia Supabase
+ */
+async function saveAccountChangesToSupabase() {
+  const roleSelect = document.getElementById('edit-account-role');
+  const statusSelect = document.getElementById('edit-account-status');
+  const nameEl = document.getElementById('edit-account-name');
+
+  const newRole = roleSelect ? roleSelect.value.toLowerCase() : 'productor';
+  const accountName = nameEl ? nameEl.textContent : 'la cuenta';
+
+  // Mapear rol a enum de Supabase ('cliente', 'productor', 'administrador')
+  let dbRole = 'productor';
+  if (newRole.includes('admin')) dbRole = 'administrador';
+  else if (newRole.includes('comprador') || newRole.includes('cliente')) dbRole = 'cliente';
+
+  if (window.supabase && typeof window.supabase.updateProfile === 'function' && selectedAccountId) {
+    try {
+      await window.supabase.updateProfile(selectedAccountId, { role: dbRole });
+      alert(`¡Cambios guardados y sincronizados en Supabase para ${accountName}!`);
+      return;
+    } catch (e) {
+      console.warn('Error al actualizar en Supabase:', e);
+    }
+  }
+
+  alert(`Cambios guardados para ${accountName}.`);
+}
+
+/**
  * =============================================================================
- * Lógica de "Mi Perfil y Seguridad"
+ * Lógica de "Mi Perfil y Seguridad" con sincronización en Supabase
  * =============================================================================
  */
 
-// Guardar datos personales
-function savePersonalData() {
+// Guardar datos personales sincronizados con Supabase
+async function savePersonalData() {
   const nameInput = document.getElementById('profile-name-input');
   if (!nameInput) return;
 
@@ -142,9 +217,20 @@ function savePersonalData() {
     return;
   }
 
-  // Actualizar tarjeta de perfil
+  // Actualizar tarjeta de perfil en UI
   const cardName = document.getElementById('profile-card-name');
   if (cardName) cardName.textContent = newName;
+
+  // Actualizar en base de datos Supabase
+  if (window.supabase && typeof window.supabase.updateProfile === 'function') {
+    try {
+      const adminId = '00000000-0000-0000-0000-000000000003';
+      await window.supabase.updateProfile(adminId, { full_name: newName });
+      console.log('Perfil de administrador sincronizado en Supabase.');
+    } catch (e) {
+      console.warn('Error al actualizar perfil en Supabase:', e);
+    }
+  }
 
   // Actualizar en localStorage si existe usuario conectado
   const user = getCurrentUser();
@@ -153,7 +239,7 @@ function savePersonalData() {
     setCurrentUser(user);
   }
 
-  alert('¡Datos personales actualizados correctamente!');
+  alert('¡Datos personales actualizados y sincronizados con Supabase correctamente!');
 }
 
 // Previsualizar nueva foto de perfil

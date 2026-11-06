@@ -232,7 +232,52 @@ document.addEventListener('DOMContentLoaded', () => {
   renderProducts();
   setupCartDrawerListeners();
   setupSearchListener();
+  loadProductsFromSupabase();
 });
+
+// Cargar catálogo en tiempo real desde Supabase
+async function loadProductsFromSupabase() {
+  if (window.supabase && typeof window.supabase.getProducts === 'function') {
+    try {
+      const dbProducts = await window.supabase.getProducts();
+      if (dbProducts && dbProducts.length > 0) {
+        const categoryMap = { 1: 'canastas', 2: 'verduras', 3: 'frutas', 4: 'lacteos', 5: 'despensa' };
+        
+        dbProducts.forEach(dbP => {
+          const catName = categoryMap[dbP.category_id] || 'verduras';
+          const existingIdx = PRODUCTS_DATA.findIndex(p => p.id === String(dbP.id) || p.title.toLowerCase() === dbP.title.toLowerCase());
+          const mapped = {
+            id: String(dbP.id),
+            title: dbP.title,
+            category: catName,
+            tag: 'Cosecha fresca',
+            image: dbP.image_url || 'assets/images/tomates.jpg',
+            subtitle: `${dbP.unit} · Cosechado en finca`,
+            origin: dbP.description || 'Finca campesina aliada',
+            rating: '4.9',
+            reviews: 45,
+            price: Number(dbP.price),
+            originalPrice: Math.round(Number(dbP.price) * 1.15),
+            availability: dbP.is_available ? 'Disponible · Supabase' : 'Agotado',
+            distanceKm: 38,
+            isOffer: false
+          };
+
+          if (existingIdx !== -1) {
+            PRODUCTS_DATA[existingIdx] = { ...PRODUCTS_DATA[existingIdx], ...mapped };
+          } else {
+            PRODUCTS_DATA.push(mapped);
+          }
+        });
+
+        renderProducts();
+        console.log(`Catálogo sincronizado exitosamente desde Supabase (${dbProducts.length} productos).`);
+      }
+    } catch (e) {
+      console.warn('Error cargando productos de Supabase:', e);
+    }
+  }
+}
 
 // Leer parámetros de URL (por ejemplo si viene de "Explorar Canastas" -> ?categoria=canastas)
 function parseUrlParams() {
