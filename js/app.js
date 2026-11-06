@@ -477,35 +477,17 @@ function initQuantitySteppers() {
 }
 
 /* ==========================================================================
-   5. Modal de Perfiles / Roles (Productor, Consumidor, Administrador)
+   5. Modal de Perfiles / Roles -> Ahora redirigido a Login Segmentado
    ========================================================================== */
 function initRoleModal() {
-  const modal = document.getElementById('role-modal');
   const openButtons = document.querySelectorAll('.open-role-modal');
-  const closeButton = document.getElementById('close-role-modal');
-
-  if (!modal) return;
-
   openButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
-      modal.classList.remove('hidden');
-      document.body.style.overflow = 'hidden';
+      if (typeof openLoginModal === 'function') {
+        openLoginModal('cliente');
+      }
     });
-  });
-
-  if (closeButton) {
-    closeButton.addEventListener('click', () => {
-      modal.classList.add('hidden');
-      document.body.style.overflow = '';
-    });
-  }
-
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      modal.classList.add('hidden');
-      document.body.style.overflow = '';
-    }
   });
 }
 

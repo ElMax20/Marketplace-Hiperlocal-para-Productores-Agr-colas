@@ -737,20 +737,60 @@ function handleRegister(e) {
 // Inicio de Sesión
 function handleLogin(e) {
   e.preventDefault();
-  const email = document.getElementById('login-email').value.trim();
-  
+  const inputVal = (document.getElementById('login-email').value || '').trim();
+  const passEl = document.getElementById('login-pass') || document.getElementById('login-password');
+  const passVal = (passEl ? passEl.value : '').trim();
+
+  // Caso 1: Administrador
+  if (inputVal === 'admin') {
+    if (passVal && passVal !== 'admin123') {
+      alert('Contraseña incorrecta para Administrador (prueba: admin123)');
+      return;
+    }
+    const adminUser = { username: 'admin', role: 'admin', name: 'Lucía Torres', email: 'lucia@raizybarrio.co', loggedIn: true };
+    localStorage.setItem('rb_current_user', JSON.stringify(adminUser));
+    localStorage.setItem('raiz_user', JSON.stringify(adminUser));
+    window.location.href = 'admin.html';
+    return;
+  }
+
+  // Caso 2: Productor
+  if (inputVal === 'maxp') {
+    if (passVal && passVal !== '123') {
+      alert('Contraseña incorrecta para Productor (prueba: 123)');
+      return;
+    }
+    const prodUser = { username: 'maxp', role: 'productor', name: 'Max Productor', finca: 'Huerta El Renacer', loggedIn: true };
+    localStorage.setItem('rb_current_user', JSON.stringify(prodUser));
+    localStorage.setItem('raiz_user', JSON.stringify(prodUser));
+    window.location.href = 'productor.html';
+    return;
+  }
+
+  // Caso 3: Cliente (max u otro)
+  let userName = inputVal.includes('@') ? inputVal.split('@')[0] : inputVal;
+  if (inputVal === 'max') {
+    userName = 'Max';
+    if (passVal && passVal !== '123') {
+      alert('Contraseña incorrecta para Cliente (prueba: 123)');
+      return;
+    }
+  }
+
   const existingUser = {
-    name: email.split('@')[0],
-    email: email,
+    name: userName,
+    email: inputVal.includes('@') ? inputVal : `${inputVal}@vecinos.com`,
     phone: '310 987 6543',
     preferredNode: 'Nodo Central · La Perseverancia',
-    loggedIn: true
+    loggedIn: true,
+    role: 'cliente'
   };
 
   localStorage.setItem('raiz_user', JSON.stringify(existingUser));
+  localStorage.setItem('rb_current_user', JSON.stringify(existingUser));
   closeAuthModal();
   checkAuthStatus();
-  showToast(`Sesión iniciada correctamente.`);
+  showToast(`Sesión iniciada correctamente. Bienvenido ${userName}.`);
 
   if (cart.length > 0) {
     setTimeout(() => {

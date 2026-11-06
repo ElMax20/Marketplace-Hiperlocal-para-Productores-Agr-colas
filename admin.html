@@ -1,0 +1,1553 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Administración | Raíz & Barrio</title>
+
+  <!-- Google Fonts: Newsreader / Playfair Display + Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            serif: ['"Newsreader"', 'Georgia', 'serif']
+          },
+          colors: {
+            forest: {
+              700: '#23533e',
+              800: '#1a3d2f',
+              900: '#122c22'
+            },
+            terracotta: {
+              500: '#c85a32',
+              600: '#b04a25'
+            },
+            cream: {
+              50: '#FAF8F5',
+              100: '#F4EFE6',
+              200: '#EAE4D7'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .nav-admin-btn.active {
+      background-color: #1a3d2f;
+      color: #ffffff;
+      font-weight: 600;
+    }
+    .nav-admin-btn.active svg {
+      color: #ffffff;
+    }
+    .status-badge-publicado {
+      background-color: #eaf5ee;
+      color: #1f7a4d;
+    }
+    .status-badge-borrador {
+      background-color: #f7f3eb;
+      color: #92400e;
+    }
+    .status-badge-agotado {
+      background-color: #fef2f2;
+      color: #b91c1c;
+    }
+  </style>
+</head>
+<body class="bg-[#FAF7F2] text-stone-800 antialiased min-h-screen flex font-sans">
+
+  <!-- =======================================================================
+       BARRA LATERAL IZQUIERDA (Sidebar)
+       ======================================================================= -->
+  <aside class="w-64 bg-white border-r border-stone-200/90 flex flex-col justify-between shrink-0 min-h-screen sticky top-0 h-screen overflow-y-auto">
+    <div class="p-5">
+      
+      <!-- Logotipo de Marca -->
+      <a href="index.html" class="flex items-center gap-2.5 mb-6 group">
+        <div class="w-8 h-8 rounded-lg bg-[#1a3d2f] text-emerald-300 flex items-center justify-center font-bold text-base shadow-sm">
+          🌱
+        </div>
+        <div>
+          <span class="font-serif text-xl font-bold tracking-tight text-[#1a3d2f] leading-none block">raíz & barrio</span>
+          <span class="text-[8px] uppercase tracking-widest text-stone-400 font-bold block mt-0.5">Mercado de Cercanía</span>
+        </div>
+      </a>
+
+      <!-- Insignia Área de Trabajo -->
+      <div class="bg-[#F4EFE6] border border-[#EAE4D7] rounded-xl p-3 mb-6 flex items-center gap-2.5">
+        <div class="w-6 h-6 rounded-lg bg-white/80 text-[#1a3d2f] flex items-center justify-center text-xs shadow-2xs">
+          🛡️
+        </div>
+        <div>
+          <span class="text-[9px] uppercase tracking-wider text-stone-500 font-bold block">Área de Trabajo</span>
+          <span class="text-xs font-bold text-stone-800 block">Administrador</span>
+        </div>
+      </div>
+
+      <!-- Menú de Gestión del Mercado -->
+      <div>
+        <span class="text-[10px] uppercase font-bold tracking-wider text-stone-400 block px-2 mb-2">Gestión del Mercado</span>
+        <nav class="space-y-1 text-xs">
+          
+          <!-- Tab 1: Tienda / Productos -->
+          <button onclick="switchAdminTab('productos')" id="btn-tab-productos" class="nav-admin-btn active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition text-left text-stone-600 hover:text-stone-900 hover:bg-stone-100">
+            <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span>Tienda / Productos</span>
+          </button>
+
+          <!-- Tab 2: Agregar producto -->
+          <button onclick="switchAdminTab('agregar')" id="btn-tab-agregar" class="nav-admin-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition text-left text-stone-600 hover:text-stone-900 hover:bg-stone-100">
+            <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Agregar producto</span>
+          </button>
+
+          <!-- Tab 3: Gestionar cuentas -->
+          <button onclick="switchAdminTab('cuentas')" id="btn-tab-cuentas" class="nav-admin-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition text-left text-stone-600 hover:text-stone-900 hover:bg-stone-100">
+            <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+            <span>Gestionar cuentas</span>
+          </button>
+
+          <!-- Tab 4: Roles y permisos -->
+          <button onclick="switchAdminTab('roles')" id="btn-tab-roles" class="nav-admin-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition text-left text-stone-600 hover:text-stone-900 hover:bg-stone-100">
+            <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Roles y permisos</span>
+          </button>
+
+          <!-- Tab 5: Auditoría -->
+          <button onclick="switchAdminTab('auditoria')" id="btn-tab-auditoria" class="nav-admin-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition text-left text-stone-600 hover:text-stone-900 hover:bg-stone-100">
+            <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            <span>Auditoría</span>
+          </button>
+
+          <!-- Tab 6: Mi perfil y seguridad (dejado sin nada según instrucción) -->
+          <button onclick="switchAdminTab('perfil')" id="btn-tab-perfil" class="nav-admin-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition text-left text-stone-600 hover:text-stone-900 hover:bg-stone-100">
+            <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+            <span>Mi perfil y seguridad</span>
+          </button>
+
+        </nav>
+      </div>
+
+    </div>
+
+    <!-- Parte Inferior del Sidebar -->
+    <div class="p-5 border-t border-stone-200/80 space-y-4">
+      
+      <!-- Soporte Callout -->
+      <div class="bg-[#F4EFE6] rounded-2xl p-3.5 border border-[#EAE4D7] text-left">
+        <div class="flex items-center gap-2 mb-1 text-stone-700">
+          <svg class="w-4 h-4 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+          <span class="text-xs font-bold text-stone-800">Cuidamos el mercado.</span>
+        </div>
+        <p class="text-[11px] text-stone-500 leading-tight">¿Necesitas ayuda con la gestión de tu comunidad?</p>
+        <a href="#" class="text-[11px] font-bold text-stone-700 hover:text-[#1a3d2f] hover:underline mt-2 inline-block">Contactar soporte ↗</a>
+      </div>
+
+      <!-- Tarjeta de Administrador Conectado -->
+      <div class="flex items-center justify-between pt-1">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-full bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs">
+            LT
+          </div>
+          <div>
+            <span class="text-xs font-bold text-stone-800 block leading-tight">Lucía Torres</span>
+            <span class="text-[10px] text-stone-500 block">Administrador</span>
+          </div>
+        </div>
+        <button onclick="logoutUser()" class="p-1.5 text-stone-400 hover:text-red-600 rounded-lg hover:bg-stone-100 transition" title="Cerrar sesión">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        </button>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- =======================================================================
+       ÁREA PRINCIPAL DE CONTENIDO
+       ======================================================================= -->
+  <div class="flex-1 flex flex-col min-w-0 min-h-screen">
+    
+    <!-- Top Header Bar -->
+    <header class="bg-white border-b border-stone-200 px-8 py-3.5 flex items-center justify-between sticky top-0 z-30">
+      <div class="text-xs text-stone-500 flex items-center gap-1.5" id="admin-breadcrumb">
+        <span>Administración</span>
+        <span>›</span>
+        <span class="text-stone-800 font-semibold" id="breadcrumb-current">Tienda / Productos</span>
+      </div>
+
+      <div class="flex items-center gap-4 text-xs">
+        <span class="text-stone-400">6 nov. 2026</span>
+        <span class="text-stone-200">|</span>
+        <a href="mercado.html" target="_blank" class="font-bold text-stone-700 hover:text-[#1a3d2f] flex items-center gap-1 transition">
+          <span>Ver tienda</span>
+          <span>↗</span>
+        </a>
+        <button class="p-1.5 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+        </button>
+        <div class="w-7 h-7 rounded-full bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs">
+          LT
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Views Container -->
+    <main class="flex-1 p-8 max-w-7xl w-full mx-auto">
+      
+      <!-- ===================================================================
+           VISTA 1: TIENDA / PRODUCTOS (Imagen 5)
+           =================================================================== -->
+      <section id="view-productos" class="admin-view space-y-6">
+        
+        <!-- Header de la sección -->
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#c85a32] block">Administración del Mercado</span>
+            <h1 class="font-serif text-3xl font-normal text-stone-900 mt-1">La tienda, en tus manos</h1>
+            <p class="text-xs text-stone-500 mt-0.5">Gestiona los productos, su disponibilidad y las fincas que dan vida al barrio.</p>
+          </div>
+          <button onclick="switchAdminTab('agregar')" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 shrink-0">
+            <span>+</span>
+            <span>Agregar producto</span>
+          </button>
+        </div>
+
+        <!-- 4 Tarjetas Métricas -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+            <div class="flex items-start justify-between">
+              <div>
+                <span class="text-xs text-stone-500 font-medium">Productos en tienda</span>
+                <p class="text-3xl font-serif font-bold text-stone-900 mt-1">48</p>
+                <span class="text-[11px] text-stone-400 mt-1 block">De 23 familias productoras</span>
+              </div>
+              <div class="w-8 h-8 rounded-lg bg-stone-100 text-stone-600 flex items-center justify-center text-sm">
+                📦
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+            <div class="flex items-start justify-between">
+              <div>
+                <span class="text-xs text-stone-500 font-medium">Publicados</span>
+                <p class="text-3xl font-serif font-bold text-[#1f7a4d] mt-1">42</p>
+                <span class="text-[11px] text-stone-400 mt-1 block">Visibles en el mercado</span>
+              </div>
+              <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center text-sm">
+                ✓
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+            <div class="flex items-start justify-between">
+              <div>
+                <span class="text-xs text-stone-500 font-medium">Borradores</span>
+                <p class="text-3xl font-serif font-bold text-amber-700 mt-1">4</p>
+                <span class="text-[11px] text-stone-400 mt-1 block">Pendientes de publicar</span>
+              </div>
+              <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center text-sm">
+                📝
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+            <div class="flex items-start justify-between">
+              <div>
+                <span class="text-xs text-stone-500 font-medium">Agotados</span>
+                <p class="text-3xl font-serif font-bold text-red-600 mt-1">2</p>
+                <span class="text-[11px] text-stone-400 mt-1 block">Requieren actualizar stock</span>
+              </div>
+              <div class="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center text-sm">
+                ⚠️
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Filtros y Búsqueda -->
+        <div class="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+          <div class="flex-1 relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </span>
+            <input 
+              type="text" 
+              placeholder="Buscar por producto, finca o referencia..." 
+              class="w-full pl-10 pr-4 py-2 bg-white text-xs rounded-xl border border-stone-200 focus:outline-none focus:border-[#1a3d2f] text-stone-700 shadow-2xs"
+            >
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2">
+            <select class="bg-white border border-stone-200 text-xs text-stone-700 py-2 px-3 rounded-xl focus:outline-none shadow-2xs">
+              <option>Todas las categorías ▾</option>
+              <option>Verduras & Raíces</option>
+              <option>Frutas del Valle</option>
+              <option>Canastas Familiares</option>
+            </select>
+
+            <select class="bg-white border border-stone-200 text-xs text-stone-700 py-2 px-3 rounded-xl focus:outline-none shadow-2xs">
+              <option>Todos los productores ▾</option>
+              <option>Huerta El Renacer</option>
+              <option>Finca La Esperanza</option>
+              <option>Familia Rojas</option>
+            </select>
+
+            <select class="bg-white border border-stone-200 text-xs text-stone-700 py-2 px-3 rounded-xl focus:outline-none shadow-2xs">
+              <option>Estado: todos ▾</option>
+              <option>Publicado</option>
+              <option>Borrador</option>
+              <option>Agotado</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Pestañas de Vista y Tabla de Productos -->
+        <div class="bg-white rounded-2xl border border-stone-200 shadow-2xs overflow-hidden">
+          
+          <div class="px-5 py-3 border-b border-stone-100 flex items-center justify-between text-xs">
+            <div class="flex items-center gap-4 font-semibold text-stone-500">
+              <button class="text-stone-900 border-b-2 border-stone-900 pb-1 font-bold">Todos · 48</button>
+              <button class="hover:text-stone-800 pb-1">Publicados · 42</button>
+              <button class="hover:text-stone-800 pb-1">Borradores · 4</button>
+            </div>
+            <span class="text-[11px] text-stone-400">Actualizado hoy, 10:42 a. m.</span>
+          </div>
+
+          <!-- Tabla de Productos -->
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-stone-700">
+              <thead class="bg-[#FAF8F5] text-[10px] uppercase font-bold text-stone-400 border-b border-stone-100">
+                <tr>
+                  <th class="p-4 w-8"><input type="checkbox" class="rounded"></th>
+                  <th class="py-3 px-4 font-bold">Producto</th>
+                  <th class="py-3 px-4 font-bold">Productor</th>
+                  <th class="py-3 px-4 font-bold">Categoría</th>
+                  <th class="py-3 px-4 font-bold">Precio COP</th>
+                  <th class="py-3 px-4 font-bold">Stock</th>
+                  <th class="py-3 px-4 font-bold">Estado</th>
+                  <th class="py-3 px-4 font-bold text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-stone-100">
+                
+                <!-- Fila 1: Tomate -->
+                <tr class="hover:bg-stone-50/70 transition">
+                  <td class="p-4"><input type="checkbox" class="rounded"></td>
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-3">
+                      <img src="assets/images/tomates.jpg" class="w-10 h-10 object-cover rounded-lg border border-stone-200">
+                      <div>
+                        <span class="font-bold text-stone-900 block">Tomate de huerta</span>
+                        <span class="text-[11px] text-stone-400">PR-001 · 1 kg</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 text-stone-600">Finca La Esperanza</td>
+                  <td class="py-3 px-4 text-stone-600">Verduras & Raíces</td>
+                  <td class="py-3 px-4 font-bold text-stone-800">$6.400</td>
+                  <td class="py-3 px-4 text-stone-600">85 kg</td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold status-badge-publicado">
+                      <span>●</span> Publicado
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <button class="p-1 text-stone-400 hover:text-stone-700 mr-1" title="Editar">✏️</button>
+                    <button class="p-1 text-stone-400 hover:text-stone-700" title="Opciones">•••</button>
+                  </td>
+                </tr>
+
+                <!-- Fila 2: Aguacate -->
+                <tr class="hover:bg-stone-50/70 transition">
+                  <td class="p-4"><input type="checkbox" class="rounded"></td>
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-3">
+                      <img src="assets/images/aguacates.jpg" class="w-10 h-10 object-cover rounded-lg border border-stone-200">
+                      <div>
+                        <span class="font-bold text-stone-900 block">Aguacate Hass</span>
+                        <span class="text-[11px] text-stone-400">PR-002 · 1 kg</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 text-stone-600">Familia Rojas</td>
+                  <td class="py-3 px-4 text-stone-600">Frutas del Valle</td>
+                  <td class="py-3 px-4 font-bold text-stone-800">$10.200</td>
+                  <td class="py-3 px-4 text-stone-600">42 kg</td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold status-badge-publicado">
+                      <span>●</span> Publicado
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <button class="p-1 text-stone-400 hover:text-stone-700 mr-1" title="Editar">✏️</button>
+                    <button class="p-1 text-stone-400 hover:text-stone-700" title="Opciones">•••</button>
+                  </td>
+                </tr>
+
+                <!-- Fila 3: Zanahoria -->
+                <tr class="hover:bg-stone-50/70 transition">
+                  <td class="p-4"><input type="checkbox" class="rounded"></td>
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-3">
+                      <img src="assets/images/zanahorias.jpg" class="w-10 h-10 object-cover rounded-lg border border-stone-200">
+                      <div>
+                        <span class="font-bold text-stone-900 block">Zanahoria de tierra</span>
+                        <span class="text-[11px] text-stone-400">PR-003 · 1 kg</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 text-stone-600">Huerta El Renacer</td>
+                  <td class="py-3 px-4 text-stone-600">Verduras & Raíces</td>
+                  <td class="py-3 px-4 font-bold text-stone-800">$4.000</td>
+                  <td class="py-3 px-4 text-stone-600">60 kg</td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold status-badge-publicado">
+                      <span>●</span> Publicado
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <button class="p-1 text-stone-400 hover:text-stone-700 mr-1" title="Editar">✏️</button>
+                    <button class="p-1 text-stone-400 hover:text-stone-700" title="Opciones">•••</button>
+                  </td>
+                </tr>
+
+                <!-- Fila 4: Canasta Familiar -->
+                <tr class="hover:bg-stone-50/70 transition">
+                  <td class="p-4"><input type="checkbox" class="rounded"></td>
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-3">
+                      <img src="assets/images/canasta_familiar.jpg" class="w-10 h-10 object-cover rounded-lg border border-stone-200">
+                      <div>
+                        <span class="font-bold text-stone-900 block">Canasta Huerto Familiar</span>
+                        <span class="text-[11px] text-stone-400">PR-004 · 1 canasta</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 text-stone-600">Familias de Choachí</td>
+                  <td class="py-3 px-4 text-stone-600">Canastas Familiares</td>
+                  <td class="py-3 px-4 font-bold text-stone-800">$58.000</td>
+                  <td class="py-3 px-4 text-stone-600">12 uds.</td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold status-badge-publicado">
+                      <span>●</span> Publicado
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <button class="p-1 text-stone-400 hover:text-stone-700 mr-1" title="Editar">✏️</button>
+                    <button class="p-1 text-stone-400 hover:text-stone-700" title="Opciones">•••</button>
+                  </td>
+                </tr>
+
+                <!-- Fila 5: Canasta Agroecológica (Borrador) -->
+                <tr class="hover:bg-stone-50/70 transition">
+                  <td class="p-4"><input type="checkbox" class="rounded"></td>
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-3">
+                      <img src="assets/images/canasta_esencial.jpg" class="w-10 h-10 object-cover rounded-lg border border-stone-200">
+                      <div>
+                        <span class="font-bold text-stone-900 block">Canasta Agroecológica</span>
+                        <span class="text-[11px] text-stone-400">PR-012 · 1 canasta</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 text-stone-600">Huerta El Renacer</td>
+                  <td class="py-3 px-4 text-stone-600">Canastas Familiares</td>
+                  <td class="py-3 px-4 font-bold text-stone-800">$36.000</td>
+                  <td class="py-3 px-4 text-stone-600">8 uds.</td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold status-badge-borrador">
+                      <span>●</span> Borrador
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <button class="p-1 text-stone-400 hover:text-stone-700 mr-1" title="Editar">✏️</button>
+                    <button class="p-1 text-stone-400 hover:text-stone-700" title="Opciones">•••</button>
+                  </td>
+                </tr>
+
+                <!-- Fila 6: Acelga (Agotado) -->
+                <tr class="hover:bg-stone-50/70 transition">
+                  <td class="p-4"><input type="checkbox" class="rounded"></td>
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-lg bg-stone-100 border border-stone-200 flex items-center justify-center text-base">
+                        🥬
+                      </div>
+                      <div>
+                        <span class="font-bold text-stone-900 block">Acelga de la huerta</span>
+                        <span class="text-[11px] text-stone-400">PR-018 · 1 manojo</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 text-stone-600">Huerta El Renacer</td>
+                  <td class="py-3 px-4 text-stone-600">Verduras & Raíces</td>
+                  <td class="py-3 px-4 font-bold text-stone-800">$3.500</td>
+                  <td class="py-3 px-4 text-stone-600">0 manojos</td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold status-badge-agotado">
+                      <span>●</span> Agotado
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <button class="p-1 text-stone-400 hover:text-stone-700 mr-1" title="Editar">✏️</button>
+                    <button class="p-1 text-stone-400 hover:text-stone-700" title="Opciones">•••</button>
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Paginación -->
+          <div class="p-4 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
+            <span>Mostrando 1–6 de 48 productos</span>
+            <div class="flex items-center gap-1.5 font-bold">
+              <button class="px-2.5 py-1 text-stone-400 hover:text-stone-700">Anterior</button>
+              <button class="w-7 h-7 rounded-lg bg-[#1a3d2f] text-white flex items-center justify-center">1</button>
+              <button class="w-7 h-7 rounded-lg text-stone-600 hover:bg-stone-100 flex items-center justify-center">2</button>
+              <button class="px-2.5 py-1 text-stone-700 hover:text-stone-900">Siguiente</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Callout Inferior -->
+        <div class="bg-[#F4EFE6] border border-[#EAE4D7] rounded-2xl p-4 flex items-start gap-3 text-xs text-stone-600">
+          <span class="text-base text-[#1a3d2f]">🛡️</span>
+          <div>
+            <span class="font-bold text-stone-800 block">Un catálogo fresco también se cuida.</span>
+            <p class="text-[11px] text-stone-500 mt-0.5">Los cambios de precio, stock y publicación quedan registrados en Auditoría. Los productores solo pueden gestionar sus propios productos.</p>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================================================================
+           VISTA 2: AGREGAR PRODUCTO (Imagen 1)
+           =================================================================== -->
+      <section id="view-agregar" class="admin-view hidden space-y-6">
+        
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#c85a32] block">Agregar Producto</span>
+            <h1 class="font-serif text-3xl font-normal text-stone-900 mt-1">Una nueva cosecha en el barrio</h1>
+            <p class="text-xs text-stone-500 mt-0.5">Incorpora un producto a la tienda y asígnalo a la familia que lo cultiva.</p>
+          </div>
+          <button onclick="switchAdminTab('productos')" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shrink-0">
+            <span>←</span>
+            <span>Volver a productos</span>
+          </button>
+        </div>
+
+        <!-- Formulario en 2 Columnas -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          <!-- Columna Izquierda: Formulario (8 cols) -->
+          <div class="lg:col-span-8 space-y-6">
+            
+            <!-- Card 1: Información del producto -->
+            <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+              <div>
+                <h3 class="font-serif text-lg font-bold text-stone-900">Información del producto</h3>
+                <p class="text-xs text-stone-400">Cuenta qué lo hace especial. Los campos con * son obligatorios.</p>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-stone-700 mb-1.5">Nombre del producto *</label>
+                <input 
+                  type="text" 
+                  id="form-product-name"
+                  value="Rábanos de temporada" 
+                  oninput="updatePreviewCard()"
+                  class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none"
+                >
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-stone-700 mb-1.5">Descripción *</label>
+                <textarea 
+                  rows="3" 
+                  class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none"
+                >Rábanos frescos y crujientes de nuestra huerta en Subachoque. Cosechados a mano, de sabor suave y ligeramente picante. Un toque de color para tus ensaladas.</textarea>
+                <span class="text-[10px] text-stone-400 mt-1 block">Describe su sabor, cultivo y recomendaciones de uso.</span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1.5">Categoría *</label>
+                  <select class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-white focus:border-[#1a3d2f] focus:outline-none">
+                    <option>Verduras & Raíces</option>
+                    <option>Frutas del Valle</option>
+                    <option>Canastas Familiares</option>
+                    <option>Huevos & Lácteos</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1.5">Unidad de venta *</label>
+                  <select id="form-product-unit" onchange="updatePreviewCard()" class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-white focus:border-[#1a3d2f] focus:outline-none">
+                    <option>Manojo · 250 g aprox.</option>
+                    <option>1 kg</option>
+                    <option>500 g</option>
+                    <option>1 canasta</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-stone-700 mb-1.5">Productor responsable *</label>
+                <select id="form-product-producer" onchange="updatePreviewCard()" class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-white focus:border-[#1a3d2f] focus:outline-none">
+                  <option>Elena Moreno · Huerta El Renacer</option>
+                  <option>Carlos Ramírez · Finca El Rosal</option>
+                  <option>Familia Rojas · Huerta San José</option>
+                </select>
+                <span class="text-[10px] text-stone-400 mt-1 block">El producto quedará vinculado a esta cuenta de productor.</span>
+              </div>
+            </div>
+
+            <!-- Card 2: Fotografías -->
+            <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+              <div>
+                <h3 class="font-serif text-lg font-bold text-stone-900">Fotografías</h3>
+                <p class="text-xs text-stone-400">La primera imagen será la portada. JPG o PNG · hasta 5 MB por imagen.</p>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="border border-stone-200 rounded-xl overflow-hidden p-2 flex flex-col items-center">
+                  <img src="assets/images/rabanos.jpg" class="w-full h-32 object-cover rounded-lg">
+                  <div class="w-full flex items-center justify-between mt-2 text-[11px]">
+                    <span class="text-emerald-700 font-bold">✓ Portada</span>
+                    <button class="text-stone-400 hover:text-red-500">Eliminar foto</button>
+                  </div>
+                </div>
+
+                <div class="border-2 border-dashed border-stone-200 rounded-xl p-6 flex flex-col items-center justify-center text-center text-stone-400 hover:border-stone-400 transition cursor-pointer">
+                  <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  <span class="text-xs font-semibold text-stone-700">Arrastra imágenes o selecciona archivos</span>
+                  <span class="text-[10px] text-stone-400 mt-1">Puedes añadir hasta 5 fotografías · 1 de 5</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Precio e inventario -->
+            <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+              <div>
+                <h3 class="font-serif text-lg font-bold text-stone-900">Precio e inventario</h3>
+                <p class="text-xs text-stone-400">Precios en pesos colombianos. El stock se descuenta por unidad de venta.</p>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1.5">Precio de venta (COP) *</label>
+                  <input 
+                    type="text" 
+                    id="form-product-price"
+                    value="$ 2.800" 
+                    oninput="updatePreviewCard()"
+                    class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none"
+                  >
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1.5">Existencias *</label>
+                  <input 
+                    type="text" 
+                    value="30 manojos" 
+                    class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none"
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 4: Origen y cosecha -->
+            <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+              <h3 class="font-serif text-lg font-bold text-stone-900">Origen y cosecha</h3>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1.5">Finca / lugar de origen *</label>
+                  <input 
+                    type="text" 
+                    id="form-product-origin"
+                    value="Huerta El Renacer · Subachoque" 
+                    oninput="updatePreviewCard()"
+                    class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none"
+                  >
+                </div>
+                <div>
+                  <label class="block text-xs font-semibold text-stone-700 mb-1.5">Fecha de cosecha *</label>
+                  <input 
+                    type="date" 
+                    value="2026-11-06" 
+                    class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none"
+                  >
+                </div>
+              </div>
+
+              <label class="flex items-center gap-2 cursor-pointer pt-1">
+                <input type="checkbox" checked class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
+                <span class="text-xs font-semibold text-stone-700">Cultivo agroecológico · sin químicos de síntesis</span>
+              </label>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex items-center justify-between pt-2">
+              <button onclick="switchAdminTab('productos')" class="text-xs font-semibold text-stone-500 hover:text-stone-800">
+                Cancelar
+              </button>
+              <div class="flex items-center gap-3">
+                <button onclick="alert('Guardado en borrador'); switchAdminTab('productos');" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2.5 rounded-xl transition">
+                  Guardar borrador
+                </button>
+                <button onclick="alert('¡Producto publicado con éxito en la tienda!'); switchAdminTab('productos');" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition">
+                  Publicar producto
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Columna Derecha: Disponibilidad y Previsualización (4 cols) -->
+          <div class="lg:col-span-4 space-y-6">
+            
+            <!-- Disponibilidad y estado -->
+            <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+              <h3 class="font-serif text-base font-bold text-stone-900">Disponibilidad y estado</h3>
+
+              <div class="flex items-center justify-between text-xs">
+                <span class="text-stone-500 font-medium">Estado actual</span>
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-stone-100 text-stone-600">
+                  <span>●</span> Sin publicar
+                </span>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-stone-700 mb-1.5">Estado al guardar *</label>
+                <select class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-white focus:outline-none">
+                  <option>Publicar en la tienda</option>
+                  <option>Guardar como borrador</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-stone-700 mb-1.5">Disponibilidad *</label>
+                <select class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-white focus:outline-none">
+                  <option>Disponible esta semana</option>
+                  <option>Próxima semana</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-stone-700 mb-1.5">Próxima entrega *</label>
+                <select class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-white focus:outline-none">
+                  <option>Sábado, 7 de noviembre</option>
+                  <option>Miércoles, 11 de noviembre</option>
+                </select>
+              </div>
+
+              <p class="text-[10px] text-stone-400 pt-1 leading-tight">
+                Recogida en Nodo Central. Los productos sin existencias se mostrarán como agotados.
+              </p>
+            </div>
+
+            <!-- Así lo verá tu barrio (Live Preview Card) -->
+            <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-2xs space-y-3">
+              <span class="text-xs font-bold text-stone-800 block">Así lo verá tu barrio</span>
+
+              <div class="border border-stone-200 rounded-xl overflow-hidden shadow-2xs">
+                <img src="assets/images/rabanos.jpg" class="w-full h-36 object-cover">
+                <div class="p-3.5 space-y-1">
+                  <h4 id="preview-card-title" class="font-serif text-base font-bold text-stone-900">Rábanos de temporada</h4>
+                  <p id="preview-card-origin" class="text-[11px] text-stone-400">Huerta El Renacer · Subachoque</p>
+                  <p class="text-sm font-bold text-[#1a3d2f] pt-1">
+                    <span id="preview-card-price">$2.800</span> <span id="preview-card-unit" class="text-xs font-normal text-stone-500">/ manojo</span>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Callout Nota -->
+            <div class="bg-[#F4EFE6] border border-[#EAE4D7] rounded-2xl p-4 text-xs text-stone-600">
+              <span class="font-bold text-stone-800 block">Del surco a la tienda</span>
+              <p class="text-[11px] text-stone-500 mt-1 leading-relaxed">
+                Revisa el precio, la portada y las existencias antes de publicar. También puedes continuar después desde Borradores.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ===================================================================
+           VISTA 3: GESTIONAR CUENTAS (Imagen 3)
+           =================================================================== -->
+      <section id="view-cuentas" class="admin-view hidden space-y-6">
+        
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#c85a32] block">Gestionar Cuentas</span>
+            <h1 class="font-serif text-3xl font-normal text-stone-900 mt-1">Las personas del mercado</h1>
+            <p class="text-xs text-stone-500 mt-0.5">Administra el acceso de tu comunidad sin perder de vista quién está detrás.</p>
+          </div>
+          <button onclick="alert('Formulario de invitación enviado.');" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition flex items-center gap-1.5 shrink-0">
+            <span>+</span>
+            <span>Invitar cuenta</span>
+          </button>
+        </div>
+
+        <!-- Barra de Contadores -->
+        <div class="bg-white p-4 rounded-2xl border border-stone-200 flex flex-wrap items-center gap-6 text-xs text-stone-600 shadow-2xs">
+          <div class="flex items-center gap-2 font-bold text-stone-900">
+            <span>👥</span>
+            <span>126 cuentas</span>
+          </div>
+          <span class="text-stone-300">|</span>
+          <span>2 administradores</span>
+          <span class="text-stone-300">·</span>
+          <span>23 productores</span>
+          <span class="text-stone-300">·</span>
+          <span>101 compradores</span>
+        </div>
+
+        <!-- Barra de Búsqueda y Filtros -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div class="flex-1 relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </span>
+            <input 
+              type="text" 
+              placeholder="Buscar por nombre o correo electrónico..." 
+              class="w-full pl-10 pr-4 py-2 bg-white text-xs rounded-xl border border-stone-200 focus:outline-none focus:border-[#1a3d2f] text-stone-700 shadow-2xs"
+            >
+          </div>
+          <select class="bg-white border border-stone-200 text-xs text-stone-700 py-2 px-3 rounded-xl focus:outline-none shadow-2xs">
+            <option>Todos los roles ▾</option>
+            <option>Administrador</option>
+            <option>Productor</option>
+            <option>Comprador</option>
+          </select>
+          <select class="bg-white border border-stone-200 text-xs text-stone-700 py-2 px-3 rounded-xl focus:outline-none shadow-2xs">
+            <option>Todos los estados ▾</option>
+            <option>Activa</option>
+            <option>Invitada</option>
+            <option>Suspendida</option>
+          </select>
+          <button class="bg-white border border-stone-200 text-xs font-semibold text-stone-700 py-2 px-3.5 rounded-xl hover:bg-stone-50 transition shadow-2xs flex items-center gap-1.5">
+            <span>📥</span>
+            <span>Exportar</span>
+          </button>
+        </div>
+
+        <!-- Contenedor en 2 Columnas: Tabla y Panel de Edición Lateral -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          
+          <!-- Tabla de Cuentas (8 cols) -->
+          <div class="lg:col-span-8 bg-white rounded-2xl border border-stone-200 shadow-2xs overflow-hidden">
+            <table class="w-full text-left text-xs text-stone-700">
+              <thead class="bg-[#FAF8F5] text-[10px] uppercase font-bold text-stone-400 border-b border-stone-100">
+                <tr>
+                  <th class="py-3 px-4 font-bold">Cuenta</th>
+                  <th class="py-3 px-4 font-bold">Rol</th>
+                  <th class="py-3 px-4 font-bold">Estado</th>
+                  <th class="py-3 px-4 font-bold text-right">Ver</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-stone-100">
+                
+                <!-- Elena Moreno (Seleccionada) -->
+                <tr onclick="selectAccountForEdit('Elena Moreno', 'elena@elrenacer.co', 'Productor', 'Activa', 'EM')" class="bg-emerald-50/40 hover:bg-emerald-50/70 transition cursor-pointer">
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 font-bold text-xs flex items-center justify-center">
+                        EM
+                      </div>
+                      <div>
+                        <span class="font-bold text-stone-900 block">Elena Moreno</span>
+                        <span class="text-[11px] text-stone-400">elena@elrenacer.co</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-stone-700">Productor</td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                      <span>●</span> Activa
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-right text-stone-400 font-bold">›</td>
+                </tr>
+
+                <!-- Lucía Torres -->
+                <tr onclick="selectAccountForEdit('Lucía Torres', 'lucia@raizybarrio.co', 'Administrador', 'Activa', 'LT')" class="hover:bg-stone-50 transition cursor-pointer">
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-8 h-8 rounded-full bg-stone-200 text-stone-700 font-bold text-xs flex items-center justify-center">
+                        LT
+                      </div>
+                      <div>
+                        <span class="font-bold text-stone-900 block">Lucía Torres</span>
+                        <span class="text-[11px] text-stone-400">lucia@raizybarrio.co</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-stone-700">Administrador</td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                      <span>●</span> Activa
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-right text-stone-400 font-bold">›</td>
+                </tr>
+
+                <!-- Carlos Ramírez -->
+                <tr onclick="selectAccountForEdit('Carlos Ramírez', 'carlos@laesperanza.co', 'Productor', 'Activa', 'CR')" class="hover:bg-stone-50 transition cursor-pointer">
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-8 h-8 rounded-full bg-amber-100 text-amber-800 font-bold text-xs flex items-center justify-center">
+                        CR
+                      </div>
+                      <div>
+                        <span class="font-bold text-stone-900 block">Carlos Ramírez</span>
+                        <span class="text-[11px] text-stone-400">carlos@laesperanza.co</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-stone-700">Productor</td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                      <span>●</span> Activa
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-right text-stone-400 font-bold">›</td>
+                </tr>
+
+                <!-- Daniel Rojas -->
+                <tr onclick="selectAccountForEdit('Daniel Rojas', 'daniel@familiarojas.co', 'Productor', 'Invitada', 'DR')" class="hover:bg-stone-50 transition cursor-pointer">
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-8 h-8 rounded-full bg-stone-200 text-stone-600 font-bold text-xs flex items-center justify-center">
+                        DR
+                      </div>
+                      <div>
+                        <span class="font-bold text-stone-900 block">Daniel Rojas</span>
+                        <span class="text-[11px] text-stone-400">daniel@familiarojas.co</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-stone-700">Productor</td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600">
+                      <span>●</span> Invitada
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-right text-stone-400 font-bold">›</td>
+                </tr>
+
+                <!-- Laura Martínez -->
+                <tr onclick="selectAccountForEdit('Laura Martínez', 'laura.m@example.com', 'Comprador', 'Activa', 'LM')" class="hover:bg-stone-50 transition cursor-pointer">
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-800 font-bold text-xs flex items-center justify-center">
+                        LM
+                      </div>
+                      <div>
+                        <span class="font-bold text-stone-900 block">Laura Martínez</span>
+                        <span class="text-[11px] text-stone-400">laura.m@example.com</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-stone-700">Comprador</td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                      <span>●</span> Activa
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-right text-stone-400 font-bold">›</td>
+                </tr>
+
+                <!-- Andrés Gómez -->
+                <tr onclick="selectAccountForEdit('Andrés Gómez', 'andres.g@example.com', 'Comprador', 'Suspendida', 'AG')" class="hover:bg-stone-50 transition cursor-pointer">
+                  <td class="py-3 px-4">
+                    <div class="flex items-center gap-2.5">
+                      <div class="w-8 h-8 rounded-full bg-red-100 text-red-800 font-bold text-xs flex items-center justify-center">
+                        AG
+                      </div>
+                      <div>
+                        <span class="font-bold text-stone-900 block">Andrés Gómez</span>
+                        <span class="text-[11px] text-stone-400">andres.g@example.com</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-stone-700">Comprador</td>
+                  <td class="py-3 px-4">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-red-600">
+                      <span>●</span> Suspendida
+                    </span>
+                  </td>
+                  <td class="py-3 px-4 text-right text-stone-400 font-bold">›</td>
+                </tr>
+
+              </tbody>
+            </table>
+
+            <!-- Paginación -->
+            <div class="p-4 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
+              <span>Mostrando 1–6 de 126 cuentas</span>
+              <div class="flex items-center gap-1.5 font-bold">
+                <button class="w-7 h-7 rounded-lg bg-[#1a3d2f] text-white flex items-center justify-center">1</button>
+                <button class="w-7 h-7 rounded-lg text-stone-600 hover:bg-stone-100 flex items-center justify-center">2</button>
+                <button class="px-2.5 py-1 text-stone-700 hover:text-stone-900">Siguiente</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Panel Lateral: Gestionar cuenta (4 cols) -->
+          <div class="lg:col-span-4 bg-white p-6 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+            <h3 class="font-serif text-base font-bold text-stone-900">Gestionar cuenta</h3>
+
+            <div class="flex items-center gap-3 pb-3 border-b border-stone-100">
+              <div id="edit-account-avatar" class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 font-bold text-sm flex items-center justify-center">
+                EM
+              </div>
+              <div>
+                <span id="edit-account-name" class="font-bold text-stone-900 block text-sm">Elena Moreno</span>
+                <span id="edit-account-email" class="text-xs text-stone-400 block">elena@elrenacer.co</span>
+              </div>
+            </div>
+
+            <div class="text-[11px] text-stone-500 space-y-0.5">
+              <p>Cuenta CU-023 · Desde 12 sep. 2026</p>
+              <p>Huerta El Renacer · Subachoque</p>
+              <p>3 productos vinculados</p>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-stone-700 mb-1.5">Rol de la cuenta</label>
+              <select id="edit-account-role" class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-white focus:outline-none">
+                <option value="Productor" selected>Productor</option>
+                <option value="Administrador">Administrador</option>
+                <option value="Comprador">Comprador</option>
+              </select>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-stone-700 mb-1.5">Estado de acceso</label>
+              <select id="edit-account-status" class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-white focus:outline-none">
+                <option value="Activa" selected>Activa</option>
+                <option value="Invitada">Invitada</option>
+                <option value="Suspendida">Suspendida</option>
+              </select>
+            </div>
+
+            <p class="text-[10px] text-stone-400 leading-tight">
+              Este rol solo permite gestionar los productos de su propia finca y su perfil personal.
+            </p>
+
+            <button onclick="alert('Cambios guardados con éxito');" class="w-full bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold py-2.5 rounded-xl shadow-sm transition">
+              ✓ Guardar cambios de cuenta
+            </button>
+
+            <span class="text-[10px] text-stone-400 block text-center">
+              Toda modificación de rol o estado quedará registrada en Auditoría.
+            </span>
+          </div>
+
+        </div>
+
+        <!-- Callout Inferior -->
+        <div class="bg-[#F4EFE6] border border-[#EAE4D7] rounded-2xl p-4 flex items-start gap-3 text-xs text-stone-600">
+          <span class="text-base text-[#1a3d2f]">🛡️</span>
+          <div>
+            <span class="font-bold text-stone-800 block">Accesos con cuidado</span>
+            <p class="text-[11px] text-stone-500 mt-0.5">Suspender una cuenta bloquea su acceso, pero conserva sus productos y el historial de actividad. Tu propia cuenta no puede perder el último acceso de administrador.</p>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================================================================
+           VISTA 4: ROLES Y PERMISOS (Imagen 4)
+           =================================================================== -->
+      <section id="view-roles" class="admin-view hidden space-y-6">
+        
+        <!-- Header -->
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-[#c85a32] block">Roles y Permisos</span>
+          <h1 class="font-serif text-3xl font-normal text-stone-900 mt-1">Cada persona, el acceso justo</h1>
+          <p class="text-xs text-stone-500 mt-0.5">Define qué puede hacer cada rol. La gestión global permanece en administración.</p>
+        </div>
+
+        <!-- Layout en 2 Columnas -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          
+          <!-- Columna Izquierda: Tarjetas de Roles (4 cols) -->
+          <div class="lg:col-span-4 space-y-3">
+            <span class="text-[10px] font-bold uppercase tracking-wider text-stone-400 block px-1">Roles del Mercado · 3</span>
+
+            <!-- Rol Administrador -->
+            <div class="bg-white p-4 rounded-2xl border border-stone-200 hover:border-stone-300 transition cursor-pointer shadow-2xs">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-bold text-stone-800 text-xs">🛡️ Administrador</span>
+              </div>
+              <p class="text-[11px] text-stone-500 leading-tight">Gestión global del mercado, cuentas, permisos y auditoría.</p>
+              <span class="text-[10px] text-stone-400 font-semibold block mt-3">2 cuentas</span>
+            </div>
+
+            <!-- Rol Productor (Seleccionado) -->
+            <div class="bg-emerald-50/40 p-4 rounded-2xl border-2 border-[#1a3d2f] transition cursor-pointer shadow-2xs">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-bold text-[#1a3d2f] text-xs">🚜 Productor</span>
+                <span class="text-emerald-700 text-xs font-bold">✓</span>
+              </div>
+              <p class="text-[11px] text-stone-600 leading-tight">Sus productos, sus publicaciones y su perfil personal.</p>
+              <span class="text-[10px] text-emerald-800 font-bold block mt-3">23 cuentas</span>
+            </div>
+
+            <!-- Rol Comprador -->
+            <div class="bg-white p-4 rounded-2xl border border-stone-200 hover:border-stone-300 transition cursor-pointer shadow-2xs">
+              <div class="flex items-center justify-between mb-1">
+                <span class="font-bold text-stone-800 text-xs">🛒 Comprador</span>
+              </div>
+              <p class="text-[11px] text-stone-500 leading-tight">Compra en el mercado y gestiona únicamente su perfil.</p>
+              <span class="text-[10px] text-stone-400 font-semibold block mt-3">101 cuentas</span>
+            </div>
+
+            <p class="text-[10px] text-stone-400 pt-2 px-1">
+              Los roles base no se pueden eliminar. Selecciona un rol para revisar sus autorizaciones.
+            </p>
+          </div>
+
+          <!-- Columna Derecha: Matriz de Permisos (8 cols) -->
+          <div class="lg:col-span-8 bg-white p-6 rounded-2xl border border-stone-200 shadow-2xs space-y-6">
+            
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-4">
+              <div>
+                <h3 class="font-serif text-lg font-bold text-stone-900">Permisos de Productor</h3>
+                <p class="text-xs text-stone-400">Los cambios se aplicarán a las 23 cuentas con este rol.</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                  <span>●</span> Solo productos propios
+                </span>
+                <span class="text-[10px] text-stone-400">🔒 Permiso base protegido</span>
+              </div>
+            </div>
+
+            <!-- Tabla de Permisos Matriz -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-stone-700">
+                <thead class="bg-[#FAF8F5] text-[10px] uppercase font-bold text-stone-400 border-b border-stone-100">
+                  <tr>
+                    <th class="py-3 px-4 font-bold">Recurso / Alcance</th>
+                    <th class="py-3 px-3 font-bold text-center">Consultar</th>
+                    <th class="py-3 px-3 font-bold text-center">Crear</th>
+                    <th class="py-3 px-3 font-bold text-center">Modificar</th>
+                    <th class="py-3 px-3 font-bold text-center">Publicar</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-stone-100">
+                  
+                  <tr>
+                    <td class="py-3 px-4">
+                      <span class="font-bold text-stone-900 block">Productos propios</span>
+                      <span class="text-[11px] text-stone-400">Solo productos de su finca</span>
+                    </td>
+                    <td class="py-3 px-3 text-center"><input type="checkbox" checked class="rounded text-[#1a3d2f]"></td>
+                    <td class="py-3 px-3 text-center"><input type="checkbox" checked class="rounded text-[#1a3d2f]"></td>
+                    <td class="py-3 px-3 text-center"><input type="checkbox" checked class="rounded text-[#1a3d2f]"></td>
+                    <td class="py-3 px-3 text-center"><input type="checkbox" checked class="rounded text-[#1a3d2f]"></td>
+                  </tr>
+
+                  <tr>
+                    <td class="py-3 px-4">
+                      <span class="font-bold text-stone-900 block">Tienda / otros productos</span>
+                      <span class="text-[11px] text-stone-400">Catálogo público · sin edición global</span>
+                    </td>
+                    <td class="py-3 px-3 text-center"><input type="checkbox" checked class="rounded text-[#1a3d2f]"></td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                  </tr>
+
+                  <tr>
+                    <td class="py-3 px-4">
+                      <span class="font-bold text-stone-900 block">Gestionar cuentas</span>
+                      <span class="text-[11px] text-stone-400">Acceso exclusivo de administrador</span>
+                    </td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                  </tr>
+
+                  <tr>
+                    <td class="py-3 px-4">
+                      <span class="font-bold text-stone-900 block">Roles y permisos</span>
+                      <span class="text-[11px] text-stone-400">Acceso exclusivo de administrador</span>
+                    </td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                  </tr>
+
+                  <tr>
+                    <td class="py-3 px-4">
+                      <span class="font-bold text-stone-900 block">Auditoría</span>
+                      <span class="text-[11px] text-stone-400">Acceso exclusivo de administrador</span>
+                    </td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                  </tr>
+
+                  <tr>
+                    <td class="py-3 px-4">
+                      <span class="font-bold text-stone-900 block">Mi perfil y seguridad</span>
+                      <span class="text-[11px] text-stone-400">Solo su propia cuenta</span>
+                    </td>
+                    <td class="py-3 px-3 text-center"><input type="checkbox" checked class="rounded text-[#1a3d2f]"></td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                    <td class="py-3 px-3 text-center"><input type="checkbox" checked class="rounded text-[#1a3d2f]"></td>
+                    <td class="py-3 px-3 text-center text-stone-300">—</td>
+                  </tr>
+
+                </tbody>
+              </table>
+            </div>
+
+            <p class="text-[10px] text-stone-400 leading-tight">
+              "Modificar" permite actualizar datos o estado del recurso. El productor no puede consultar cuentas ajenas, cambiar roles ni acceder a registros administrativos.
+            </p>
+
+            <div class="flex items-center justify-between pt-2 border-t border-stone-100">
+              <button onclick="alert('Permisos restablecidos a los valores base');" class="text-xs font-semibold text-stone-500 hover:text-stone-800">
+                Restablecer
+              </button>
+              <button onclick="alert('Permisos guardados con éxito');" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm transition">
+                ✓ Guardar permisos
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Callout Inferior -->
+        <div class="bg-[#F4EFE6] border border-[#EAE4D7] rounded-2xl p-4 flex items-start gap-3 text-xs text-stone-600">
+          <span class="text-base text-[#1a3d2f]">🛡️</span>
+          <div>
+            <span class="font-bold text-stone-800 block">La confianza también tiene límites</span>
+            <p class="text-[11px] text-stone-500 mt-0.5">Los compradores nunca reciben permisos administrativos. Los accesos protegidos no pueden ampliarse desde el rol Productor. Todos los cambios se registran en Auditoría.</p>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================================================================
+           VISTA 5: AUDITORÍA (Imagen 2)
+           =================================================================== -->
+      <section id="view-auditoria" class="admin-view hidden space-y-6">
+        
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#c85a32] block">Auditoría</span>
+            <h1 class="font-serif text-3xl font-normal text-stone-900 mt-1">La historia de cada cambio</h1>
+            <p class="text-xs text-stone-500 mt-0.5">Consulta quién hizo qué, cuándo y sobre qué recurso. Un registro para cuidar la confianza.</p>
+          </div>
+          <button onclick="alert('Descargando registro de auditoría en formato CSV...');" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shrink-0 shadow-2xs">
+            <span>📥</span>
+            <span>Exportar registro</span>
+          </button>
+        </div>
+
+        <!-- Barra de Filtros -->
+        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <select class="bg-white border border-stone-200 text-xs text-stone-700 py-2 px-3 rounded-xl focus:outline-none shadow-2xs">
+            <option>Hoy · 6 nov. 2026 ▾</option>
+            <option>Ayer · 5 nov. 2026</option>
+            <option>Últimos 7 días</option>
+          </select>
+
+          <div class="flex-1 relative">
+            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-stone-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </span>
+            <input 
+              type="text" 
+              placeholder="Buscar actor o recurso..." 
+              class="w-full pl-10 pr-4 py-2 bg-white text-xs rounded-xl border border-stone-200 focus:outline-none focus:border-[#1a3d2f] text-stone-700 shadow-2xs"
+            >
+          </div>
+
+          <select class="bg-white border border-stone-200 text-xs text-stone-700 py-2 px-3 rounded-xl focus:outline-none shadow-2xs">
+            <option>Todas las acciones ▾</option>
+            <option>Precio actualizado</option>
+            <option>Cuenta activada</option>
+            <option>Acceso rechazado</option>
+          </select>
+
+          <select class="bg-white border border-stone-200 text-xs text-stone-700 py-2 px-3 rounded-xl focus:outline-none shadow-2xs">
+            <option>Resultado: todos ▾</option>
+            <option>Correcto</option>
+            <option>Denegado</option>
+          </select>
+
+          <button class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-4 py-2 rounded-xl transition shadow-2xs">
+            Aplicar filtros
+          </button>
+        </div>
+
+        <!-- Tabla de Eventos de Auditoría -->
+        <div class="bg-white rounded-2xl border border-stone-200 shadow-2xs overflow-hidden">
+          
+          <div class="px-5 py-3 border-b border-stone-100 flex items-center justify-between text-xs">
+            <span class="font-bold text-stone-800">18 eventos hoy · 17 correctos · 1 denegado</span>
+            <span class="text-[11px] text-stone-400">🔒 Registro de solo lectura</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs text-stone-700">
+              <thead class="bg-[#FAF8F5] text-[10px] uppercase font-bold text-stone-400 border-b border-stone-100">
+                <tr>
+                  <th class="py-3 px-4 font-bold">Fecha y Hora</th>
+                  <th class="py-3 px-4 font-bold">Actor</th>
+                  <th class="py-3 px-4 font-bold">Acción</th>
+                  <th class="py-3 px-4 font-bold">Recurso</th>
+                  <th class="py-3 px-4 font-bold text-right">Resultado</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-stone-100">
+                
+                <!-- Evento 1 (Desplegado) -->
+                <tr class="bg-emerald-50/30">
+                  <td class="py-3 px-4 font-mono text-[11px] text-stone-500">
+                    <span class="block font-semibold text-stone-800">6 nov. 2026</span>
+                    10:42 a. m.
+                  </td>
+                  <td class="py-3 px-4">
+                    <span class="font-bold text-stone-900 block">Elena Moreno</span>
+                    <span class="text-[11px] text-stone-400">Productor</span>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-stone-800">Precio actualizado</td>
+                  <td class="py-3 px-4">
+                    <span class="font-bold text-stone-900 block">Zanahoria de tierra</span>
+                    <span class="text-[11px] text-stone-400">PR-003</span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                      <span>●</span> Correcto ⌵
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Evento 2 -->
+                <tr class="hover:bg-stone-50 transition cursor-pointer">
+                  <td class="py-3 px-4 font-mono text-[11px] text-stone-500">
+                    <span class="block font-semibold text-stone-800">6 nov. 2026</span>
+                    10:18 a. m.
+                  </td>
+                  <td class="py-3 px-4">
+                    <span class="font-bold text-stone-900 block">Lucía Torres</span>
+                    <span class="text-[11px] text-stone-400">Administrador</span>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-stone-800">Cuenta activada</td>
+                  <td class="py-3 px-4">
+                    <span class="font-bold text-stone-900 block">Elena Moreno</span>
+                    <span class="text-[11px] text-stone-400">CU-023</span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                      <span>●</span> Correcto ›
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Evento 3 -->
+                <tr class="hover:bg-stone-50 transition cursor-pointer">
+                  <td class="py-3 px-4 font-mono text-[11px] text-stone-500">
+                    <span class="block font-semibold text-stone-800">6 nov. 2026</span>
+                    10:11 a. m.
+                  </td>
+                  <td class="py-3 px-4">
+                    <span class="font-bold text-stone-900 block">Lucía Torres</span>
+                    <span class="text-[11px] text-stone-400">Administrador</span>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-stone-800">Cuenta suspendida</td>
+                  <td class="py-3 px-4">
+                    <span class="font-bold text-stone-900 block">Andrés Gómez</span>
+                    <span class="text-[11px] text-stone-400">CU-108</span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                      <span>●</span> Correcto ›
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Evento 4: Acceso rechazado (Denegado) -->
+                <tr class="hover:bg-stone-50 transition cursor-pointer">
+                  <td class="py-3 px-4 font-mono text-[11px] text-stone-500">
+                    <span class="block font-semibold text-stone-800">6 nov. 2026</span>
+                    10:07 a. m.
+                  </td>
+                  <td class="py-3 px-4">
+                    <span class="font-bold text-stone-900 block">Andrés Gómez</span>
+                    <span class="text-[11px] text-stone-400">Comprador</span>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-stone-800">Acceso rechazado</td>
+                  <td class="py-3 px-4">
+                    <span class="font-bold text-stone-900 block">Roles y permisos</span>
+                    <span class="text-[11px] text-stone-400">Acceso administrativo</span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-red-600">
+                      <span>●</span> Denegado ›
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Evento 5 -->
+                <tr class="hover:bg-stone-50 transition cursor-pointer">
+                  <td class="py-3 px-4 font-mono text-[11px] text-stone-500">
+                    <span class="block font-semibold text-stone-800">6 nov. 2026</span>
+                    9:54 a. m.
+                  </td>
+                  <td class="py-3 px-4">
+                    <span class="font-bold text-stone-900 block">Carlos Ramírez</span>
+                    <span class="text-[11px] text-stone-400">Productor</span>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-stone-800">Stock actualizado</td>
+                  <td class="py-3 px-4">
+                    <span class="font-bold text-stone-900 block">Tomate de huerta</span>
+                    <span class="text-[11px] text-stone-400">PR-001</span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                      <span>●</span> Correcto ›
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Evento 6 -->
+                <tr class="hover:bg-stone-50 transition cursor-pointer">
+                  <td class="py-3 px-4 font-mono text-[11px] text-stone-500">
+                    <span class="block font-semibold text-stone-800">6 nov. 2026</span>
+                    9:30 a. m.
+                  </td>
+                  <td class="py-3 px-4">
+                    <span class="font-bold text-stone-900 block">Elena Moreno</span>
+                    <span class="text-[11px] text-stone-400">Productor</span>
+                  </td>
+                  <td class="py-3 px-4 font-semibold text-stone-800">Borrador guardado</td>
+                  <td class="py-3 px-4">
+                    <span class="font-bold text-stone-900 block">Canasta Agroecológica</span>
+                    <span class="text-[11px] text-stone-400">PR-012</span>
+                  </td>
+                  <td class="py-3 px-4 text-right">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700">
+                      <span>●</span> Correcto ›
+                    </span>
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Paginación -->
+          <div class="p-4 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
+            <span>Mostrando 1–6 de 18 eventos de hoy</span>
+            <button class="font-bold text-stone-700 hover:text-stone-900">Ver más eventos</button>
+          </div>
+
+        </div>
+
+        <!-- Tarjeta de Detalle del Evento Seleccionado (AU-0286) -->
+        <div class="bg-white p-6 rounded-2xl border border-stone-200 shadow-2xs space-y-4">
+          <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+            <div>
+              <span class="font-serif text-base font-bold text-stone-900 block">Detalle del evento · AU-0286</span>
+              <span class="text-xs text-stone-500">Precio actualizado · 6 nov. 2026, 10:42 a. m. (Bogotá, UTC-5)</span>
+            </div>
+            <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+              <span>●</span> Cambio autorizado · producto propio
+            </span>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+            
+            <div class="text-xs text-stone-600 space-y-1">
+              <span class="font-bold text-stone-900 block text-sm">Elena Moreno · Productor</span>
+              <p class="text-stone-400">elena@elrenacer.co</p>
+              <p class="text-stone-500">Producto PR-003 · Huerta El Renacer</p>
+            </div>
+
+            <div class="bg-stone-50 p-4 rounded-xl border border-stone-200">
+              <span class="text-[10px] uppercase font-bold text-stone-400 block tracking-wider">Antes · Precio por kg</span>
+              <span class="font-serif text-2xl font-bold text-stone-700 block mt-1">$4.500 COP</span>
+            </div>
+
+            <div class="bg-emerald-50/70 p-4 rounded-xl border border-emerald-200">
+              <span class="text-[10px] uppercase font-bold text-emerald-800 block tracking-wider">Después · Precio por kg</span>
+              <span class="font-serif text-2xl font-bold text-[#1f7a4d] block mt-1">$4.000 COP</span>
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+
+      <!-- ===================================================================
+           VISTA 6: MI PERFIL Y SEGURIDAD (Dejado sin nada según instrucción)
+           =================================================================== -->
+      <section id="view-perfil" class="admin-view hidden space-y-6">
+        <div class="p-12 text-center bg-white rounded-3xl border border-dashed border-stone-300">
+          <div class="w-12 h-12 mx-auto mb-3 rounded-2xl bg-stone-100 text-stone-500 flex items-center justify-center text-xl">
+            👤
+          </div>
+          <h2 class="font-serif text-xl font-bold text-stone-800">Mi perfil y seguridad</h2>
+          <p class="text-xs text-stone-400 mt-1 max-w-sm mx-auto">
+            Apartado reservado para la configuración personal y credenciales del administrador. Se implementará en una etapa posterior.
+          </p>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer Simple de la Administración -->
+    <footer class="px-8 py-4 border-t border-stone-200 text-stone-400 text-[11px] flex items-center justify-between">
+      <span>© 2026 Raíz & Barrio · Bogotá y su tierra cercana.</span>
+      <div class="flex items-center gap-4">
+        <a href="#" class="hover:underline">Ayuda</a>
+        <a href="#" class="hover:underline">Privacidad</a>
+        <button onclick="logoutUser()" class="hover:underline text-red-500">Cerrar sesión</button>
+      </div>
+    </footer>
+
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
