@@ -32,24 +32,35 @@ const AUTH_ACCOUNTS = {
   }
 };
 
-// Obtener usuario actualmente conectado
+// Obtener usuario actualmente conectado (sincronizado con claves de sesión)
 function getCurrentUser() {
   try {
-    const raw = localStorage.getItem('rb_current_user');
-    return raw ? JSON.parse(raw) : null;
+    const raw = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (parsed) {
+      parsed.loggedIn = true;
+      return parsed;
+    }
   } catch (e) {
     return null;
   }
+  return null;
 }
 
-// Guardar sesión
+// Guardar sesión persistente
 function setCurrentUser(user) {
-  localStorage.setItem('rb_current_user', JSON.stringify(user));
+  if (user) {
+    user.loggedIn = true;
+    localStorage.setItem('rb_current_user', JSON.stringify(user));
+    localStorage.setItem('raiz_user', JSON.stringify(user));
+  }
 }
 
 // Cerrar sesión
 function logoutUser() {
   localStorage.removeItem('rb_current_user');
+  localStorage.removeItem('raiz_user');
   window.location.href = 'index.html';
 }
 
@@ -199,14 +210,13 @@ async function handleAuthSubmit(event) {
           username: dbUser.username,
           role: 'cliente',
           name: dbUser.full_name || dbUser.username,
-          email: dbUser.email
+          email: dbUser.email,
+          loggedIn: true
         };
         setCurrentUser(clienteUser);
         closeLoginModal();
         updateAuthUI();
-        if (typeof showToast === 'function') {
-          showToast(`¡Bienvenido, ${clienteUser.name}! Sesión validada en Supabase.`);
-        }
+        window.location.href = 'mercado.html';
         return false;
       }
     }
@@ -248,12 +258,14 @@ async function handleAuthSubmit(event) {
       return false;
     }
     if (username === AUTH_ACCOUNTS.cliente.username && password === AUTH_ACCOUNTS.cliente.password) {
-      setCurrentUser(AUTH_ACCOUNTS.cliente);
+      const clienteUser = {
+        ...AUTH_ACCOUNTS.cliente,
+        loggedIn: true
+      };
+      setCurrentUser(clienteUser);
       closeLoginModal();
       updateAuthUI();
-      if (typeof showToast === 'function') {
-        showToast('¡Bienvenido, Max! Has iniciado sesión como Cliente.');
-      }
+      window.location.href = 'mercado.html';
       return false;
     }
   }

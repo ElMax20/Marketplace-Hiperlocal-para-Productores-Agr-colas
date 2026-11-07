@@ -638,16 +638,20 @@ function setupCartDrawerListeners() {
 // =============================================================================
 
 /**
- * Obtener usuario actual desde localStorage
+ * Obtener usuario actual desde localStorage (compatible con rb_current_user y raiz_user)
  */
 function getCurrentUser() {
-  const data = localStorage.getItem('raiz_user');
-  if (data) {
-    try {
-      return JSON.parse(data);
-    } catch(e) {
-      return null;
+  try {
+    const raw = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed) {
+        parsed.loggedIn = true;
+        return parsed;
+      }
     }
+  } catch(e) {
+    return null;
   }
   return null;
 }
@@ -846,6 +850,7 @@ function handleLogin(e) {
 
 // Cerrar Sesión (vuelve a ser invitado)
 function handleLogout() {
+  localStorage.removeItem('rb_current_user');
   localStorage.removeItem('raiz_user');
   checkAuthStatus();
   showToast('Has cerrado sesión. Ahora navegas como invitado.');
