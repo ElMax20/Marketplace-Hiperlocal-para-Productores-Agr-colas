@@ -56,7 +56,7 @@ let cart = [
     price: 38000,
     unit: 'canasta semanal',
     quantity: 1,
-    image: 'assets/images/canasta_esencial.jpg',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_esencial.jpg',
     origin: 'Huerta El Renacer & Coop. La Unión'
   }
 ];
