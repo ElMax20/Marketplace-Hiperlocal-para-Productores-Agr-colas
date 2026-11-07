@@ -156,6 +156,85 @@ class SupabaseService {
       return [];
     }
   }
+
+  // =========================================================================
+  // ALMACENAMIENTO DE ASSETS (Supabase Storage & tabla 'assets')
+  // =========================================================================
+
+  /**
+   * Convierte una ruta relativa de imagen o nombre de archivo en su URL pública en Supabase Storage
+   * Ejemplo: 'assets/images/tomates.jpg' -> 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg'
+   */
+  getPublicAssetUrl(path) {
+    if (!path) return '';
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    // Limpiar prefijo assets/ si está presente
+    let cleanPath = path.replace(/^\/?assets\//, '');
+    if (!cleanPath.startsWith('images/')) {
+      cleanPath = `images/${cleanPath}`;
+    }
+    return `${SUPABASE_CONFIG.url}/storage/v1/object/public/assets/${cleanPath}`;
+  }
+
+  /**
+   * Obtiene la lista completa de todos los assets registrados en la base de datos
+   */
+  async getAssets() {
+    try {
+      return await this.fetchApi('assets?select=*&order=filename.asc');
+    } catch (e) {
+      console.error('Error al obtener catálogo de assets de Supabase:', e);
+      return [];
+    }
+  }
+
+  /**
+   * Sube un archivo a Supabase Storage y lo registra en la tabla 'assets'
+   */
+  async uploadAsset(file, filename, folder = 'images') {
+    try {
+      const storagePath = `${folder}/${filename}`;
+      const uploadUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/assets/${storagePath}`;
+      
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_CONFIG.anonKey,
+          'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+          'Content-Type': file.type || 'image/jpeg',
+          'x-upsert': 'true'
+        },
+        body: file
+      });
+
+      if (!response.ok) {
+        throw new Error(`Error subiendo asset: ${response.statusText}`);
+      }
+
+      const publicUrl = this.getPublicAssetUrl(storagePath);
+
+      // Registrar o actualizar en la tabla public.assets
+      await this.fetchApi('assets', {
+        method: 'POST',
+        headers: { 'Prefer': 'resolution=merge-duplicates' },
+        body: JSON.stringify({
+          filename: filename,
+          folder: folder,
+          path: `assets/${storagePath}`,
+          mime_type: file.type || 'image/jpeg',
+          size_bytes: file.size || 0,
+          public_url: publicUrl
+        })
+      });
+
+      return publicUrl;
+    } catch (e) {
+      console.error(`Error al subir asset ${filename} a Supabase:`, e);
+      throw e;
+    }
+  }
 }
 
 // Instancia global disponible en toda la aplicación

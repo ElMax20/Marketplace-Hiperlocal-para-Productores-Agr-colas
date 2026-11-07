@@ -4,6 +4,9 @@
  * gestión de perfil y sincronización con Supabase.
  */
 
+// Base CDN de assets en Supabase Storage
+const SUPABASE_STORAGE_URL = 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images';
+
 // Estado del catálogo local de la finca
 let producerProducts = [
   {
@@ -18,7 +21,7 @@ let producerProducts = [
     status: 'publicado',
     statusText: 'Publicado',
     subtitle: 'Cosecha del día · entrega 7 nov.',
-    image: 'assets/images/zanahorias.jpg',
+    image: `${SUPABASE_STORAGE_URL}/zanahorias.jpg`,
     description: 'Zanahorias frescas cultivadas en nuestra huerta en Subachoque. Cosechadas a mano, con su tallo y toda la frescura de la tierra. Ideales para sopas, ensaladas y jugos.',
     origin: 'Huerta El Renacer · Subachoque',
     harvestDate: '06 / 11 / 2026',
@@ -36,7 +39,7 @@ let producerProducts = [
     status: 'borrador',
     statusText: 'Borrador',
     subtitle: '4-5 kg · selección semanal',
-    image: 'assets/images/canasta_esencial.jpg',
+    image: `${SUPABASE_STORAGE_URL}/canasta_esencial.jpg`,
     description: 'Selección de 5 a 6 variedades agroecológicas cosechadas al punto perfecto. Huerta El Renacer.',
     origin: 'Huerta El Renacer · Subachoque',
     harvestDate: '06 / 11 / 2026',
@@ -54,7 +57,7 @@ let producerProducts = [
     status: 'agotado',
     statusText: 'Agotado',
     subtitle: 'Próxima cosecha · 13 nov.',
-    image: 'assets/images/acelgas.jpg',
+    image: `${SUPABASE_STORAGE_URL}/acelgas.jpg`,
     description: 'Acelgas de hoja ancha y penca blanca tierna. Cosechadas en la madrugada en Subachoque.',
     origin: 'Huerta El Renacer · Subachoque',
     harvestDate: '13 / 11 / 2026',
@@ -528,7 +531,7 @@ async function publishNewProduct() {
     status: 'publicado',
     statusText: 'Publicado',
     subtitle: 'Cosecha fresca · entrega próxima',
-    image: 'assets/images/rabanos.jpg',
+    image: `${SUPABASE_STORAGE_URL}/rabanos.jpg`,
     description: desc,
     origin: origin,
     harvestDate: '06 / 11 / 2026',
@@ -550,7 +553,7 @@ async function publishNewProduct() {
         unit: unit,
         stock_quantity: stock,
         is_available: true,
-        image_url: 'assets/images/rabanos.jpg'
+        image_url: `${SUPABASE_STORAGE_URL}/rabanos.jpg`
       });
       console.log('Nuevo producto creado en Supabase con éxito.');
     } catch (e) {

@@ -153,7 +153,7 @@ async function publishProductToSupabase() {
     unit: unit,
     stock_quantity: 30,
     is_available: true,
-    image_url: 'assets/images/rabanos.jpg'
+    image_url: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/rabanos.jpg'
   };
 
   if (window.supabase && typeof window.supabase.createProduct === 'function') {

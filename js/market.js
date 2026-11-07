@@ -13,7 +13,7 @@ const PRODUCTS_DATA = [
     category: 'verduras',
     tag: 'Cosecha fresca',
     discount: '-25%',
-    image: 'assets/images/tomates.jpg',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg',
     subtitle: '1 kg · Selección de temporada',
     origin: 'Finca La Esperanza · Choachí · a 32 km',
     rating: '4.9',
@@ -30,7 +30,7 @@ const PRODUCTS_DATA = [
     category: 'frutas',
     tag: 'Listo para pronto',
     discount: '-15%',
-    image: 'assets/images/aguacates.jpg',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/aguacates.jpg',
     subtitle: '1 kg · 4 a 5 unidades aprox.',
     origin: 'Familia Rojas · La Vega · a 52 km',
     rating: '4.8',
@@ -47,7 +47,7 @@ const PRODUCTS_DATA = [
     category: 'verduras',
     tag: 'Cosechado hoy',
     discount: '-20%',
-    image: 'assets/images/zanahorias.jpg',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/zanahorias.jpg',
     subtitle: '1 kg · con toda su frescura',
     origin: 'Huerta El Renacer · Subachoque · a 45 km',
     rating: '4.9',
@@ -64,7 +64,7 @@ const PRODUCTS_DATA = [
     category: 'canastas',
     tag: 'La favorita del barrio',
     discount: null,
-    image: 'assets/images/canasta_familiar.jpg',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_familiar.jpg',
     subtitle: '9-10 kg · para 3 a 5 personas',
     origin: 'Red de Familias de Choachí · Choachí · a 30 km',
     rating: '4.9',
@@ -81,7 +81,7 @@ const PRODUCTS_DATA = [
     category: 'frutas',
     tag: 'De temporada',
     discount: '-20%',
-    image: 'assets/images/fresas.jpg',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/fresas.jpg',
     subtitle: '500 g · seleccionadas a mano',
     origin: 'Cooperativa La Colina · Sibaté · a 27 km',
     rating: '4.8',
@@ -98,7 +98,7 @@ const PRODUCTS_DATA = [
     category: 'lacteos',
     tag: 'Artesanal',
     discount: null,
-    image: 'assets/images/queso_campesino.jpg',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/queso_campesino.jpg',
     subtitle: '500 g · fresco de pastoreo',
     origin: 'Lácteos La Pradera · Sopó · a 42 km',
     rating: '4.9',
@@ -115,7 +115,7 @@ const PRODUCTS_DATA = [
     category: 'despensa',
     tag: 'Cosecha local',
     discount: null,
-    image: 'assets/images/miel_silvestre.jpg',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/miel_silvestre.jpg',
     subtitle: '500 g · pura, sin mezclas',
     origin: 'Apiario Monte Vivo · La Calera · a 18 km',
     rating: '5.0',
@@ -132,7 +132,7 @@ const PRODUCTS_DATA = [
     category: 'verduras',
     tag: 'Recién cosechada',
     discount: null,
-    image: 'assets/images/papa_criolla.jpg',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/papa_criolla.jpg',
     subtitle: '1 kg · lavada y seleccionada',
     origin: 'Finca Las Margaritas · Usme · a 29 km',
     rating: '4.8',
@@ -149,7 +149,7 @@ const PRODUCTS_DATA = [
     category: 'lacteos',
     tag: 'Artesanal',
     discount: null,
-    image: 'assets/images/yogur_pastoreo.jpg',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/yogur_pastoreo.jpg',
     subtitle: '1 litro · sin azúcar añadida',
     origin: 'Lácteos La Pradera · Sopó · a 42 km',
     rating: '4.9',
@@ -166,7 +166,7 @@ const PRODUCTS_DATA = [
     category: 'frutas',
     tag: 'De temporada',
     discount: null,
-    image: 'assets/images/banano_criollo.jpg',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/banano_criollo.jpg',
     subtitle: '1 kg · 6 a 8 unidades aprox.',
     origin: 'Finca El Porvenir · San Francisco · a 68 km',
     rating: '4.8',
@@ -183,7 +183,7 @@ const PRODUCTS_DATA = [
     category: 'despensa',
     tag: 'Hecho en pequeñas tandas',
     discount: null,
-    image: 'assets/images/mermelada_mora.jpg',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/mermelada_mora.jpg',
     subtitle: '250 g · fruta + panela',
     origin: 'Sabores de la Abuela · Tabio · a 35 km',
     rating: '4.8',
@@ -200,7 +200,7 @@ const PRODUCTS_DATA = [
     category: 'canastas',
     tag: 'Selección semanal',
     discount: null,
-    image: 'assets/images/canasta_esencial.jpg',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_esencial.jpg',
     subtitle: '6-7 kg · ideal 1 a 2 personas',
     origin: 'Familia Moreno · Bojacá/Facatativá · a 40 km',
     rating: '4.8',
@@ -251,7 +251,7 @@ async function loadProductsFromSupabase() {
             title: dbP.title,
             category: catName,
             tag: 'Cosecha fresca',
-            image: dbP.image_url || 'assets/images/tomates.jpg',
+            image: dbP.image_url || 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg',
             subtitle: `${dbP.unit} · Cosechado en finca`,
             origin: dbP.description || 'Finca campesina aliada',
             rating: '4.9',
@@ -358,7 +358,7 @@ function renderProducts() {
             src="${p.image}" 
             alt="${p.title}" 
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            onerror="this.src='assets/images/hero_basket.jpg'"
+            onerror="this.src='https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/hero_basket.jpg'"
           >
 
           <!-- Tag Superior Izquierdo -->
@@ -584,7 +584,7 @@ function updateCartUI() {
 
   itemsContainer.innerHTML = cart.map(item => `
     <div class="flex items-center gap-3 p-3 bg-stone-50 rounded-2xl border border-stone-200">
-      <img src="${item.image}" alt="${item.title}" class="w-14 h-14 object-cover rounded-xl shrink-0" onerror="this.src='assets/images/hero_basket.jpg'">
+      <img src="${item.image}" alt="${item.title}" class="w-14 h-14 object-cover rounded-xl shrink-0" onerror="this.src='https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/hero_basket.jpg'">
       <div class="flex-1 min-w-0">
         <h4 class="text-xs font-bold text-stone-900 truncate">${item.title}</h4>
         <p class="text-[10px] text-stone-500">${item.subtitle}</p>
