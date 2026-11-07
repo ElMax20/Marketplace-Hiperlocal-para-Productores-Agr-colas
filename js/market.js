@@ -656,8 +656,11 @@ function getCurrentUser() {
   return null;
 }
 
+const DEFAULT_USER_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="%23e7e5e4"/><path d="M24 24c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm0 4c-5.33 0-16 2.67-16 8v4h32v-4c0-5.33-10.67-8-16-8z" fill="%2378716c"/></svg>`;
+
 /**
  * Verificar estado de sesión y actualizar botones del encabezado
+ * REGLA: Al lado del botón de la canasta SOLO se muestra la foto de usuario (sin texto con el nombre).
  */
 function checkAuthStatus() {
   const user = getCurrentUser();
@@ -665,17 +668,54 @@ function checkAuthStatus() {
   if (!container) return;
 
   if (user && user.loggedIn) {
+    const avatarSrc = (user.avatar && user.avatar.trim() !== '') ? user.avatar : DEFAULT_USER_AVATAR;
+    let panelLink = '';
+    let panelLabel = '';
+    if (user.role === 'admin') {
+      panelLink = 'admin.html';
+      panelLabel = 'Panel de Administración';
+    } else if (user.role === 'productor') {
+      panelLink = 'productor.html';
+      panelLabel = 'Espacio de Productor';
+    }
+
     container.innerHTML = `
-      <div class="flex items-center gap-2">
-        <span class="text-xs font-bold text-[#1a3d2f] bg-stone-100 px-3 py-1.5 rounded-full border border-stone-200 flex items-center gap-1.5">
-          <span>👤</span>
-          <span>${user.name}</span>
-        </span>
-        <button onclick="handleLogout()" class="text-[11px] text-stone-500 hover:text-red-600 underline transition">
-          Salir
+      <div class="relative flex items-center">
+        <!-- Foto de perfil exclusiva (sin nombre de texto) -->
+        <button 
+          id="market-avatar-btn" 
+          onclick="toggleMarketUserDropdown(event)" 
+          class="relative p-0.5 rounded-full hover:ring-2 hover:ring-[#1a3d2f] focus:outline-none transition flex items-center justify-center cursor-pointer"
+          title="${user.name || 'Mi cuenta'}"
+        >
+          <img 
+            src="${avatarSrc}" 
+            alt="Foto de perfil" 
+            class="w-9 h-9 rounded-full object-cover border border-stone-200 bg-stone-100 shadow-xs"
+            onerror="this.src='${DEFAULT_USER_AVATAR}'"
+          >
         </button>
+
+        <!-- Dropdown de cuenta en el mercado -->
+        <div id="market-user-dropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-stone-100 py-1.5 z-50 text-xs text-stone-700">
+          <div class="px-4 py-2 border-b border-stone-100">
+            <p class="font-bold text-stone-900 truncate">${user.name}</p>
+            <p class="text-[10px] text-stone-500 capitalize">${user.role || 'Cliente'}</p>
+          </div>
+          ${panelLink ? `
+            <a href="${panelLink}" class="flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition">
+              <span>⚙️</span>
+              <span>${panelLabel}</span>
+            </a>
+          ` : ''}
+          <button onclick="handleLogout()" class="w-full text-left flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 transition cursor-pointer">
+            <span>🚪</span>
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
       </div>
     `;
+
     const nodeSpan = document.getElementById('header-node-name');
     if (nodeSpan && user.preferredNode) {
       nodeSpan.textContent = user.preferredNode.split('·')[0].trim();
@@ -692,6 +732,23 @@ function checkAuthStatus() {
     `;
   }
 }
+
+function toggleMarketUserDropdown(event) {
+  if (event) event.stopPropagation();
+  const dropdown = document.getElementById('market-user-dropdown');
+  if (dropdown) {
+    dropdown.classList.toggle('hidden');
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('market-user-dropdown');
+  if (dropdown && !dropdown.classList.contains('hidden')) {
+    if (!dropdown.contains(e.target)) {
+      dropdown.classList.add('hidden');
+    }
+  }
+});
 
 /**
  * Proceder al pago (REGLA: Si no tiene cuenta, pedir crear cuenta antes de comprar)
@@ -796,7 +853,14 @@ function handleLogin(e) {
       alert('Contraseña incorrecta para Administrador (prueba: admin123)');
       return;
     }
-    const adminUser = { username: 'admin', role: 'admin', name: 'Lucía Torres', email: 'lucia@raizybarrio.co', loggedIn: true };
+    const adminUser = { 
+      username: 'admin', 
+      role: 'admin', 
+      name: 'Lucía Torres', 
+      email: 'lucia@raizybarrio.co', 
+      avatar: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg',
+      loggedIn: true 
+    };
     localStorage.setItem('rb_current_user', JSON.stringify(adminUser));
     localStorage.setItem('raiz_user', JSON.stringify(adminUser));
     window.location.href = 'admin.html';
@@ -809,7 +873,14 @@ function handleLogin(e) {
       alert('Contraseña incorrecta para Productor (prueba: 123)');
       return;
     }
-    const prodUser = { username: 'maxp', role: 'productor', name: 'Max Productor', finca: 'Huerta El Renacer', loggedIn: true };
+    const prodUser = { 
+      username: 'maxp', 
+      role: 'productor', 
+      name: 'Max Productor', 
+      finca: 'Huerta El Renacer', 
+      avatar: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg',
+      loggedIn: true 
+    };
     localStorage.setItem('rb_current_user', JSON.stringify(prodUser));
     localStorage.setItem('raiz_user', JSON.stringify(prodUser));
     window.location.href = 'productor.html';
@@ -831,6 +902,7 @@ function handleLogin(e) {
     email: inputVal.includes('@') ? inputVal : `${inputVal}@vecinos.com`,
     phone: '310 987 6543',
     preferredNode: 'Nodo Central · La Perseverancia',
+    avatar: '',
     loggedIn: true,
     role: 'cliente'
   };

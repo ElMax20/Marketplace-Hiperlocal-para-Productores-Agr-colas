@@ -7,13 +7,16 @@
  * - Admin:        admin / admin123
  */
 
+const DEFAULT_USER_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="%23e7e5e4"/><path d="M24 24c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm0 4c-5.33 0-16 2.67-16 8v4h32v-4c0-5.33-10.67-8-16-8z" fill="%2378716c"/></svg>`;
+
 const AUTH_ACCOUNTS = {
   cliente: {
     username: 'max',
     password: '123',
     role: 'cliente',
     name: 'Max',
-    email: 'max@vecinos.com'
+    email: 'max@vecinos.com',
+    avatar: '' // Sin foto personalizada -> mostrará foto predeterminada
   },
   productor: {
     username: 'maxp',
@@ -21,14 +24,16 @@ const AUTH_ACCOUNTS = {
     role: 'productor',
     name: 'Max Productor',
     finca: 'Huerta El Renacer',
-    email: 'maxp@elrenacer.co'
+    email: 'maxp@elrenacer.co',
+    avatar: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg'
   },
   admin: {
     username: 'admin',
     password: 'admin123',
     role: 'admin',
     name: 'Lucía Torres',
-    email: 'lucia@raizybarrio.co'
+    email: 'lucia@raizybarrio.co',
+    avatar: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg'
   }
 };
 
@@ -208,6 +213,7 @@ async function handleAuthSubmit(event) {
         role: 'admin',
         name: dbUser.full_name || 'Lucía Torres',
         email: dbUser.email || 'lucia@raizybarrio.co',
+        avatar: dbUser.avatar_url || 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg',
         loggedIn: true
       };
       setCurrentUser(adminUser);
@@ -230,6 +236,7 @@ async function handleAuthSubmit(event) {
           role: 'cliente',
           name: dbUser.full_name || dbUser.username,
           email: dbUser.email,
+          avatar: dbUser.avatar_url || '',
           loggedIn: true
         };
         setCurrentUser(clienteUser);
@@ -255,6 +262,7 @@ async function handleAuthSubmit(event) {
           name: dbUser.full_name || dbUser.username,
           finca: dbUser.farm_name || 'Huerta El Renacer',
           email: dbUser.email,
+          avatar: dbUser.avatar_url || 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg',
           loggedIn: true
         };
         setCurrentUser(prodUser);
@@ -322,7 +330,8 @@ function showAuthError(msg) {
 }
 
 /**
- * Actualiza la barra de navegación para mostrar el usuario activo o botones de inicio
+ * Actualiza la barra de navegación para mostrar el usuario activo o botones de inicio.
+ * REGLA: Al lado del botón de la canasta SOLO se muestra la foto de usuario (sin texto con el nombre).
  */
 function updateAuthUI() {
   const user = getCurrentUser();
@@ -330,34 +339,52 @@ function updateAuthUI() {
   if (!authContainer) return;
 
   if (user) {
-    let badgeColor = 'bg-emerald-100 text-emerald-800 border-emerald-200';
-    let roleName = 'Cliente';
+    const avatarSrc = (user.avatar && user.avatar.trim() !== '') ? user.avatar : DEFAULT_USER_AVATAR;
     let profileLink = '#';
+    let profileLabel = 'Mi perfil';
 
     if (user.role === 'admin') {
-      badgeColor = 'bg-purple-100 text-purple-800 border-purple-200';
-      roleName = 'Administrador';
       profileLink = 'admin.html';
+      profileLabel = 'Panel de Administración';
     } else if (user.role === 'productor') {
-      badgeColor = 'bg-[#faece6] text-[#c85a32] border-[#f3d9ce]';
-      roleName = 'Productor';
       profileLink = 'productor.html';
+      profileLabel = 'Espacio de Productor';
     }
 
     authContainer.innerHTML = `
-      <div class="flex items-center gap-2">
-        <a href="${profileLink}" class="flex items-center gap-2 bg-stone-100 hover:bg-stone-200 border border-stone-200 px-3 py-1.5 rounded-full transition text-xs">
-          <div class="w-6 h-6 rounded-full bg-[#1a3d2f] text-white flex items-center justify-center font-bold text-[10px]">
-            ${user.name.charAt(0)}
-          </div>
-          <span class="font-bold text-stone-800">${user.name}</span>
-          <span class="text-[10px] px-2 py-0.5 rounded-full border ${badgeColor} font-semibold">${roleName}</span>
-        </a>
-        <button onclick="logoutUser()" class="p-2 text-stone-400 hover:text-red-600 transition rounded-full hover:bg-stone-100" title="Cerrar sesión">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
+      <div class="relative flex items-center">
+        <!-- Foto de perfil exclusiva (sin nombre de texto) -->
+        <button 
+          id="user-avatar-btn" 
+          onclick="toggleAuthDropdown(event)" 
+          class="relative p-0.5 rounded-full hover:ring-2 hover:ring-[#1a3d2f] focus:outline-none transition flex items-center justify-center cursor-pointer"
+          title="${user.name || 'Mi cuenta'}"
+        >
+          <img 
+            src="${avatarSrc}" 
+            alt="Foto de perfil" 
+            class="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border border-stone-200 bg-stone-100 shadow-xs"
+            onerror="this.src='${DEFAULT_USER_AVATAR}'"
+          >
         </button>
+
+        <!-- Dropdown flotante al pulsar el avatar -->
+        <div id="auth-user-dropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-stone-100 py-1.5 z-50 text-xs text-stone-700">
+          <div class="px-4 py-2 border-b border-stone-100">
+            <p class="font-bold text-stone-900 truncate">${user.name}</p>
+            <p class="text-[10px] text-stone-500 capitalize">${user.role || 'Cliente'}</p>
+          </div>
+          ${(user.role === 'admin' || user.role === 'productor') ? `
+            <a href="${profileLink}" class="flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition">
+              <span>⚙️</span>
+              <span>${profileLabel}</span>
+            </a>
+          ` : ''}
+          <button onclick="logoutUser()" class="w-full text-left flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 transition cursor-pointer">
+            <span>🚪</span>
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
       </div>
     `;
   } else {
@@ -378,6 +405,23 @@ function updateAuthUI() {
     `;
   }
 }
+
+function toggleAuthDropdown(event) {
+  if (event) event.stopPropagation();
+  const dropdown = document.getElementById('auth-user-dropdown');
+  if (dropdown) {
+    dropdown.classList.toggle('hidden');
+  }
+}
+
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('auth-user-dropdown');
+  if (dropdown && !dropdown.classList.contains('hidden')) {
+    if (!dropdown.contains(e.target)) {
+      dropdown.classList.add('hidden');
+    }
+  }
+});
 
 // Iniciar al cargar
 document.addEventListener('DOMContentLoaded', () => {
