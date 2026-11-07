@@ -55,7 +55,7 @@ class SupabaseService {
       const cleanUser = encodeURIComponent(username.trim());
       const cleanPass = encodeURIComponent(password.trim());
       
-      const query = `profiles?username=eq.${cleanUser}&password=eq.${cleanPass}&select=*`;
+      const query = `profiles?username=ilike.${cleanUser}&password=eq.${cleanPass}&select=*`;
       const users = await this.fetchApi(query);
 
       if (users && users.length > 0) {
