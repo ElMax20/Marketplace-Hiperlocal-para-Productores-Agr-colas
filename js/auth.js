@@ -1085,31 +1085,46 @@ function handleClientPhotoUpload(event) {
   const file = event.target.files && event.target.files[0];
   if (!file) return;
 
-  if (file.size > 5 * 1024 * 1024) {
-    alert('El archivo es demasiado grande (máximo 5 MB).');
+  if (file.size > 10 * 1024 * 1024) {
+    alert('El archivo es demasiado grande (máximo 10 MB).');
+    if (event.target) event.target.value = '';
     return;
   }
 
-  if (!window.clientSettingsDraft) {
-    const user = getCurrentUser() || {};
-    window.clientSettingsDraft = { ...user };
+  if (!file.type.startsWith('image/')) {
+    alert('Por favor selecciona un archivo de imagen válido (JPG, PNG, WebP).');
+    if (event.target) event.target.value = '';
+    return;
   }
 
-  window.clientSettingsDraft.pendingFile = file;
-  window.clientSettingsDraft.hasPhotoChange = true;
-  window.clientSettingsDraft.hasPhotoDelete = false;
+  // Abrir modal de encuadre interactivo para que el usuario ajuste la foto antes de aplicarla
+  openAvatarCropperModal(
+    file,
+    function onConfirm(croppedFile, croppedDataUrl) {
+      if (!window.clientSettingsDraft) {
+        const user = getCurrentUser() || {};
+        window.clientSettingsDraft = { ...user };
+      }
 
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const preview = document.getElementById('client-profile-img-preview');
-    if (preview) preview.src = e.target.result;
+      window.clientSettingsDraft.pendingFile = croppedFile;
+      window.clientSettingsDraft.hasPhotoChange = true;
+      window.clientSettingsDraft.hasPhotoDelete = false;
 
-    const statusBadge = document.getElementById('client-photo-draft-status');
-    const statusText = document.getElementById('client-photo-draft-text');
-    if (statusBadge) statusBadge.classList.remove('hidden');
-    if (statusText) statusText.textContent = '📸 Foto lista para guardar en Supabase';
-  };
-  reader.readAsDataURL(file);
+      const preview = document.getElementById('client-profile-img-preview');
+      if (preview) {
+        preview.src = croppedDataUrl;
+      }
+
+      const statusBadge = document.getElementById('client-photo-draft-status');
+      const statusText = document.getElementById('client-photo-draft-text');
+      if (statusBadge) statusBadge.classList.remove('hidden');
+      if (statusText) statusText.textContent = '📸 Foto encuadrada lista (pulsa Guardar cambios)';
+    },
+    function onCancel() {
+      const fileInput = document.getElementById('client-photo-input');
+      if (fileInput) fileInput.value = '';
+    }
+  );
 }
 
 function removeClientPhoto() {
@@ -1149,6 +1164,516 @@ function requestClientEmailChange() {
   alert(`Hemos enviado un enlace de confirmación a ${email}. Hasta que lo verifiques, seguirás usando tu correo actual.`);
 }
 
+/**
+ * ====================================================================
+ * MODAL INTERACTIVO DE ENCUADRE Y RECORTE CIRCULAR DE FOTO DE PERFIL
+ * ====================================================================
+ * Permite al usuario ajustar la foto antes de aplicarla (pan, zoom, rotación)
+ * con una guía circular en vivo, evitando descuadres y deformaciones.
+ */
+
+const cropperState = {
+  img: null,
+  file: null,
+  fileName: 'avatar.jpg',
+  baseScale: 1.0,
+  zoom: 1.0,
+  rotation: 0,
+  panX: 0,
+  panY: 0,
+  isDragging: false,
+  startX: 0,
+  startY: 0,
+  startPanX: 0,
+  startPanY: 0,
+  touchDist: 0,
+  startZoom: 1.0,
+  onConfirm: null,
+  onCancel: null
+};
+
+function ensureAvatarCropperModalExists() {
+  let modal = document.getElementById('avatar-cropper-modal');
+  if (modal) return modal;
+
+  modal = document.createElement('div');
+  modal.id = 'avatar-cropper-modal';
+  modal.className = 'hidden fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs select-none';
+
+  modal.innerHTML = `
+    <div class="bg-white rounded-3xl max-w-sm sm:max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95 duration-150">
+      <!-- Encabezado -->
+      <div class="px-5 py-3.5 border-b border-stone-100 flex items-center justify-between shrink-0 bg-stone-50/70">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-[#1a3d2f]/10 text-[#1a3d2f] flex items-center justify-center text-sm font-bold shrink-0">
+            ✂️
+          </div>
+          <div>
+            <h3 class="font-serif font-bold text-stone-900 text-sm sm:text-base leading-tight">Ajustar foto de perfil</h3>
+            <p class="text-[11px] text-stone-500 leading-tight mt-0.5">Encuadra tu foto dentro del círculo</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeAvatarCropperModal(false)" class="w-8 h-8 rounded-full bg-white hover:bg-stone-200 text-stone-500 flex items-center justify-center text-sm font-bold transition shadow-xs cursor-pointer" title="Cancelar">
+          ✕
+        </button>
+      </div>
+
+      <!-- Cuerpo del Editor -->
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-3.5 flex-1">
+        <!-- Canvas interactivo con marco circular -->
+        <div class="relative mx-auto flex flex-col items-center">
+          <div class="relative rounded-2xl overflow-hidden shadow-inner bg-stone-900 border border-stone-300 touch-none select-none flex items-center justify-center" style="width: 320px; height: 320px;">
+            <canvas id="cropper-canvas" width="320" height="320" class="cursor-grab active:cursor-grabbing block" style="touch-action: none;"></canvas>
+            
+            <div class="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-xs text-white text-[10px] font-medium px-3 py-1 rounded-full pointer-events-none flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+              <span>✋ Arrastra para centrar</span>
+              <span>•</span>
+              <span>🔍 Rueda para zoom</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controles de Zoom y Rotación -->
+        <div class="bg-stone-50 border border-stone-200 rounded-2xl p-3.5 space-y-3">
+          <div>
+            <div class="flex items-center justify-between text-xs font-bold text-stone-700 mb-1.5">
+              <span class="flex items-center gap-1.5">
+                <span>🔍</span>
+                <span>Zoom / Acercamiento</span>
+              </span>
+              <span id="cropper-zoom-label" class="text-[11px] font-mono text-[#1a3d2f] bg-white px-2 py-0.5 rounded-md border border-stone-200">100%</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" id="cropper-zoom-out-btn" class="w-7 h-7 rounded-lg bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 flex items-center justify-center text-sm font-bold shadow-xs transition cursor-pointer" title="Alejar">
+                −
+              </button>
+              <input 
+                type="range" 
+                id="cropper-zoom-slider" 
+                min="1" 
+                max="3" 
+                step="0.01" 
+                value="1" 
+                class="flex-1 h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-[#1a3d2f]"
+              >
+              <button type="button" id="cropper-zoom-in-btn" class="w-7 h-7 rounded-lg bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 flex items-center justify-center text-sm font-bold shadow-xs transition cursor-pointer" title="Acercar">
+                +
+              </button>
+            </div>
+          </div>
+
+          <!-- Acciones de rotación y recentrado -->
+          <div class="flex items-center justify-between gap-2 pt-1 border-t border-stone-200 text-xs">
+            <button type="button" id="cropper-rotate-btn" class="flex-1 py-1.5 px-2 bg-white hover:bg-stone-100 border border-stone-200 rounded-xl font-medium text-stone-700 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
+              <span>↺</span>
+              <span>Girar 90°</span>
+            </button>
+            <button type="button" id="cropper-reset-btn" class="flex-1 py-1.5 px-2 bg-white hover:bg-stone-100 border border-stone-200 rounded-xl font-medium text-stone-700 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
+              <span>⟲</span>
+              <span>Restablecer</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Vista previa en tiempo real -->
+        <div class="bg-white border border-stone-200 rounded-2xl p-3 flex items-center gap-3">
+          <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-[#1a3d2f] shrink-0 bg-stone-100 shadow-sm flex items-center justify-center">
+            <canvas id="cropper-preview-canvas" width="56" height="56" class="w-full h-full block rounded-full"></canvas>
+          </div>
+          <div class="text-xs">
+            <p class="font-bold text-stone-800 leading-tight">Vista previa en perfil</p>
+            <p class="text-[11px] text-stone-500 leading-snug mt-0.5">
+              Así se verá en la esquina superior derecha junto a tu canasta.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pie con Confirmación Obligatoria -->
+      <div class="p-3.5 sm:p-4 bg-stone-50 border-t border-stone-200 flex items-center justify-end gap-2.5 shrink-0">
+        <button 
+          type="button" 
+          onclick="closeAvatarCropperModal(false)" 
+          class="border border-stone-300 text-stone-700 bg-white hover:bg-stone-100 font-bold px-4 py-2 rounded-xl transition text-xs cursor-pointer shadow-xs"
+        >
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          id="cropper-confirm-btn"
+          class="bg-[#1a3d2f] hover:bg-[#255440] text-white font-bold px-5 py-2 rounded-xl shadow-md hover:shadow-lg transition text-xs flex items-center gap-2 cursor-pointer"
+        >
+          <span>✓</span>
+          <span>Confirmar encuadre</span>
+        </button>
+      </div>
+    </div>
+  `;
+
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) {
+      closeAvatarCropperModal(false);
+    }
+  });
+
+  document.body.appendChild(modal);
+  initCropperEvents(modal);
+  return modal;
+}
+
+function getEffectiveDimensions() {
+  if (!cropperState.img) return { w: 1, h: 1 };
+  const isRotated = cropperState.rotation % 180 !== 0;
+  return {
+    w: isRotated ? cropperState.img.naturalHeight : cropperState.img.naturalWidth,
+    h: isRotated ? cropperState.img.naturalWidth : cropperState.img.naturalHeight
+  };
+}
+
+function updateCropperBaseScale() {
+  const { w, h } = getEffectiveDimensions();
+  const circleDiameter = 240; // Diámetro del círculo guía (2 * R, con R = 120)
+  cropperState.baseScale = Math.max(circleDiameter / w, circleDiameter / h);
+}
+
+function clampCropperPan() {
+  const { w, h } = getEffectiveDimensions();
+  const scale = cropperState.baseScale * cropperState.zoom;
+  const halfW = (w * scale) / 2;
+  const halfH = (h * scale) / 2;
+  const R = 120;
+
+  const maxPanX = Math.max(0, halfW - R);
+  const maxPanY = Math.max(0, halfH - R);
+
+  cropperState.panX = Math.max(-maxPanX, Math.min(maxPanX, cropperState.panX));
+  cropperState.panY = Math.max(-maxPanY, Math.min(maxPanY, cropperState.panY));
+}
+
+function renderCropper() {
+  const canvas = document.getElementById('cropper-canvas');
+  if (!canvas || !cropperState.img) return;
+  const ctx = canvas.getContext('2d');
+  const W = 320;
+  const H = 320;
+  const cx = 160;
+  const cy = 160;
+  const R = 120;
+  const scale = cropperState.baseScale * cropperState.zoom;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // 1. Dibujar la imagen transformada
+  ctx.save();
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.translate(cx + cropperState.panX, cy + cropperState.panY);
+  ctx.rotate((cropperState.rotation * Math.PI) / 180);
+  const nw = cropperState.img.naturalWidth * scale;
+  const nh = cropperState.img.naturalHeight * scale;
+  ctx.drawImage(cropperState.img, -nw / 2, -nh / 2, nw, nh);
+  ctx.restore();
+
+  // 2. Viñeta oscura exterior
+  ctx.save();
+  ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
+  ctx.beginPath();
+  ctx.rect(0, 0, W, H);
+  ctx.arc(cx, cy, R, 0, Math.PI * 2, true);
+  ctx.fill('evenodd');
+
+  // 3. Anillo circular blanco guía
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.lineWidth = 2.5;
+  ctx.strokeStyle = '#ffffff';
+  ctx.stroke();
+
+  // 4. Guías sutiles de composición dentro del círculo
+  const dThird = (2 * R) / 3;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, R - 1, 0, Math.PI * 2);
+  ctx.clip();
+
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+
+  ctx.beginPath();
+  ctx.moveTo(cx - R + dThird, cy - R);
+  ctx.lineTo(cx - R + dThird, cy + R);
+  ctx.moveTo(cx - R + 2 * dThird, cy - R);
+  ctx.lineTo(cx - R + 2 * dThird, cy + R);
+  ctx.moveTo(cx - R, cy - R + dThird);
+  ctx.lineTo(cx + R, cy - R + dThird);
+  ctx.moveTo(cx - R, cy - R + 2 * dThird);
+  ctx.lineTo(cx + R, cy - R + 2 * dThird);
+  ctx.stroke();
+  ctx.restore();
+
+  ctx.restore();
+
+  // 5. Vista previa miniatura en vivo
+  renderCropperPreview();
+
+  // 6. Actualizar etiqueta de zoom
+  const zoomLabel = document.getElementById('cropper-zoom-label');
+  if (zoomLabel) {
+    zoomLabel.textContent = `${Math.round(cropperState.zoom * 100)}%`;
+  }
+}
+
+function renderCropperPreview() {
+  const pCanvas = document.getElementById('cropper-preview-canvas');
+  if (!pCanvas || !cropperState.img) return;
+  const pCtx = pCanvas.getContext('2d');
+  const pSize = 56;
+  const pRadius = 28;
+  const R = 120;
+  const factor = pSize / (2 * R);
+  const scale = cropperState.baseScale * cropperState.zoom;
+
+  pCtx.clearRect(0, 0, pSize, pSize);
+  pCtx.save();
+  pCtx.imageSmoothingEnabled = true;
+  pCtx.imageSmoothingQuality = 'high';
+  pCtx.beginPath();
+  pCtx.arc(pRadius, pRadius, pRadius, 0, Math.PI * 2);
+  pCtx.clip();
+
+  pCtx.translate(pRadius + cropperState.panX * factor, pRadius + cropperState.panY * factor);
+  pCtx.rotate((cropperState.rotation * Math.PI) / 180);
+  const nw = cropperState.img.naturalWidth * scale * factor;
+  const nh = cropperState.img.naturalHeight * scale * factor;
+  pCtx.drawImage(cropperState.img, -nw / 2, -nh / 2, nw, nh);
+  pCtx.restore();
+}
+
+function initCropperEvents(modal) {
+  const canvas = modal.querySelector('#cropper-canvas');
+  const slider = modal.querySelector('#cropper-zoom-slider');
+  const zoomInBtn = modal.querySelector('#cropper-zoom-in-btn');
+  const zoomOutBtn = modal.querySelector('#cropper-zoom-out-btn');
+  const rotateBtn = modal.querySelector('#cropper-rotate-btn');
+  const resetBtn = modal.querySelector('#cropper-reset-btn');
+  const confirmBtn = modal.querySelector('#cropper-confirm-btn');
+
+  if (slider) {
+    slider.addEventListener('input', (e) => {
+      cropperState.zoom = parseFloat(e.target.value);
+      clampCropperPan();
+      renderCropper();
+    });
+  }
+
+  if (zoomInBtn) {
+    zoomInBtn.addEventListener('click', () => {
+      cropperState.zoom = Math.min(3.0, cropperState.zoom + 0.15);
+      if (slider) slider.value = cropperState.zoom;
+      clampCropperPan();
+      renderCropper();
+    });
+  }
+
+  if (zoomOutBtn) {
+    zoomOutBtn.addEventListener('click', () => {
+      cropperState.zoom = Math.max(1.0, cropperState.zoom - 0.15);
+      if (slider) slider.value = cropperState.zoom;
+      clampCropperPan();
+      renderCropper();
+    });
+  }
+
+  if (rotateBtn) {
+    rotateBtn.addEventListener('click', () => {
+      cropperState.rotation = (cropperState.rotation + 90) % 360;
+      updateCropperBaseScale();
+      clampCropperPan();
+      renderCropper();
+    });
+  }
+
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      cropperState.panX = 0;
+      cropperState.panY = 0;
+      cropperState.zoom = 1.0;
+      cropperState.rotation = 0;
+      if (slider) slider.value = 1.0;
+      updateCropperBaseScale();
+      renderCropper();
+    });
+  }
+
+  if (confirmBtn) {
+    confirmBtn.addEventListener('click', () => {
+      confirmAvatarCrop();
+    });
+  }
+
+  if (canvas) {
+    // Arrastre con ratón
+    canvas.addEventListener('mousedown', (e) => {
+      cropperState.isDragging = true;
+      cropperState.startX = e.clientX;
+      cropperState.startY = e.clientY;
+      cropperState.startPanX = cropperState.panX;
+      cropperState.startPanY = cropperState.panY;
+      canvas.classList.remove('cursor-grab');
+      canvas.classList.add('cursor-grabbing');
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!cropperState.isDragging) return;
+      cropperState.panX = cropperState.startPanX + (e.clientX - cropperState.startX);
+      cropperState.panY = cropperState.startPanY + (e.clientY - cropperState.startY);
+      clampCropperPan();
+      renderCropper();
+    });
+
+    window.addEventListener('mouseup', () => {
+      if (cropperState.isDragging) {
+        cropperState.isDragging = false;
+        canvas.classList.remove('cursor-grabbing');
+        canvas.classList.add('cursor-grab');
+      }
+    });
+
+    // Zoom con rueda de ratón
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      const delta = e.deltaY < 0 ? 0.1 : -0.1;
+      cropperState.zoom = Math.max(1.0, Math.min(3.0, cropperState.zoom + delta));
+      if (slider) slider.value = cropperState.zoom;
+      clampCropperPan();
+      renderCropper();
+    }, { passive: false });
+
+    // Gestos táctiles en pantallas táctiles y móviles
+    canvas.addEventListener('touchstart', (e) => {
+      if (e.touches.length === 1) {
+        cropperState.isDragging = true;
+        cropperState.startX = e.touches[0].clientX;
+        cropperState.startY = e.touches[0].clientY;
+        cropperState.startPanX = cropperState.panX;
+        cropperState.startPanY = cropperState.panY;
+      } else if (e.touches.length === 2) {
+        cropperState.isDragging = false;
+        cropperState.touchDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        cropperState.startZoom = cropperState.zoom;
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (e.touches.length === 1 && cropperState.isDragging) {
+        cropperState.panX = cropperState.startPanX + (e.touches[0].clientX - cropperState.startX);
+        cropperState.panY = cropperState.startPanY + (e.touches[0].clientY - cropperState.startY);
+        clampCropperPan();
+        renderCropper();
+      } else if (e.touches.length === 2 && cropperState.touchDist > 0) {
+        const currentDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const factor = currentDist / cropperState.touchDist;
+        cropperState.zoom = Math.max(1.0, Math.min(3.0, cropperState.startZoom * factor));
+        if (slider) slider.value = cropperState.zoom;
+        clampCropperPan();
+        renderCropper();
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', () => {
+      cropperState.isDragging = false;
+    });
+  }
+}
+
+function openAvatarCropperModal(file, onConfirm, onCancel) {
+  if (!file) return;
+  const modal = ensureAvatarCropperModalExists();
+
+  cropperState.file = file;
+  cropperState.fileName = file.name || 'avatar.jpg';
+  cropperState.onConfirm = onConfirm;
+  cropperState.onCancel = onCancel;
+  cropperState.panX = 0;
+  cropperState.panY = 0;
+  cropperState.zoom = 1.0;
+  cropperState.rotation = 0;
+  cropperState.isDragging = false;
+
+  const slider = document.getElementById('cropper-zoom-slider');
+  if (slider) slider.value = 1.0;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      cropperState.img = img;
+      updateCropperBaseScale();
+      clampCropperPan();
+      modal.classList.remove('hidden');
+      renderCropper();
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function closeAvatarCropperModal(confirmed = false) {
+  const modal = document.getElementById('avatar-cropper-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+  if (!confirmed && typeof cropperState.onCancel === 'function') {
+    cropperState.onCancel();
+  }
+}
+
+function confirmAvatarCrop() {
+  if (!cropperState.img) return;
+  const outSize = 400;
+  const outCanvas = document.createElement('canvas');
+  outCanvas.width = outSize;
+  outCanvas.height = outSize;
+  const outCtx = outCanvas.getContext('2d');
+
+  const R = 120;
+  const factor = outSize / (2 * R); // 400 / 240
+  const scale = cropperState.baseScale * cropperState.zoom;
+
+  outCtx.save();
+  outCtx.imageSmoothingEnabled = true;
+  outCtx.imageSmoothingQuality = 'high';
+  outCtx.translate(200 + cropperState.panX * factor, 200 + cropperState.panY * factor);
+  outCtx.rotate((cropperState.rotation * Math.PI) / 180);
+  const nw = cropperState.img.naturalWidth * scale * factor;
+  const nh = cropperState.img.naturalHeight * scale * factor;
+  outCtx.drawImage(cropperState.img, -nw / 2, -nh / 2, nw, nh);
+  outCtx.restore();
+
+  outCanvas.toBlob((blob) => {
+    if (!blob) {
+      alert('Error al generar la imagen recortada.');
+      return;
+    }
+    const cleanName = (cropperState.fileName || 'avatar.jpg').replace(/\.[^/.]+$/, "") + '_framed.jpg';
+    const croppedFile = new File([blob], cleanName, { type: 'image/jpeg' });
+    const dataUrl = outCanvas.toDataURL('image/jpeg', 0.92);
+
+    if (typeof cropperState.onConfirm === 'function') {
+      cropperState.onConfirm(croppedFile, dataUrl);
+    }
+    closeAvatarCropperModal(true);
+  }, 'image/jpeg', 0.92);
+}
+
 // Exportar funciones globales
 window.openClientSettingsModal = openClientSettingsModal;
 window.closeClientSettingsModal = closeClientSettingsModal;
@@ -1159,10 +1684,18 @@ window.handleClientPhotoUpload = handleClientPhotoUpload;
 window.removeClientPhoto = removeClientPhoto;
 window.updateClientPassword = updateClientPassword;
 window.requestClientEmailChange = requestClientEmailChange;
+window.openAvatarCropperModal = openAvatarCropperModal;
+window.closeAvatarCropperModal = closeAvatarCropperModal;
+window.confirmAvatarCrop = confirmAvatarCrop;
 
 // Cancelar/cerrar modal al presionar Escape
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
+    const cropperModal = document.getElementById('avatar-cropper-modal');
+    if (cropperModal && !cropperModal.classList.contains('hidden')) {
+      closeAvatarCropperModal(false);
+      return;
+    }
     const modal = document.getElementById('client-settings-modal');
     if (modal && !modal.classList.contains('hidden')) {
       cancelClientSettings();

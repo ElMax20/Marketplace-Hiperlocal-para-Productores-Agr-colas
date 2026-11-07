@@ -244,8 +244,22 @@ async function savePersonalData() {
 
 // Previsualizar nueva foto de perfil
 function previewProfileImage(event) {
-  const file = event.target.files[0];
+  const file = event.target.files && event.target.files[0];
   if (!file) return;
+
+  if (typeof window.openAvatarCropperModal === 'function') {
+    window.openAvatarCropperModal(file, (croppedFile, dataUrl) => {
+      const preview = document.getElementById('profile-img-preview');
+      if (preview) {
+        preview.src = dataUrl;
+      }
+      window.adminPendingAvatarFile = croppedFile;
+      alert('Foto encuadrada correctamente. Recuerda hacer clic en "Guardar datos personales" para confirmar.');
+    }, () => {
+      if (event.target) event.target.value = '';
+    });
+    return;
+  }
 
   const reader = new FileReader();
   reader.onload = function(e) {
