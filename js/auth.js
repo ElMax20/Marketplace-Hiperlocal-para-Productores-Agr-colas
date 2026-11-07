@@ -7,7 +7,7 @@
  * - Admin:        admin / admin123
  */
 
-const DEFAULT_USER_AVATAR = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><circle cx="24" cy="24" r="24" fill="%23e7e5e4"/><path d="M24 24c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm0 4c-5.33 0-16 2.67-16 8v4h32v-4c0-5.33-10.67-8-16-8z" fill="%2378716c"/></svg>`;
+const DEFAULT_USER_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc2NCcgaGVpZ2h0PSc2NCcgdmlld0JveD0nMCAwIDY0IDY0Jz48Y2lyY2xlIGN4PSczMicgY3k9JzMyJyByPSczMicgZmlsbD0nI2U3ZTVlNCcvPjxwYXRoIGQ9J00zMiAzMmExMCAxMCAwIDEgMCAwLTIwIDEwIDEwIDAgMCAwIDAgMjB6bTAgNmMtOC44NCAwLTIwIDQuNDgtMjAgMTJ2NGg0MHYtNGMwLTcuNTItMTEuMTYtMTItMjAtMTJ6JyBmaWxsPScjNzg3MTZjJy8+PC9zdmc+";
 
 const AUTH_ACCOUNTS = {
   cliente: {
@@ -353,18 +353,21 @@ function updateAuthUI() {
 
     authContainer.innerHTML = `
       <div class="relative flex items-center">
-        <!-- Foto de perfil exclusiva (sin nombre de texto) -->
+        <!-- Foto de perfil pequeña y discreta (34x34px) -->
         <button 
           id="user-avatar-btn" 
           onclick="toggleAuthDropdown(event)" 
-          class="relative p-0.5 rounded-full hover:ring-2 hover:ring-[#1a3d2f] focus:outline-none transition flex items-center justify-center cursor-pointer"
+          type="button"
+          class="rounded-full overflow-hidden border border-stone-200 hover:ring-2 hover:ring-[#1a3d2f] focus:outline-none transition flex items-center justify-center p-0 cursor-pointer bg-stone-100 shrink-0 shadow-xs"
+          style="width: 34px; height: 34px; min-width: 34px; min-height: 34px; max-width: 34px; max-height: 34px;"
           title="${user.name || 'Mi cuenta'}"
         >
           <img 
             src="${avatarSrc}" 
-            alt="Foto de perfil" 
-            class="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border border-stone-200 bg-stone-100 shadow-xs"
-            onerror="this.src='${DEFAULT_USER_AVATAR}'"
+            alt="Perfil" 
+            class="rounded-full object-cover"
+            style="width: 34px; height: 34px; min-width: 34px; min-height: 34px; max-width: 34px; max-height: 34px; display: block;"
+            onerror="this.onerror=null; this.src='${DEFAULT_USER_AVATAR}';"
           >
         </button>
 
