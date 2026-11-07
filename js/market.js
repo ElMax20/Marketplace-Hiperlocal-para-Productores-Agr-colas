@@ -656,89 +656,23 @@ function getCurrentUser() {
   return null;
 }
 
-const DEFAULT_USER_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc2NCcgaGVpZ2h0PSc2NCcgdmlld0JveD0nMCAwIDY0IDY0Jz48Y2lyY2xlIGN4PSczMicgY3k9JzMyJyByPSczMicgZmlsbD0nI2U3ZTVlNCcvPjxwYXRoIGQ9J00zMiAzMmExMCAxMCAwIDEgMCAwLTIwIDEwIDEwIDAgMCAwIDAgMjB6bTAgNmMtOC44NCAwLTIwIDQuNDgtMjAgMTJ2NGg0MHYtNGMwLTcuNTItMTEuMTYtMTItMjAtMTJ6JyBmaWxsPScjNzg3MTZjJy8+PC9zdmc+";
-
 /**
  * Verificar estado de sesión y actualizar botones del encabezado
- * REGLA: Al lado del botón de la canasta SOLO se muestra la foto de usuario (sin texto con el nombre).
  */
 function checkAuthStatus() {
-  const user = getCurrentUser();
-  const container = document.getElementById('auth-buttons-container');
-  if (!container) return;
-
-  if (user && user.loggedIn) {
-    const avatarSrc = (user.avatar && user.avatar.trim() !== '') ? user.avatar : DEFAULT_USER_AVATAR;
-    let panelLink = '';
-    let panelLabel = '';
-    if (user.role === 'admin') {
-      panelLink = 'admin.html';
-      panelLabel = 'Panel de Administración';
-    } else if (user.role === 'productor') {
-      panelLink = 'productor.html';
-      panelLabel = 'Espacio de Productor';
-    }
-
-    container.innerHTML = `
-      <div class="relative flex items-center">
-        <!-- Foto de perfil pequeña y discreta (34x34px) -->
-        <button 
-          id="market-avatar-btn" 
-          onclick="toggleMarketUserDropdown(event)" 
-          type="button"
-          class="rounded-full overflow-hidden border border-stone-200 hover:ring-2 hover:ring-[#1a3d2f] focus:outline-none transition flex items-center justify-center p-0 cursor-pointer bg-stone-100 shrink-0 shadow-xs"
-          style="width: 34px; height: 34px; min-width: 34px; min-height: 34px; max-width: 34px; max-height: 34px;"
-          title="${user.name || 'Mi cuenta'}"
-        >
-          <img 
-            src="${avatarSrc}" 
-            alt="Perfil" 
-            class="rounded-full object-cover"
-            style="width: 34px; height: 34px; min-width: 34px; min-height: 34px; max-width: 34px; max-height: 34px; display: block;"
-            onerror="this.onerror=null; this.src='${DEFAULT_USER_AVATAR}';"
-          >
-        </button>
-
-        <!-- Dropdown de cuenta en el mercado -->
-        <div id="market-user-dropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-stone-100 py-1.5 z-50 text-xs text-stone-700">
-          <div class="px-4 py-2 border-b border-stone-100">
-            <p class="font-bold text-stone-900 truncate">${user.name}</p>
-            <p class="text-[10px] text-stone-500 capitalize">${user.role || 'Cliente'}</p>
-          </div>
-          ${panelLink ? `
-            <a href="${panelLink}" class="flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition">
-              <span>⚙️</span>
-              <span>${panelLabel}</span>
-            </a>
-          ` : ''}
-          <button onclick="handleLogout()" class="w-full text-left flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 transition cursor-pointer">
-            <span>🚪</span>
-            <span>Cerrar sesión</span>
-          </button>
-        </div>
-      </div>
-    `;
-
-    const nodeSpan = document.getElementById('header-node-name');
-    if (nodeSpan && user.preferredNode) {
-      nodeSpan.textContent = user.preferredNode.split('·')[0].trim();
-    }
-  } else {
-    // Usuario sin cuenta (Invitado)
-    container.innerHTML = `
-      <button onclick="openAuthModal('login')" class="text-xs font-semibold text-stone-700 hover:text-[#1a3d2f] px-2 py-1.5 transition">
-        Iniciar sesión
-      </button>
-      <button onclick="openAuthModal('register')" class="text-xs font-bold text-[#1a3d2f] border border-[#1a3d2f] hover:bg-[#1a3d2f] hover:text-white px-3.5 py-1.5 rounded-full transition shadow-sm">
-        Registrarse
-      </button>
-    `;
+  if (typeof updateAuthUI === 'function') {
+    updateAuthUI();
+  }
+  const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const nodeSpan = document.getElementById('header-node-name');
+  if (nodeSpan && user && user.preferredNode) {
+    nodeSpan.textContent = user.preferredNode.split('·')[0].trim();
   }
 }
 
 function toggleMarketUserDropdown(event) {
   if (event) event.stopPropagation();
-  const dropdown = document.getElementById('market-user-dropdown');
+  const dropdown = document.getElementById('market-user-dropdown') || document.getElementById('auth-user-dropdown');
   if (dropdown) {
     dropdown.classList.toggle('hidden');
   }

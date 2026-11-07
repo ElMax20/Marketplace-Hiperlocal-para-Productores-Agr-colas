@@ -7,7 +7,8 @@
  * - Admin:        admin / admin123
  */
 
-const DEFAULT_USER_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc2NCcgaGVpZ2h0PSc2NCcgdmlld0JveD0nMCAwIDY0IDY0Jz48Y2lyY2xlIGN4PSczMicgY3k9JzMyJyByPSczMicgZmlsbD0nI2U3ZTVlNCcvPjxwYXRoIGQ9J00zMiAzMmExMCAxMCAwIDEgMCAwLTIwIDEwIDEwIDAgMCAwIDAgMjB6bTAgNmMtOC44NCAwLTIwIDQuNDgtMjAgMTJ2NGg0MHYtNGMwLTcuNTItMTEuMTYtMTItMjAtMTJ6JyBmaWxsPScjNzg3MTZjJy8+PC9zdmc+";
+window.DEFAULT_USER_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc2NCcgaGVpZ2h0PSc2NCcgdmlld0JveD0nMCAwIDY0IDY0Jz48Y2lyY2xlIGN4PSczMicgY3k9JzMyJyByPSczMicgZmlsbD0nI2U3ZTVlNCcvPjxwYXRoIGQ9J00zMiAzMmExMCAxMCAwIDEgMCAwLTIwIDEwIDEwIDAgMCAwIDAgMjB6bTAgNmMtOC44NCAwLTIwIDQuNDgtMjAgMTJ2NGg0MHYtNGMwLTcuNTItMTEuMTYtMTItMjAtMTJ6JyBmaWxsPScjNzg3MTZjJy8+PC9zdmc+";
+var DEFAULT_USER_AVATAR = window.DEFAULT_USER_AVATAR;
 
 const AUTH_ACCOUNTS = {
   cliente: {
@@ -335,11 +336,11 @@ function showAuthError(msg) {
  */
 function updateAuthUI() {
   const user = getCurrentUser();
-  const authContainer = document.getElementById('nav-auth-container');
+  const authContainer = document.getElementById('nav-auth-container') || document.getElementById('auth-buttons-container');
   if (!authContainer) return;
 
   if (user) {
-    const avatarSrc = (user.avatar && user.avatar.trim() !== '') ? user.avatar : DEFAULT_USER_AVATAR;
+    const avatarSrc = (user.avatar && user.avatar.trim() !== '') ? user.avatar : window.DEFAULT_USER_AVATAR;
     let profileLink = '#';
     let profileLabel = 'Mi perfil';
 
@@ -367,7 +368,7 @@ function updateAuthUI() {
             alt="Perfil" 
             class="rounded-full object-cover"
             style="width: 34px; height: 34px; min-width: 34px; min-height: 34px; max-width: 34px; max-height: 34px; display: block;"
-            onerror="this.onerror=null; this.src='${DEFAULT_USER_AVATAR}';"
+            onerror="this.onerror=null; this.src=window.DEFAULT_USER_AVATAR;"
           >
         </button>
 
@@ -391,21 +392,34 @@ function updateAuthUI() {
       </div>
     `;
   } else {
-    authContainer.innerHTML = `
-      <button onclick="openLoginModal('cliente')" class="text-stone-700 hover:text-[#1a3d2f] text-xs font-semibold px-2 py-2 sm:px-3 sm:py-2 transition hidden sm:inline-flex items-center gap-1.5">
-        <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-        </svg>
-        <span>Ingresar</span>
-      </button>
+    // Si estamos en mercado.html pero no hay usuario conectado
+    if (document.getElementById('auth-buttons-container') && !document.getElementById('nav-auth-container')) {
+      authContainer.innerHTML = `
+        <button onclick="openAuthModal('login')" class="text-xs font-semibold text-stone-700 hover:text-[#1a3d2f] px-2 py-1.5 transition">
+          Iniciar sesión
+        </button>
+        <button onclick="openAuthModal('register')" class="text-xs font-bold text-[#1a3d2f] border border-[#1a3d2f] hover:bg-[#1a3d2f] hover:text-white px-3.5 py-1.5 rounded-full transition shadow-sm">
+          Registrarse
+        </button>
+      `;
+    } else {
+      // Estamos en index.html
+      authContainer.innerHTML = `
+        <button onclick="openLoginModal('cliente')" class="text-stone-700 hover:text-[#1a3d2f] text-xs font-semibold px-2 py-2 sm:px-3 sm:py-2 transition hidden sm:inline-flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+          </svg>
+          <span>Ingresar</span>
+        </button>
 
-      <button onclick="openLoginModal('productor')" class="bg-[#c85a32] hover:bg-[#b04a25] text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-sm hover:shadow transition-all flex items-center gap-1.5">
-        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-        </svg>
-        <span>Soy Productor</span>
-      </button>
-    `;
+        <button onclick="openLoginModal('productor')" class="bg-[#c85a32] hover:bg-[#b04a25] text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-sm hover:shadow transition-all flex items-center gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          <span>Soy Productor</span>
+        </button>
+      `;
+    }
   }
 }
 
