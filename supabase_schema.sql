@@ -75,3 +75,4 @@ ON CONFLICT (id) DO UPDATE SET
     stock_quantity = EXCLUDED.stock_quantity,
     is_available = EXCLUDED.is_available,
     image_url = EXCLUDED.image_url;
+

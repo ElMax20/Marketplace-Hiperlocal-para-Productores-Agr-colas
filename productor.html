@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Portal del Productor | Raíz & Barrio</title>
 
-  <!-- Google Fonts -->
+  <!-- Google Fonts: Newsreader / Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -17,84 +17,1047 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
-            serif: ['"Newsreader"', 'serif']
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            serif: ['"Newsreader"', 'Georgia', 'serif']
           },
           colors: {
-            forest: '#1a3d2f',
-            terracotta: '#c85a32'
+            forest: {
+              700: '#23533e',
+              800: '#1a3d2f',
+              900: '#122c22'
+            },
+            terracotta: {
+              500: '#c85a32',
+              600: '#b04a25'
+            },
+            cream: {
+              50: '#FAF8F5',
+              100: '#F4EFE6',
+              200: '#EAE4D7'
+            }
           }
         }
       }
     }
   </script>
-</head>
-<body class="bg-[#FAF7F2] text-stone-800 antialiased min-h-screen flex flex-col font-sans">
 
-  <!-- Header Barra Superior -->
-  <header class="bg-white border-b border-stone-200 px-6 py-4 flex items-center justify-between shadow-sm">
-    <div class="flex items-center gap-3">
-      <a href="index.html" class="flex items-center gap-2.5">
-        <div class="w-9 h-9 rounded-xl bg-[#1a3d2f] text-white flex items-center justify-center font-bold">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    .nav-producer-btn.active {
+      background-color: #1a3d2f;
+      color: #ffffff;
+      font-weight: 600;
+    }
+    .nav-producer-btn.active svg,
+    .nav-producer-btn.active span {
+      color: #ffffff;
+    }
+  </style>
+</head>
+<body class="bg-[#FAF7F2] text-stone-800 antialiased min-h-screen flex font-sans">
+
+  <!-- =======================================================================
+       BARRA LATERAL IZQUIERDA (Sidebar)
+       ======================================================================= -->
+  <aside class="w-64 bg-white border-r border-stone-200/90 flex flex-col justify-between shrink-0 min-h-screen sticky top-0 h-screen overflow-y-auto z-20">
+    <div class="p-5">
+      
+      <!-- Logotipo de Marca -->
+      <a href="index.html" class="flex items-center gap-2.5 mb-6 group">
+        <div class="w-8 h-8 rounded-lg bg-[#1a3d2f] text-emerald-300 flex items-center justify-center font-bold text-base shadow-sm">
           🌱
         </div>
         <div>
-          <span class="font-serif text-xl font-bold text-[#1a3d2f] leading-none block">raíz & barrio</span>
-          <span class="text-[9px] uppercase tracking-widest text-[#c85a32] font-bold block mt-0.5">Mercado de Cercanía</span>
+          <span class="font-serif text-xl font-bold tracking-tight text-[#1a3d2f] leading-none block">raíz & barrio</span>
+          <span class="text-[8px] uppercase tracking-widest text-stone-400 font-bold block mt-0.5">Mercado de Cercanía</span>
         </div>
       </a>
-      <span class="text-stone-300">|</span>
-      <div class="inline-flex items-center gap-2 bg-[#faece6] text-[#c85a32] px-3 py-1 rounded-full text-xs font-bold border border-[#f3d9ce]">
-        <span>🚜 Portal del Productor</span>
-        <span class="text-stone-400">·</span>
-        <span id="producer-name" class="text-stone-700 font-semibold">Max (Huerta El Renacer)</span>
+
+      <!-- Insignia Área de Trabajo -->
+      <div class="bg-[#F4EFE6] border border-[#EAE4D7] rounded-xl p-3 mb-6 flex items-center gap-2.5">
+        <div class="w-6 h-6 rounded-lg bg-white/80 text-[#1a3d2f] flex items-center justify-center text-xs shadow-2xs">
+          🌿
+        </div>
+        <div>
+          <span class="text-[9px] uppercase tracking-wider text-stone-500 font-bold block">ÁREA DE TRABAJO</span>
+          <span class="text-xs font-bold text-stone-800 block">Productor</span>
+        </div>
       </div>
+
+      <!-- Menú de Gestión de Mi Finca -->
+      <div>
+        <span class="text-[10px] uppercase font-bold tracking-wider text-stone-400 block px-2 mb-2">Gestión de mi finca</span>
+        <nav class="space-y-1">
+          <!-- 1. Mis productos -->
+          <button onclick="switchProducerTab('mis-productos')" data-tab="mis-productos" class="nav-producer-btn active w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition text-left">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+            <span>Mis productos</span>
+          </button>
+
+          <!-- 2. Publicar nuevo producto -->
+          <button onclick="switchProducerTab('nuevo-producto')" data-tab="nuevo-producto" class="nav-producer-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition text-left">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span>Publicar nuevo producto</span>
+          </button>
+
+          <!-- 3. Mi perfil y seguridad -->
+          <button onclick="switchProducerTab('perfil-seguridad')" data-tab="perfil-seguridad" class="nav-producer-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition text-left">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+            </svg>
+            <span>Mi perfil y seguridad</span>
+          </button>
+        </nav>
+      </div>
+
     </div>
 
-    <div class="flex items-center gap-3">
-      <a href="mercado.html" class="text-xs font-semibold text-stone-600 hover:text-[#1a3d2f] transition flex items-center gap-1">
-        <span>Ver tienda</span>
-        <span>↗</span>
-      </a>
-      <button onclick="logoutUser()" class="text-xs font-bold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 px-3.5 py-1.5 rounded-lg border border-red-200 transition">
-        Cerrar sesión
-      </button>
-    </div>
-  </header>
-
-  <!-- Área de trabajo (dejada en blanco según especificación) -->
-  <main class="flex-1 flex items-center justify-center p-8">
-    <div class="max-w-md w-full text-center p-12 bg-white rounded-3xl border border-dashed border-stone-300 shadow-sm">
-      <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-[#faece6] text-[#c85a32] flex items-center justify-center text-3xl">
-        🌾
+    <!-- Soporte y Perfil del Productor -->
+    <div class="p-5 border-t border-stone-200/90">
+      
+      <!-- Tarjeta Soporte Finca -->
+      <div class="bg-[#F4EFE6] border border-[#EAE4D7] rounded-2xl p-4 mb-4">
+        <div class="text-[#1a3d2f] mb-1.5 text-base">🌱</div>
+        <h4 class="text-xs font-bold text-stone-900 leading-snug">Tu tierra, más cerca.</h4>
+        <p class="text-[11px] text-stone-600 font-medium mt-1 producer-farm-display">Huerta El Renacer</p>
+        <p class="text-[11px] text-stone-400">Subachoque · a 48 km del barrio</p>
+        <a href="mailto:soporte@raizybarrio.co" class="text-[11px] font-bold text-stone-700 hover:text-[#1a3d2f] inline-flex items-center gap-1 mt-2.5 transition">
+          <span>Contactar soporte</span>
+          <span>↗</span>
+        </a>
       </div>
-      <h2 class="font-serif text-2xl font-bold text-stone-900 mb-2">Portal de Productor Agrícola</h2>
-      <p class="text-sm text-stone-500 leading-relaxed mb-6">
-        Esta interfaz está reservada para la gestión de cosechas, canastas y pedidos de tu finca. En breve estará disponible el contenido completo.
-      </p>
-      <div class="inline-flex items-center gap-2 text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-200">
-        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span>Sesión activa: Productor autorizado</span>
-      </div>
-    </div>
-  </main>
 
+      <!-- Tarjeta Usuario Productor -->
+      <div class="flex items-center justify-between pt-1">
+        <div class="flex items-center gap-2.5 cursor-pointer" onclick="switchProducerTab('perfil-seguridad')">
+          <div class="w-9 h-9 rounded-full overflow-hidden bg-[#e0ded8] border border-stone-200 shrink-0">
+            <img src="assets/images/elena_moreno.jpg" alt="Elena Moreno" class="w-full h-full object-cover">
+          </div>
+          <div class="truncate">
+            <span class="producer-name-display text-xs font-bold text-stone-800 block truncate">Elena Moreno</span>
+            <span class="text-[10px] text-stone-400 block">Productor</span>
+          </div>
+        </div>
+
+        <button onclick="logoutUser()" title="Cerrar sesión" class="text-stone-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-stone-100 transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- =======================================================================
+       ÁREA DE CONTENIDO PRINCIPAL
+       ======================================================================= -->
+  <div class="flex-1 flex flex-col min-w-0">
+    
+    <!-- Barra Superior de Navegación (Header) -->
+    <header class="h-16 bg-white border-b border-stone-200/90 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-10">
+      <!-- Breadcrumbs dinámicos -->
+      <div id="producer-breadcrumb" class="text-xs text-stone-500 flex items-center gap-2">
+        <span>Mi espacio</span>
+        <span class="text-stone-300">›</span>
+        <span class="text-stone-800 font-semibold">Mis productos</span>
+      </div>
+
+      <!-- Acciones de Cabecera -->
+      <div class="flex items-center gap-4 sm:gap-6 text-xs">
+        <span class="text-stone-400 hidden sm:inline">6 nov. 2026</span>
+        <a href="mercado.html" class="font-semibold text-stone-700 hover:text-[#1a3d2f] flex items-center gap-1 transition">
+          <span>Ver tienda</span>
+          <span>↗</span>
+        </a>
+        <button class="text-stone-500 hover:text-stone-800 p-1 rounded-full relative transition">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+          </svg>
+          <span class="absolute top-1 right-1 w-1.5 h-1.5 bg-[#c85a32] rounded-full"></span>
+        </button>
+        <div onclick="switchProducerTab('perfil-seguridad')" class="w-8 h-8 rounded-full bg-[#faece6] text-[#c85a32] font-bold flex items-center justify-center text-xs border border-[#eedfc9] cursor-pointer hover:ring-2 hover:ring-[#1a3d2f]/30 transition" id="header-user-initials">
+          EM
+        </div>
+      </div>
+    </header>
+
+    <!-- Contenido Dinámico según pestaña seleccionada -->
+    <main class="flex-1 p-6 sm:p-8 max-w-7xl w-full mx-auto">
+
+      <!-- =====================================================================
+           PESTAÑA 1: MIS PRODUCTOS (media_1794011669457_7aa156f3.jpg)
+           ===================================================================== -->
+      <section id="view-mis-productos">
+        
+        <!-- Cabecera de la sección -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <span class="text-[10px] uppercase tracking-wider font-bold text-[#c85a32] block mb-1 producer-farm-display">
+              HUERTA EL RENACER · SUBACHOQUE
+            </span>
+            <h1 class="font-serif text-3xl font-bold text-stone-900 mb-1">
+              Mis productos
+            </h1>
+            <p class="text-xs sm:text-sm text-stone-500">
+              Hola, <span class="producer-name-display font-medium text-stone-700">Elena</span>. Tu cosecha tiene un lugar en la mesa del barrio.
+            </p>
+          </div>
+
+          <button onclick="switchProducerTab('nuevo-producto')" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-2 transition self-start sm:self-auto">
+            <span class="text-base leading-none">+</span>
+            <span>Publicar nuevo producto</span>
+          </button>
+        </div>
+
+        <!-- Tarjetas de Métricas KPI -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <!-- KPI 1: Mis productos -->
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs">
+            <div class="flex items-center gap-2.5 mb-2">
+              <div class="w-7 h-7 rounded-lg bg-stone-100 text-stone-600 flex items-center justify-center text-xs">
+                📦
+              </div>
+              <span class="text-xs text-stone-500 font-medium">Mis productos</span>
+            </div>
+            <div id="kpi-total" class="text-2xl font-bold text-stone-900 mb-1">3</div>
+            <div class="text-[11px] text-stone-400">Solo los de tu finca</div>
+          </div>
+
+          <!-- KPI 2: Publicados -->
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs">
+            <div class="flex items-center gap-2.5 mb-2">
+              <div class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs">
+                ✓
+              </div>
+              <span class="text-xs text-stone-500 font-medium">Publicados</span>
+            </div>
+            <div id="kpi-publicados" class="text-2xl font-bold text-stone-900 mb-1">1</div>
+            <div class="text-[11px] text-stone-400">Visible en el mercado</div>
+          </div>
+
+          <!-- KPI 3: Borradores -->
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs">
+            <div class="flex items-center gap-2.5 mb-2">
+              <div class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs">
+                📝
+              </div>
+              <span class="text-xs text-stone-500 font-medium">Borradores</span>
+            </div>
+            <div id="kpi-borradores" class="text-2xl font-bold text-stone-900 mb-1">1</div>
+            <div class="text-[11px] text-stone-400">Listo para continuar</div>
+          </div>
+
+          <!-- KPI 4: Agotados -->
+          <div class="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs">
+            <div class="flex items-center gap-2.5 mb-2">
+              <div class="w-7 h-7 rounded-lg bg-red-50 text-red-600 flex items-center justify-center text-xs">
+                🛒
+              </div>
+              <span class="text-xs text-stone-500 font-medium">Agotados</span>
+            </div>
+            <div id="kpi-agotados" class="text-2xl font-bold text-stone-900 mb-1">1</div>
+            <div class="text-[11px] text-stone-400">Actualiza sus existencias</div>
+          </div>
+        </div>
+
+        <!-- Barra de Búsqueda y Filtros -->
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-6 bg-white p-3 sm:p-4 rounded-2xl border border-stone-200/90 shadow-2xs">
+          <div class="relative flex-1 min-w-[220px]">
+            <svg class="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input type="text" placeholder="Buscar en mis productos..." class="w-full pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">
+          </div>
+
+          <div class="flex items-center gap-2 text-xs">
+            <select onchange="setProductFilter(this.value)" class="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 text-xs focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+              <option value="todos">Todos los estados</option>
+              <option value="publicado">Publicado</option>
+              <option value="borrador">Borrador</option>
+              <option value="agotado">Agotado</option>
+            </select>
+
+            <select class="bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-stone-700 text-xs focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+              <option value="">Todas las categorías</option>
+              <option value="verduras">Verduras & Raíces</option>
+              <option value="canastas">Canastas Familiares</option>
+              <option value="frutas">Frutas</option>
+              <option value="lacteos">Lácteos & Huevos</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Filtros rápidos por pestaña de estado -->
+        <div class="flex items-center justify-between text-xs border-b border-stone-200 pb-2 mb-6">
+          <div class="flex items-center gap-6">
+            <button onclick="setProductFilter('todos')" data-filter="todos" class="filter-tab-btn active pb-2 border-b-2 border-[#1a3d2f] text-[#1a3d2f] font-bold transition">
+              Todos · <span class="kpi-count-total">3</span>
+            </button>
+            <button onclick="setProductFilter('publicado')" data-filter="publicado" class="filter-tab-btn pb-2 text-stone-500 hover:text-stone-900 transition font-medium">
+              Publicados · <span class="kpi-count-pub">1</span>
+            </button>
+            <button onclick="setProductFilter('borrador')" data-filter="borrador" class="filter-tab-btn pb-2 text-stone-500 hover:text-stone-900 transition font-medium">
+              Borradores · <span class="kpi-count-bor">1</span>
+            </button>
+            <button onclick="setProductFilter('agotado')" data-filter="agotado" class="filter-tab-btn pb-2 text-stone-500 hover:text-stone-900 transition font-medium">
+              Agotados · <span class="kpi-count-agot">1</span>
+            </button>
+          </div>
+          <span class="text-stone-400 hidden sm:inline text-[11px]"><span class="kpi-count-total">3</span> productos en tu finca</span>
+        </div>
+
+        <!-- Rejilla de Productos del Productor -->
+        <div id="producer-products-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <!-- Renderizado dinámicamente con renderProducerProducts() -->
+        </div>
+
+        <!-- Sección Inferior: Próxima Entrega y Alerta de Borrador -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Tarjeta Próxima Entrega -->
+          <div class="bg-white p-5 rounded-2xl border border-stone-200/90 shadow-2xs">
+            <h4 class="font-bold text-stone-900 text-xs sm:text-sm mb-3">Tu próxima entrega</h4>
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-xl bg-stone-100 text-stone-600 flex items-center justify-center shrink-0 text-sm mt-0.5">
+                🚚
+              </div>
+              <div>
+                <p class="text-xs font-bold text-stone-800">Sábado 7 nov. · Nodo Central</p>
+                <p class="text-[11px] text-stone-500 mt-0.5 leading-relaxed">
+                  La Perseverancia · 8:00 a. m. - 12:00 p. m. · Cierre de disponibilidad: hoy, 6:00 p. m.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Banner Alerta Canasta en Borrador -->
+          <div id="producer-draft-alert" class="bg-[#fbf5ee] border border-[#f3dfcf] p-5 rounded-2xl flex items-start gap-3 shadow-2xs">
+            <div class="w-6 h-6 rounded-full bg-[#f3d9ce] text-[#c85a32] flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">
+              ℹ
+            </div>
+            <div>
+              <p class="text-xs font-bold text-stone-900">Tu canasta está en borrador</p>
+              <p class="text-[11px] text-stone-600 mt-1 leading-relaxed">
+                La Canasta Agroecológica aún no es visible para compradores. Revisa su información y pulsa Publicar cuando esté lista.
+              </p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- =====================================================================
+           PESTAÑA 2: PUBLICAR NUEVO PRODUCTO (media_1794011679852_959206f0.jpg)
+           ===================================================================== -->
+      <section id="view-nuevo-producto" class="hidden">
+        
+        <!-- Cabecera de la sección -->
+        <div class="flex items-center justify-between gap-4 mb-6">
+          <div>
+            <span class="text-[10px] uppercase tracking-wider font-bold text-[#c85a32] block mb-1">
+              PUBLICAR NUEVO PRODUCTO
+            </span>
+            <h1 class="font-serif text-3xl font-bold text-stone-900 mb-1">
+              Comparte una nueva cosecha
+            </h1>
+            <p class="text-xs sm:text-sm text-stone-500">
+              De <span class="producer-farm-display">Huerta El Renacer</span> al barrio. Completa la información de tu nuevo producto.
+            </p>
+          </div>
+
+          <button onclick="switchProducerTab('mis-productos')" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+            <span>←</span>
+            <span>Volver a mis productos</span>
+          </button>
+        </div>
+
+        <!-- Formulario en Dos Columnas -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          
+          <!-- Columna Izquierda: Formulario (2 cols) -->
+          <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Card 1: Información del producto -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-1">Información del producto</h3>
+              <p class="text-[11px] text-stone-400 mb-4">Cuenta qué lo hace especial. Los campos con * son obligatorios.</p>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Nombre del producto *</label>
+                  <input type="text" id="new-form-name" value="Rábanos de temporada" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Descripción *</label>
+                  <textarea id="new-form-desc" rows="3" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">Rábanos frescos y crujientes de nuestra huerta en Subachoque. Cosechados a mano, de sabor suave y ligeramente picante. Un toque de color para tus ensaladas.</textarea>
+                  <span class="text-[10px] text-stone-400 mt-1 block">Describe su sabor, cultivo y recomendaciones de uso.</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold text-stone-700 mb-1.5">Categoría *</label>
+                    <select id="new-form-category" class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                      <option selected>Verduras & Raíces</option>
+                      <option>Canastas Familiares</option>
+                      <option>Frutas</option>
+                      <option>Lácteos & Huevos</option>
+                      <option>Despensa</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-stone-700 mb-1.5">Unidad de venta *</label>
+                    <select id="new-form-unit" class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                      <option selected>Manojo · 250 g aprox.</option>
+                      <option>Kilogramo (kg)</option>
+                      <option>Canasta semanal</option>
+                      <option>Caja 500g</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: Fotografías -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-1">Fotografías</h3>
+              <p class="text-[11px] text-stone-400 mb-4">La primera imagen será la portada. JPG o PNG · hasta 5 MB por imagen.</p>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                <!-- Miniatura Portada -->
+                <div class="relative rounded-xl overflow-hidden border border-stone-200 group aspect-[4/3] bg-stone-100">
+                  <img src="assets/images/rabanos.jpg" alt="Rábanos" class="w-full h-full object-cover">
+                  <span class="absolute bottom-2 left-2 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
+                    ✓ Portada
+                  </span>
+                  <button class="absolute top-2 right-2 text-[10px] font-bold text-red-600 bg-white/90 px-1.5 py-0.5 rounded shadow hover:bg-white transition">
+                    Eliminar foto
+                  </button>
+                </div>
+
+                <!-- Zona de Carga Arrastrar y Soltar -->
+                <div class="sm:col-span-2 border-2 border-dashed border-stone-200 hover:border-[#1a3d2f] rounded-xl p-6 text-center cursor-pointer transition bg-stone-50/50">
+                  <div class="w-8 h-8 mx-auto mb-2 text-stone-400">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                  </div>
+                  <span class="text-xs font-bold text-stone-700 block">Arrastra imágenes o selecciona archivos</span>
+                  <span class="text-[10px] text-stone-400 block mt-0.5">Puedes añadir hasta 5 fotografías · 1 de 5</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Precio e inventario -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-1">Precio e inventario</h3>
+              <p class="text-[11px] text-stone-400 mb-4">Precios en pesos colombianos. El stock se descuenta por unidad de venta.</p>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Precio de venta (COP) *</label>
+                  <input type="text" id="new-form-price" value="$ 2.800" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Existencias *</label>
+                  <input type="text" id="new-form-stock" value="30 manojos" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 4: Origen y cosecha -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-4">Origen y cosecha</h3>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Finca / lugar de origen *</label>
+                  <input type="text" id="new-form-origin" value="Huerta El Renacer · Subachoque" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Fecha de cosecha *</label>
+                  <div class="relative">
+                    <input type="text" value="06 / 11 / 2026" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs">📅</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="new-agroeco" checked class="w-4 h-4 rounded text-[#1a3d2f] focus:ring-[#1a3d2f] accent-[#1a3d2f]">
+                <label for="new-agroeco" class="text-xs text-stone-700 font-medium cursor-pointer">
+                  Cultivo agroecológico · sin químicos de síntesis
+                </label>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Columna Derecha: Estado y Previsualización (1 col) -->
+          <div class="space-y-6">
+            
+            <!-- Disponibilidad y estado -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-4">Disponibilidad y estado</h3>
+
+              <div class="space-y-4 text-xs">
+                <div class="flex items-center justify-between">
+                  <span class="text-stone-500 font-medium">Estado actual</span>
+                  <span class="text-[11px] font-bold text-stone-600 bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-full">
+                    • Sin publicar
+                  </span>
+                </div>
+
+                <div>
+                  <label class="block font-bold text-stone-700 mb-1">Estado al guardar *</label>
+                  <select class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <option selected>Publicar en la tienda</option>
+                    <option>Guardar como borrador</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block font-bold text-stone-700 mb-1">Disponibilidad *</label>
+                  <select class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <option selected>Disponible esta semana</option>
+                    <option>Próxima semana</option>
+                    <option>Por encargo</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block font-bold text-stone-700 mb-1">Próxima entrega</label>
+                  <select class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <option selected>Sábado, 7 de noviembre</option>
+                    <option>Miércoles, 11 de noviembre</option>
+                  </select>
+                  <span class="text-[10px] text-stone-400 mt-1 block">
+                    Recogida en Nodo Central. Los productos sin existencias se mostrarán como agotados.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Previsualización: Así lo verá tu barrio -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-3">Así lo verá tu barrio</h3>
+
+              <div class="rounded-2xl border border-stone-200 overflow-hidden bg-white shadow-2xs">
+                <div class="aspect-[16/10] bg-stone-100 overflow-hidden">
+                  <img src="assets/images/rabanos.jpg" alt="Rábanos" class="w-full h-full object-cover">
+                </div>
+                <div class="p-4">
+                  <h4 id="new-preview-title" class="font-serif font-bold text-base text-stone-900">Rábanos de temporada</h4>
+                  <p class="text-[11px] text-stone-400 mt-0.5 producer-farm-display">Huerta El Renacer · Subachoque</p>
+                  <div id="new-preview-price" class="text-sm font-bold text-stone-900 mt-2">$2.800 / manojo</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Nota: Del surco a la tienda -->
+            <div class="bg-[#f1f6f3] border border-[#d8e6dc] p-5 rounded-2xl shadow-2xs flex items-start gap-3">
+              <div class="text-[#1a3d2f] text-base mt-0.5">🛡️</div>
+              <div>
+                <p class="text-xs font-bold text-[#1a3d2f]">Del surco a la tienda</p>
+                <p class="text-[11px] text-stone-600 mt-1 leading-relaxed">
+                  Revisa el precio, la portada y las existencias antes de publicar. También puedes continuar después desde Borradores.
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Barra Inferior de Acciones -->
+        <div class="flex items-center justify-between border-t border-stone-200 pt-6">
+          <button onclick="switchProducerTab('mis-productos')" class="text-xs font-bold text-stone-500 hover:text-stone-800 transition">
+            Cancelar
+          </button>
+
+          <div class="flex items-center gap-3">
+            <button onclick="saveProductDraft()" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-2xs">
+              Guardar borrador
+            </button>
+            <button onclick="publishNewProduct()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2">
+              <span>↗</span>
+              <span>Publicar producto</span>
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- =====================================================================
+           PESTAÑA 3: MODIFICAR PRODUCTO (media_1794011673568_0928a990.jpg)
+           ===================================================================== -->
+      <section id="view-modificar-producto" class="hidden">
+        
+        <!-- Cabecera de la sección -->
+        <div class="flex items-center justify-between gap-4 mb-6">
+          <div>
+            <span id="edit-product-tag" class="text-[10px] uppercase tracking-wider font-bold text-[#c85a32] block mb-1">
+              EDITAR PRODUCTO · PR-003
+            </span>
+            <h1 id="edit-product-heading" class="font-serif text-3xl font-bold text-stone-900 mb-1">
+              Modificar Zanahoria de tierra
+            </h1>
+            <p id="edit-product-subtitle" class="text-xs sm:text-sm text-stone-500">
+              Publicado · Huerta El Renacer · Última actualización: hoy, 10:42 a. m.
+            </p>
+          </div>
+
+          <button onclick="switchProducerTab('mis-productos')" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+            <span>←</span>
+            <span>Volver a mis productos</span>
+          </button>
+        </div>
+
+        <!-- Formulario en Dos Columnas -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          
+          <!-- Columna Izquierda: Formulario (2 cols) -->
+          <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Card 1: Información del producto -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-1">Información del producto</h3>
+              <p class="text-[11px] text-stone-400 mb-4">Cuenta qué lo hace especial. Los campos con * son obligatorios.</p>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Nombre del producto *</label>
+                  <input type="text" id="edit-form-name" value="Zanahoria de tierra" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Descripción *</label>
+                  <textarea id="edit-form-desc" rows="3" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">Zanahorias frescas cultivadas en nuestra huerta en Subachoque. Cosechadas a mano, con su tallo y toda la frescura de la tierra. Ideales para sopas, ensaladas y jugos.</textarea>
+                  <span class="text-[10px] text-stone-400 mt-1 block">Describe su sabor, cultivo y recomendaciones de uso.</span>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold text-stone-700 mb-1.5">Categoría *</label>
+                    <select id="edit-form-category" class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                      <option selected>Verduras & Raíces</option>
+                      <option>Canastas Familiares</option>
+                      <option>Frutas</option>
+                      <option>Lácteos & Huevos</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-stone-700 mb-1.5">Unidad de venta *</label>
+                    <select id="edit-form-unit" class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                      <option selected>Kilogramo (kg)</option>
+                      <option>Manojo</option>
+                      <option>Canasta</option>
+                      <option>Caja 500g</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: Fotografías -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-1">Fotografías</h3>
+              <p class="text-[11px] text-stone-400 mb-4">La primera imagen será la portada. JPG o PNG · hasta 5 MB por imagen.</p>
+
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+                <!-- Miniatura Portada -->
+                <div class="relative rounded-xl overflow-hidden border border-stone-200 group aspect-[4/3] bg-stone-100">
+                  <img id="edit-thumbnail-img" src="assets/images/zanahorias.jpg" alt="Zanahoria" class="w-full h-full object-cover">
+                  <span class="absolute bottom-2 left-2 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
+                    ✓ Portada
+                  </span>
+                  <button class="absolute top-2 right-2 text-[10px] font-bold text-red-600 bg-white/90 px-1.5 py-0.5 rounded shadow hover:bg-white transition">
+                    Eliminar foto
+                  </button>
+                </div>
+
+                <!-- Zona de Carga -->
+                <div class="sm:col-span-2 border-2 border-dashed border-stone-200 hover:border-[#1a3d2f] rounded-xl p-6 text-center cursor-pointer transition bg-stone-50/50">
+                  <div class="w-8 h-8 mx-auto mb-2 text-stone-400">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                  </div>
+                  <span class="text-xs font-bold text-stone-700 block">Arrastra imágenes o selecciona archivos</span>
+                  <span class="text-[10px] text-stone-400 block mt-0.5">Puedes añadir hasta 5 fotografías · 1 de 5</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Precio e inventario -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-1">Precio e inventario</h3>
+              <p class="text-[11px] text-stone-400 mb-4">Precios en pesos colombianos. El stock se descuenta por unidad de venta.</p>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Precio de venta (COP) *</label>
+                  <input type="text" id="edit-form-price" value="$ 4.000" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Existencias *</label>
+                  <input type="text" id="edit-form-stock" value="60 kg" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 4: Origen y cosecha -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-4">Origen y cosecha</h3>
+
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Finca / lugar de origen *</label>
+                  <input type="text" id="edit-form-origin" value="Huerta El Renacer · Subachoque" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                </div>
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Fecha de cosecha *</label>
+                  <div class="relative">
+                    <input type="text" value="06 / 11 / 2026" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs">📅</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <input type="checkbox" id="edit-agroeco" checked class="w-4 h-4 rounded text-[#1a3d2f] focus:ring-[#1a3d2f] accent-[#1a3d2f]">
+                <label for="edit-agroeco" class="text-xs text-stone-700 font-medium cursor-pointer">
+                  Cultivo agroecológico · sin químicos de síntesis
+                </label>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Columna Derecha: Estado y Previsualización (1 col) -->
+          <div class="space-y-6">
+            
+            <!-- Disponibilidad y estado -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-4">Disponibilidad y estado</h3>
+
+              <div class="space-y-4 text-xs">
+                <div class="flex items-center justify-between">
+                  <span class="text-stone-500 font-medium">Estado actual</span>
+                  <span id="edit-form-status-pill" class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
+                    • Publicado
+                  </span>
+                </div>
+
+                <div>
+                  <label class="block font-bold text-stone-700 mb-1">Estado al guardar *</label>
+                  <select id="edit-form-status-select" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <option selected>Publicado</option>
+                    <option>Borrador</option>
+                    <option>Agotado</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block font-bold text-stone-700 mb-1">Disponibilidad *</label>
+                  <select class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <option selected>Disponible esta semana</option>
+                    <option>Próxima semana</option>
+                    <option>Por encargo</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block font-bold text-stone-700 mb-1">Próxima entrega</label>
+                  <select class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <option selected>Sábado, 7 de noviembre</option>
+                    <option>Miércoles, 11 de noviembre</option>
+                  </select>
+                  <span class="text-[10px] text-stone-400 mt-1 block">
+                    Recogida en Nodo Central. Los productos sin existencias se mostrarán como agotados.
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Previsualización: Así lo verá tu barrio -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-3">Así lo verá tu barrio</h3>
+
+              <div class="rounded-2xl border border-stone-200 overflow-hidden bg-white shadow-2xs">
+                <div class="aspect-[16/10] bg-stone-100 overflow-hidden">
+                  <img id="edit-preview-img" src="assets/images/zanahorias.jpg" alt="Zanahoria" class="w-full h-full object-cover">
+                </div>
+                <div class="p-4">
+                  <h4 id="edit-preview-title" class="font-serif font-bold text-base text-stone-900">Zanahoria de tierra</h4>
+                  <p id="edit-preview-origin" class="text-[11px] text-stone-400 mt-0.5">Huerta El Renacer · Subachoque</p>
+                  <div id="edit-preview-price" class="text-sm font-bold text-stone-900 mt-2">$4.000 / kg</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Banner Alerta: Estás editando un producto visible -->
+            <div class="bg-[#fbf5ee] border border-[#f3dfcf] p-5 rounded-2xl shadow-2xs flex items-start gap-3">
+              <div class="text-[#c85a32] text-base mt-0.5 font-bold">ℹ</div>
+              <div>
+                <p class="text-xs font-bold text-stone-900">Estás editando un producto visible</p>
+                <p class="text-[11px] text-stone-600 mt-1 leading-relaxed">
+                  Los cambios se verán en el mercado al guardar. Los pedidos ya confirmados conservan su precio.
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Barra Inferior de Acciones -->
+        <div class="flex items-center justify-between border-t border-stone-200 pt-6">
+          <button onclick="switchProducerTab('mis-productos')" class="text-xs font-bold text-stone-500 hover:text-stone-800 transition">
+            Cancelar
+          </button>
+
+          <button onclick="saveProductModifications()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2">
+            <span>✓</span>
+            <span>Guardar cambios</span>
+          </button>
+        </div>
+
+      </section>
+
+      <!-- =====================================================================
+           PESTAÑA 4: MI PERFIL Y SEGURIDAD (media_1794011666332_f5e770f2.jpg)
+           ===================================================================== -->
+      <section id="view-perfil-seguridad" class="hidden">
+        
+        <!-- Cabecera de la sección -->
+        <div class="mb-6">
+          <span class="text-[10px] uppercase tracking-wider font-bold text-[#c85a32] block mb-1">
+            MI PERFIL Y SEGURIDAD · PRODUCTOR
+          </span>
+          <h1 class="font-serif text-3xl font-bold text-stone-900 mb-1">
+            Tu perfil, tu tranquilidad
+          </h1>
+          <p class="text-xs sm:text-sm text-stone-500">
+            <span class="producer-name-display font-medium text-stone-700">Elena</span>, mantén tus datos al día para seguir conectando tu huerta con el barrio.
+          </p>
+        </div>
+
+        <!-- Grid 2 Columnas -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          
+          <!-- Columna Izquierda: Información de Perfil (1 col) -->
+          <div class="space-y-6">
+            
+            <!-- Card 1: Tu foto de perfil -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs text-center">
+              <h3 class="font-bold text-stone-900 text-sm mb-4 text-left">Tu foto de perfil</h3>
+              
+              <div class="w-20 h-20 mx-auto rounded-full overflow-hidden border-2 border-stone-200 shadow-sm mb-3">
+                <img src="assets/images/elena_moreno.jpg" alt="Elena Moreno" class="w-full h-full object-cover">
+              </div>
+
+              <h4 class="producer-name-display font-serif font-bold text-lg text-stone-900">Elena Moreno</h4>
+              <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-stone-100 text-stone-600 mt-1 mb-4">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Productor</span>
+              </div>
+
+              <div class="space-y-2">
+                <button onclick="alert('Funcionalidad de cambio de foto disponible en el próximo despliegue')" class="w-full border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5">
+                  <span>📷</span>
+                  <span>Cambiar foto</span>
+                </button>
+                <button onclick="alert('Foto restablecida al valor por defecto')" class="text-xs font-medium text-red-600 hover:text-red-700 transition">
+                  Eliminar foto
+                </button>
+              </div>
+
+              <p class="text-[10px] text-stone-400 mt-4 leading-normal">
+                JPG o PNG · máximo 5 MB. Tu foto será visible en la comunidad.
+              </p>
+            </div>
+
+            <!-- Card 2: Tu cuenta en el mercado -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-3">Tu cuenta en el mercado</h3>
+
+              <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mb-3">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Cuenta activa</span>
+              </div>
+
+              <p class="producer-farm-display text-xs font-bold text-stone-800">Huerta El Renacer</p>
+              <p class="text-[11px] text-stone-500 mt-0.5">Subachoque · Cundinamarca</p>
+
+              <div class="mt-4 pt-3 border-t border-stone-100 text-[11px] text-stone-400 space-y-1">
+                <p>Cuenta CU-023</p>
+                <p>En el barrio desde septiembre de 2026</p>
+              </div>
+            </div>
+
+            <!-- Card 3: Tu espacio, a tu manera -->
+            <div class="bg-[#f1f6f3] border border-[#d8e6dc] p-5 rounded-2xl shadow-2xs flex items-start gap-3">
+              <div class="text-[#1a3d2f] text-base mt-0.5">🛡️</div>
+              <div>
+                <p class="text-xs font-bold text-[#1a3d2f]">Tu espacio, a tu manera</p>
+                <p class="text-[11px] text-stone-600 mt-1 leading-relaxed">
+                  Aquí puedes cambiar tus datos personales. Tu rol y los permisos de acceso solo los gestiona la administración.
+                </p>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Columna Derecha: Edición de Datos, Correo y Contraseña (2 cols) -->
+          <div class="lg:col-span-2 space-y-6">
+            
+            <!-- Card 1: Datos personales -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-1">Datos personales</h3>
+              <p class="text-[11px] text-stone-400 mb-4">Así te reconocerán las personas de nuestra comunidad.</p>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Nombre visible *</label>
+                  <input type="text" id="producer-profile-name" value="Elena Moreno" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Nombre de la finca</label>
+                  <input type="text" id="producer-profile-farm" value="Huerta El Renacer" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">
+                  <span class="text-[10px] text-stone-400 mt-1 block">Tu ubicación de origen: Subachoque, Cundinamarca.</span>
+                </div>
+
+                <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <span class="text-[10px] text-stone-400">El nombre y la foto se actualizarán al guardar.</span>
+                  <button onclick="saveProducerPersonalData()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-xs transition">
+                    Guardar datos personales
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: Correo electrónico -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-1">Correo electrónico</h3>
+              <p class="text-[11px] text-stone-400 mb-4">Tu correo se utiliza para iniciar sesión y recibir avisos importantes.</p>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Correo actual</label>
+                  <div class="relative">
+                    <input type="email" value="elena@elrenacer.co" readonly class="w-full pl-3.5 pr-24 py-2.5 bg-stone-100 border border-stone-200 rounded-xl text-xs text-stone-600 cursor-not-allowed">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      • Verificado
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Nuevo correo electrónico</label>
+                  <div class="relative">
+                    <input type="email" placeholder="Escribe tu nuevo correo electrónico" class="w-full pl-3.5 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs">✉</span>
+                  </div>
+                </div>
+
+                <!-- Stepper de 3 pasos -->
+                <div class="bg-stone-50 border border-stone-200 rounded-xl p-3 flex items-center justify-between text-[10px] text-stone-500">
+                  <span class="font-bold text-stone-800">1. Solicitar cambio</span>
+                  <span>›</span>
+                  <span>2. Verificar nuevo correo</span>
+                  <span>›</span>
+                  <span>3. Confirmar actualización</span>
+                </div>
+
+                <div class="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <span class="text-[10px] text-stone-400 max-w-sm">
+                    Enviaremos un enlace al nuevo correo. Hasta confirmarlo, seguirás entrando con tu correo actual.
+                  </span>
+                  <button onclick="alert('Enlace de verificación enviado a tu nuevo correo.')" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2 rounded-xl transition shadow-2xs shrink-0">
+                    Enviar enlace de verificación
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Cambiar contraseña -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <h3 class="font-bold text-stone-900 text-sm mb-1">Cambiar contraseña</h3>
+              <p class="text-[11px] text-stone-400 mb-4">Cuida el acceso a tu cuenta. Nunca compartas tu contraseña.</p>
+
+              <div class="space-y-4">
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Contraseña actual *</label>
+                  <div class="relative">
+                    <input type="password" value="............" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs">👁</button>
+                  </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-bold text-stone-700 mb-1.5">Nueva contraseña *</label>
+                    <div class="relative">
+                      <input type="password" value="............" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                      <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs">👁</button>
+                    </div>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-bold text-stone-700 mb-1.5">Confirmar nueva contraseña *</label>
+                    <div class="relative">
+                      <input type="password" value="............" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                      <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs">👁</button>
+                    </div>
+                  </div>
+                </div>
+
+                <p class="text-[10px] text-stone-400">
+                  Usa al menos 12 caracteres, con mayúsculas, minúsculas, números y un símbolo. No reutilices tu contraseña anterior.
+                </p>
+
+                <div class="pt-2 flex items-center justify-between border-t border-stone-100">
+                  <div class="flex items-center gap-1.5 text-[10px] text-stone-400">
+                    <span>🔒</span>
+                    <span>Las contraseñas permanecen ocultas.</span>
+                  </div>
+                  <button onclick="alert('Contraseña actualizada correctamente en Supabase.')" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-xs transition">
+                    Actualizar contraseña
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- Pie de página (Footer) -->
+    <footer class="border-t border-stone-200/90 py-5 px-6 sm:px-8 text-xs text-stone-400 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
+      <div>© 2026 Raíz & Barrio · Bogotá y su tierra cercana.</div>
+      <div class="flex items-center gap-4 text-stone-500">
+        <a href="#" class="hover:underline">Ayuda</a>
+        <span>·</span>
+        <a href="#" class="hover:underline">Privacidad</a>
+        <span>·</span>
+        <button onclick="logoutUser()" class="hover:underline text-stone-500">Cerrar sesión</button>
+      </div>
+    </footer>
+
+  </div>
+
+  <!-- Scripts -->
   <script src="js/supabase.js"></script>
   <script src="js/auth.js"></script>
-  <script>
-    // Verificar sesión al cargar
-    document.addEventListener('DOMContentLoaded', () => {
-      const user = getCurrentUser();
-      if (!user || (user.role !== 'productor' && user.role !== 'admin')) {
-        window.location.href = 'index.html';
-        return;
-      }
-      const nameEl = document.getElementById('producer-name');
-      if (nameEl) {
-        nameEl.textContent = `${user.name} (${user.finca || 'Productor'})`;
-      }
-    });
-  </script>
+  <script src="js/productor.js"></script>
 </body>
 </html>
-

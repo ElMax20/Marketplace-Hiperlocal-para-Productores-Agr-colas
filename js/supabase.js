@@ -160,3 +160,4 @@ class SupabaseService {
 
 // Instancia global disponible en toda la aplicación
 window.supabase = new SupabaseService();
+
