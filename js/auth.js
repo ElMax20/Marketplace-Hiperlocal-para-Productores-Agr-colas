@@ -478,7 +478,7 @@ function ensureClientSettingsModalExists() {
             Mantén tus datos al día para tus pedidos y entregas en el barrio.
           </p>
         </div>
-        <button onclick="closeClientSettingsModal()" type="button" class="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-sm font-bold transition cursor-pointer" title="Cerrar">
+        <button onclick="cancelClientSettings()" type="button" class="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-sm font-bold transition cursor-pointer" title="Cerrar">
           ✕
         </button>
       </div>
@@ -493,8 +493,16 @@ function ensureClientSettingsModalExists() {
             <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm text-center">
               <h3 class="font-bold text-stone-900 text-xs mb-3 text-left">Tu foto de perfil</h3>
               
-              <div class="w-20 h-20 mx-auto rounded-full overflow-hidden border-2 border-stone-200 shadow-xs mb-3 bg-stone-100 flex items-center justify-center">
+              <div class="w-20 h-20 mx-auto rounded-full overflow-hidden border-2 border-stone-200 shadow-xs mb-2 bg-stone-100 flex items-center justify-center">
                 <img id="client-profile-img-preview" src="" alt="Foto de perfil" class="w-full h-full object-cover">
+              </div>
+
+              <!-- Indicador de foto pendiente de guardar -->
+              <div id="client-photo-draft-status" class="hidden mb-2">
+                <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+                  <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+                  <span id="client-photo-draft-text">Foto pendiente de guardar</span>
+                </span>
               </div>
 
               <h4 id="client-profile-name-display" class="font-serif font-bold text-base text-stone-900">Max</h4>
@@ -581,9 +589,10 @@ function ensureClientSettingsModalExists() {
                 </div>
 
                 <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <span class="text-[10px] text-stone-400">El nombre y la foto se actualizarán al guardar.</span>
-                  <button type="button" onclick="saveClientPersonalData()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition cursor-pointer">
-                    Guardar datos personales
+                  <span class="text-[10px] text-stone-400">Pulsa "Guardar cambios" para aplicar los datos editados.</span>
+                  <button type="button" onclick="saveAllClientSettings()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 self-end sm:self-auto">
+                    <span>💾</span>
+                    <span>Guardar cambios</span>
                   </button>
                 </div>
               </div>
@@ -657,8 +666,9 @@ function ensureClientSettingsModalExists() {
 
                 <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <span class="text-[10px] text-stone-400">Las contraseñas permanecen encriptadas y protegidas.</span>
-                  <button type="button" onclick="updateClientPassword()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition cursor-pointer">
-                    Actualizar contraseña
+                  <button type="button" onclick="saveAllClientSettings()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5 self-end sm:self-auto">
+                    <span>💾</span>
+                    <span>Guardar cambios</span>
                   </button>
                 </div>
               </div>
@@ -668,12 +678,37 @@ function ensureClientSettingsModalExists() {
 
         </div>
       </div>
+
+      <!-- Pie del Modal (Acciones Principales: Guardar Cambios / Cancelar) -->
+      <div class="bg-white border-t border-stone-200 px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 sticky bottom-0 z-10 shrink-0">
+        <div class="flex items-center gap-2 text-xs text-stone-500">
+          <span class="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
+          <span>Pulsa <strong>Guardar cambios</strong> para confirmar todas las modificaciones.</span>
+        </div>
+        <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <button 
+            type="button" 
+            onclick="cancelClientSettings()" 
+            class="flex-1 sm:flex-none border border-stone-300 text-stone-700 bg-white hover:bg-stone-100 font-bold px-5 py-2.5 rounded-xl transition text-xs cursor-pointer shadow-xs text-center"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="button" 
+            onclick="saveAllClientSettings()" 
+            class="flex-1 sm:flex-none bg-[#1a3d2f] hover:bg-[#255440] text-white font-bold px-6 py-2.5 rounded-xl shadow-md hover:shadow-lg transition text-xs flex items-center justify-center gap-2 cursor-pointer text-center"
+          >
+            <span>💾</span>
+            <span>Guardar cambios</span>
+          </button>
+        </div>
+      </div>
     </div>
   `;
 
   wrapper.addEventListener('click', (e) => {
     if (e.target === wrapper) {
-      closeClientSettingsModal();
+      cancelClientSettings();
     }
   });
 
@@ -690,10 +725,27 @@ function openClientSettingsModal() {
 
   const modal = ensureClientSettingsModalExists();
 
+  // Guardar estado original para permitir cancelar fielmente
+  window.clientSettingsOriginal = JSON.parse(JSON.stringify(user));
+  window.clientSettingsDraft = {
+    avatar: user.avatar || '',
+    name: user.name || '',
+    phone: user.phone || '',
+    preferredNode: user.preferredNode || 'Nodo Central · La Perseverancia',
+    address: user.address || '',
+    hasPhotoChange: false
+  };
+
   const preview = document.getElementById('client-profile-img-preview');
   if (preview) {
     preview.src = (user.avatar && user.avatar.trim() !== '') ? user.avatar : window.DEFAULT_USER_AVATAR;
   }
+
+  const statusBadge = document.getElementById('client-photo-draft-status');
+  if (statusBadge) statusBadge.classList.add('hidden');
+
+  const fileInput = document.getElementById('client-photo-input');
+  if (fileInput) fileInput.value = '';
 
   const roleDisplay = document.getElementById('client-profile-role-display');
   const badgeDisplay = document.getElementById('client-settings-badge');
@@ -718,6 +770,9 @@ function openClientSettingsModal() {
   const emailInput = document.getElementById('client-profile-email');
   if (emailInput) emailInput.value = user.email || (user.username ? `${user.username}@vecinos.com` : 'max.cliente@raizybarrio.co');
 
+  const newEmailInput = document.getElementById('client-new-email');
+  if (newEmailInput) newEmailInput.value = '';
+
   const phoneInput = document.getElementById('client-profile-phone');
   if (phoneInput) phoneInput.value = user.phone || '310 987 6543';
 
@@ -728,6 +783,13 @@ function openClientSettingsModal() {
   if (nodeInput && user.preferredNode) {
     nodeInput.value = user.preferredNode;
   }
+
+  const currentPass = document.getElementById('client-current-pass');
+  if (currentPass) currentPass.value = '';
+  const newPass = document.getElementById('client-new-pass');
+  if (newPass) newPass.value = '';
+  const confirmPass = document.getElementById('client-confirm-pass');
+  if (confirmPass) confirmPass.value = '';
 
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -741,7 +803,33 @@ function closeClientSettingsModal() {
   }
 }
 
-function saveClientPersonalData() {
+function cancelClientSettings() {
+  // Revertir vista previa de la foto al avatar guardado original
+  if (window.clientSettingsOriginal) {
+    const preview = document.getElementById('client-profile-img-preview');
+    if (preview) {
+      preview.src = (window.clientSettingsOriginal.avatar && window.clientSettingsOriginal.avatar.trim() !== '')
+        ? window.clientSettingsOriginal.avatar
+        : window.DEFAULT_USER_AVATAR;
+    }
+  }
+
+  const statusBadge = document.getElementById('client-photo-draft-status');
+  if (statusBadge) statusBadge.classList.add('hidden');
+
+  const fileInput = document.getElementById('client-photo-input');
+  if (fileInput) fileInput.value = '';
+
+  window.clientSettingsDraft = null;
+
+  closeClientSettingsModal();
+
+  if (typeof showToast === 'function') {
+    showToast('Cambios cancelados. No se guardó ninguna modificación.');
+  }
+}
+
+function saveAllClientSettings() {
   const user = getCurrentUser();
   if (!user) return;
 
@@ -749,158 +837,198 @@ function saveClientPersonalData() {
   const phoneInput = document.getElementById('client-profile-phone');
   const addressInput = document.getElementById('client-profile-address');
   const nodeInput = document.getElementById('client-profile-node');
+  const newEmailInput = document.getElementById('client-new-email');
+  const currentPass = document.getElementById('client-current-pass');
+  const newPass = document.getElementById('client-new-pass');
+  const confirmPass = document.getElementById('client-confirm-pass');
 
-  if (nameInput && nameInput.value.trim()) {
-    user.name = nameInput.value.trim();
-  }
-  if (phoneInput) {
-    user.phone = phoneInput.value.trim();
-  }
-  if (addressInput) {
-    user.address = addressInput.value.trim();
-  }
-  if (nodeInput) {
-    user.preferredNode = nodeInput.value;
+  // 1. Validación de nombre visible obligatorio
+  const newName = nameInput ? nameInput.value.trim() : '';
+  if (!newName) {
+    alert('Por favor ingresa un nombre visible.');
+    if (nameInput) nameInput.focus();
+    return;
   }
 
+  // 2. Validación de cambio de contraseña (si se ingresó)
+  let updatedPassword = null;
+  if (newPass && newPass.value) {
+    if (newPass.value.length < 4) {
+      alert('La nueva contraseña debe tener al menos 4 caracteres.');
+      newPass.focus();
+      return;
+    }
+    if (!confirmPass || newPass.value !== confirmPass.value) {
+      alert('Las contraseñas no coinciden. Por favor verifica.');
+      if (confirmPass) confirmPass.focus();
+      return;
+    }
+    updatedPassword = newPass.value.trim();
+  }
+
+  // 3. Validación de cambio de correo (si se ingresó)
+  let updatedEmail = null;
+  if (newEmailInput && newEmailInput.value.trim()) {
+    const emailVal = newEmailInput.value.trim();
+    if (!emailVal.includes('@') || !emailVal.includes('.')) {
+      alert('Por favor ingresa un correo electrónico válido.');
+      newEmailInput.focus();
+      return;
+    }
+    updatedEmail = emailVal;
+  }
+
+  // 4. Aplicar modificaciones al objeto de usuario
+  user.name = newName;
+  if (phoneInput) user.phone = phoneInput.value.trim();
+  if (addressInput) user.address = addressInput.value.trim();
+  if (nodeInput) user.preferredNode = nodeInput.value;
+
+  // Si hubo cambio de foto pendiente en el borrador
+  if (window.clientSettingsDraft && window.clientSettingsDraft.hasPhotoChange) {
+    user.avatar = window.clientSettingsDraft.avatar;
+  }
+
+  // 5. Persistir en localStorage (ambas claves)
   setCurrentUser(user);
 
-  const nameDisplay = document.getElementById('client-profile-name-display');
-  if (nameDisplay) nameDisplay.textContent = user.name;
-
+  // 6. Sincronizar en Supabase si está disponible
   if (window.supabase && typeof window.supabase.fetchApi === 'function' && user.id) {
     try {
+      const patchData = {
+        full_name: user.name,
+        phone: user.phone || null,
+        location_address: user.address || null
+      };
+      if (updatedPassword) {
+        patchData.password = updatedPassword;
+      }
       window.supabase.fetchApi(`profiles?id=eq.${user.id}`, {
         method: 'PATCH',
-        body: JSON.stringify({
-          full_name: user.name,
-          phone: user.phone || null,
-          location_address: user.address || null
-        })
+        body: JSON.stringify(patchData)
       });
     } catch(e) {
       console.warn('Error sync profile:', e);
     }
   }
 
+  // Limpiar campos temporales
+  if (currentPass) currentPass.value = '';
+  if (newPass) newPass.value = '';
+  if (confirmPass) confirmPass.value = '';
+  if (newEmailInput) newEmailInput.value = '';
+
+  const statusBadge = document.getElementById('client-photo-draft-status');
+  if (statusBadge) statusBadge.classList.add('hidden');
+
+  window.clientSettingsDraft = null;
+
+  // Actualizar UI completa inmediatamente
   updateAuthUI();
   if (typeof checkAuthStatus === 'function') checkAuthStatus();
 
   closeClientSettingsModal();
+
+  let msg = '¡Cambios guardados con éxito!';
+  if (updatedEmail) {
+    msg += ` Hemos enviado confirmación a ${updatedEmail}.`;
+  }
   if (typeof showToast === 'function') {
-    showToast('¡Datos personales actualizados correctamente!');
+    showToast(msg);
   } else {
-    alert('¡Datos personales actualizados correctamente!');
+    alert(msg);
   }
 }
 
+function saveClientPersonalData() {
+  return saveAllClientSettings();
+}
+
 function handleClientPhotoUpload(event) {
-  const file = event.target.files[0];
+  const file = event.target.files && event.target.files[0];
   if (!file) return;
+
+  if (file.size > 5 * 1024 * 1024) {
+    alert('El archivo es demasiado grande (máximo 5 MB).');
+    return;
+  }
 
   const reader = new FileReader();
   reader.onload = function(e) {
     const dataUrl = e.target.result;
-    const user = getCurrentUser();
-    if (user) {
-      user.avatar = dataUrl;
-      setCurrentUser(user);
-
-  const nameDisplay = document.getElementById('client-profile-name-display');
-  if (nameDisplay) nameDisplay.textContent = user.name;
-      
-      const preview = document.getElementById('client-profile-img-preview');
-      if (preview) preview.src = dataUrl;
-      
-      updateAuthUI();
-      if (typeof checkAuthStatus === 'function') checkAuthStatus();
-      if (typeof showToast === 'function') {
-        showToast('Foto de perfil actualizada correctamente.');
-      }
+    if (!window.clientSettingsDraft) {
+      const user = getCurrentUser() || {};
+      window.clientSettingsDraft = { ...user, hasPhotoChange: false };
     }
+    window.clientSettingsDraft.avatar = dataUrl;
+    window.clientSettingsDraft.hasPhotoChange = true;
+
+    // Actualizar únicamente la vista previa en el modal, NO guardar aún
+    const preview = document.getElementById('client-profile-img-preview');
+    if (preview) preview.src = dataUrl;
+
+    const statusBadge = document.getElementById('client-photo-draft-status');
+    const statusText = document.getElementById('client-photo-draft-text');
+    if (statusBadge) statusBadge.classList.remove('hidden');
+    if (statusText) statusText.textContent = '📸 Foto cargada (pulsa Guardar cambios)';
   };
   reader.readAsDataURL(file);
 }
 
 function removeClientPhoto() {
-  const user = getCurrentUser();
-  if (user) {
-    user.avatar = '';
-    setCurrentUser(user);
-
-  const nameDisplay = document.getElementById('client-profile-name-display');
-  if (nameDisplay) nameDisplay.textContent = user.name;
-    const preview = document.getElementById('client-profile-img-preview');
-    if (preview) preview.src = window.DEFAULT_USER_AVATAR;
-    updateAuthUI();
-    if (typeof checkAuthStatus === 'function') checkAuthStatus();
-    if (typeof showToast === 'function') {
-      showToast('Foto eliminada. Se mostrará el avatar predeterminado.');
-    }
+  if (!window.clientSettingsDraft) {
+    const user = getCurrentUser() || {};
+    window.clientSettingsDraft = { ...user, hasPhotoChange: false };
   }
+  window.clientSettingsDraft.avatar = '';
+  window.clientSettingsDraft.hasPhotoChange = true;
+
+  // Actualizar únicamente la vista previa en el modal, NO guardar aún
+  const preview = document.getElementById('client-profile-img-preview');
+  if (preview) preview.src = window.DEFAULT_USER_AVATAR;
+
+  const statusBadge = document.getElementById('client-photo-draft-status');
+  const statusText = document.getElementById('client-photo-draft-text');
+  if (statusBadge) statusBadge.classList.remove('hidden');
+  if (statusText) statusText.textContent = '🗑️ Foto eliminada (pulsa Guardar cambios)';
+
+  const fileInput = document.getElementById('client-photo-input');
+  if (fileInput) fileInput.value = '';
 }
 
 function updateClientPassword() {
-  const newPass = document.getElementById('client-new-pass');
-  const confirmPass = document.getElementById('client-confirm-pass');
-  const currentPass = document.getElementById('client-current-pass');
-
-  if (!newPass || !confirmPass || !newPass.value) {
-    alert('Por favor introduce tu nueva contraseña.');
-    return;
-  }
-  if (newPass.value !== confirmPass.value) {
-    alert('Las contraseñas no coinciden. Por favor verifica.');
-    return;
-  }
-
-  const user = getCurrentUser();
-  if (user) {
-    if (window.supabase && typeof window.supabase.fetchApi === 'function' && user.id) {
-      try {
-        window.supabase.fetchApi(`profiles?id=eq.${user.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ password: newPass.value.trim() })
-        });
-      } catch(e) {
-        console.warn('Error password update:', e);
-      }
-    }
-    if (typeof showToast === 'function') {
-      showToast('¡Contraseña actualizada correctamente!');
-    } else {
-      alert('¡Contraseña actualizada correctamente!');
-    }
-    if (currentPass) currentPass.value = '';
-    newPass.value = '';
-    confirmPass.value = '';
-  }
+  return saveAllClientSettings();
 }
 
 function requestClientEmailChange() {
   const emailInput = document.getElementById('client-new-email');
   const email = emailInput ? emailInput.value.trim() : '';
-  if (!email || !email.includes('@')) {
+  if (!email || !email.includes('@') || !email.includes('.')) {
     alert('Por favor ingresa un correo electrónico válido.');
+    if (emailInput) emailInput.focus();
     return;
   }
   alert(`Hemos enviado un enlace de confirmación a ${email}. Hasta que lo verifiques, seguirás usando tu correo actual.`);
-  if (emailInput) emailInput.value = '';
 }
 
 // Exportar funciones globales
 window.openClientSettingsModal = openClientSettingsModal;
 window.closeClientSettingsModal = closeClientSettingsModal;
+window.cancelClientSettings = cancelClientSettings;
+window.saveAllClientSettings = saveAllClientSettings;
 window.saveClientPersonalData = saveClientPersonalData;
 window.handleClientPhotoUpload = handleClientPhotoUpload;
 window.removeClientPhoto = removeClientPhoto;
 window.updateClientPassword = updateClientPassword;
 window.requestClientEmailChange = requestClientEmailChange;
 
-// Cerrar modal al presionar Escape
+// Cancelar/cerrar modal al presionar Escape
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
-    closeClientSettingsModal();
+    const modal = document.getElementById('client-settings-modal');
+    if (modal && !modal.classList.contains('hidden')) {
+      cancelClientSettings();
+    }
   }
 });
 
