@@ -134,7 +134,7 @@
             <svg class="w-5 h-5 text-[#1a3d2f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
             </svg>
-            <span id="cart-badge" class="absolute -top-1 -right-1 bg-[#c85a32] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-sm">1</span>
+            <span id="cart-badge" class="absolute -top-1 -right-1 bg-[#c85a32] text-white text-[10px] font-bold w-5 h-5 rounded-full hidden items-center justify-center shadow-sm" style="display: none;">0</span>
           </button>
 
         </div>
@@ -1170,7 +1170,8 @@
 
       <!-- Botón de Proceder al Pago -->
       <button 
-        onclick="alert('¡Excelente! En la siguiente fase conectaremos la pasarela de pagos integrada (PSE, Tarjetas, Nequi).');" 
+        onclick="handleCartCheckout()" 
+        id="cart-checkout-btn"
         class="w-full bg-[#1a3d2f] hover:bg-[#255440] text-white py-3.5 rounded-xl text-sm font-bold shadow-lg hover:shadow-xl transition flex items-center justify-center gap-2"
       >
         <span>Confirmar Pedido y Pagar</span>
@@ -1262,8 +1263,8 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/supabase.js?v=3.1"></script>
-  <script src="js/auth.js?v=3.1"></script>
-  <script src="js/app.js?v=3.1"></script>
+  <script src="js/supabase.js?v=3.2"></script>
+  <script src="js/auth.js?v=3.2"></script>
+  <script src="js/app.js?v=3.2"></script>
 </body>
 </html>

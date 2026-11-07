@@ -49,17 +49,28 @@ function initCountdown() {
 /* ==========================================================================
    2. Sistema de Carrito de Compras
    ========================================================================== */
-let cart = [
-  {
-    id: 'canasta-esencial',
-    title: 'Canasta Agroecológica Esencial',
-    price: 38000,
-    unit: 'canasta semanal',
-    quantity: 1,
-    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_esencial.jpg',
-    origin: 'Huerta El Renacer & Coop. La Unión'
+let cart = [];
+
+function loadCartFromStorage() {
+  try {
+    const stored = localStorage.getItem('raiz_cart');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (e) {
+    console.warn('Error leyendo carrito:', e);
   }
-];
+  return [];
+}
+
+function saveCartToStorage() {
+  try {
+    localStorage.setItem('raiz_cart', JSON.stringify(cart));
+  } catch (e) {
+    console.warn('Error guardando carrito:', e);
+  }
+}
 
 function initCart() {
   const cartBtn = document.getElementById('cart-toggle-btn');
@@ -79,6 +90,7 @@ function initCart() {
     opt.addEventListener('change', updateCartUI);
   });
 
+  cart = loadCartFromStorage();
   renderCartItems();
   updateCartBadge();
 }
@@ -111,6 +123,7 @@ function addToCart(product) {
     cart.push({ ...product });
   }
 
+  saveCartToStorage();
   renderCartItems();
   updateCartBadge();
   showToast(`¡Agregado al carrito: ${product.title}!`);
@@ -125,12 +138,14 @@ function updateCartQuantity(id, delta) {
   if (item.quantity <= 0) {
     cart = cart.filter(i => i.id !== id);
   }
+  saveCartToStorage();
   renderCartItems();
   updateCartBadge();
 }
 
 function removeCartItem(id) {
   cart = cart.filter(i => i.id !== id);
+  saveCartToStorage();
   renderCartItems();
   updateCartBadge();
 }
@@ -186,13 +201,13 @@ function updateCartUI() {
   const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const selectedDelivery = document.querySelector('input[name="cart-delivery"]:checked')?.value || 'pickup';
   
-  // Si es retiro en punto de recolección es $0, si es domicilio directo $6.500 (o gratis si supera $40.000)
+  // Si no hay productos en el carrito, envío y total son $0
   let shippingCost = 0;
-  if (selectedDelivery === 'home') {
+  if (subtotal > 0 && selectedDelivery === 'home') {
     shippingCost = subtotal >= 40000 ? 0 : 6500;
   }
 
-  const total = subtotal + shippingCost;
+  const total = subtotal > 0 ? (subtotal + shippingCost) : 0;
 
   const subtotalEl = document.getElementById('cart-subtotal');
   const shippingEl = document.getElementById('cart-shipping');
@@ -201,7 +216,9 @@ function updateCartUI() {
 
   if (subtotalEl) subtotalEl.textContent = `$${subtotal.toLocaleString('es-CO')}`;
   if (shippingEl) {
-    if (selectedDelivery === 'pickup') {
+    if (subtotal === 0) {
+      shippingEl.innerHTML = '<span class="text-stone-400 font-normal">$0</span>';
+    } else if (selectedDelivery === 'pickup') {
       shippingEl.innerHTML = '<span class="text-emerald-700 font-semibold">Gratis (Retiro en Nodo)</span>';
     } else {
       shippingEl.innerHTML = shippingCost === 0 
@@ -212,7 +229,9 @@ function updateCartUI() {
   if (totalEl) totalEl.textContent = `$${total.toLocaleString('es-CO')}`;
 
   if (freeShippingHint) {
-    if (subtotal >= 40000) {
+    if (subtotal === 0) {
+      freeShippingHint.innerHTML = '🌱 Tu canasta está vacía. Selecciona productos frescos de nuestros agricultores.';
+    } else if (subtotal >= 40000) {
       freeShippingHint.innerHTML = '✨ ¡Felicidades! Tienes <strong>envío gratis</strong> garantizado.';
     } else {
       const rest = 40000 - subtotal;
@@ -228,6 +247,15 @@ function updateCartBadge() {
     badge.textContent = totalCount;
     badge.style.display = totalCount > 0 ? 'flex' : 'none';
   }
+}
+
+function handleCartCheckout() {
+  if (!cart || cart.length === 0) {
+    showToast('Tu canasta de compra está vacía. Agrega productos para continuar.');
+    return;
+  }
+  saveCartToStorage();
+  window.location.href = 'mercado.html';
 }
 
 /* ==========================================================================
