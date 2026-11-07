@@ -168,22 +168,18 @@
       <div class="flex flex-wrap items-center gap-2 sm:gap-3 text-xs">
         <span class="font-bold text-[#1a3d2f] flex items-center gap-1">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-          Filtrar (<span id="filter-count">2</span>)
+          <span>Filtrar</span>
+          <span id="filter-count-badge" class="hidden font-normal text-stone-500">(<span id="filter-count">0</span>)</span>
         </span>
-        <button onclick="resetFilters()" class="text-stone-400 hover:text-stone-700 underline text-[11px]">Limpiar</button>
-        <span class="text-stone-300">|</span>
+        <button id="filter-clear-btn-inline" onclick="resetFilters()" class="hidden text-stone-400 hover:text-stone-700 underline text-[11px] cursor-pointer">Limpiar</button>
+        <span id="filter-divider" class="hidden text-stone-300">|</span>
         <span class="text-stone-600 font-semibold" id="products-count-label">48 productos para tu próxima entrega</span>
         
-        <!-- Chips de filtros activos -->
-        <span class="inline-flex items-center gap-1 bg-white border border-stone-200 text-stone-700 px-2.5 py-1 rounded-full text-[11px]">
-          Disponibles esta semana
-          <button onclick="this.parentElement.remove()" class="text-stone-400 hover:text-stone-700">✕</button>
-        </span>
-        <span class="inline-flex items-center gap-1 bg-white border border-stone-200 text-stone-700 px-2.5 py-1 rounded-full text-[11px]">
-          Hasta 80 km
-          <button onclick="this.parentElement.remove()" class="text-stone-400 hover:text-stone-700">✕</button>
-        </span>
-        <button onclick="resetFilters()" class="text-xs font-semibold text-[#c85a32] hover:underline ml-1">
+        <!-- Chips dinámicos de filtros activos -->
+        <div id="active-filters-chips" class="inline-flex flex-wrap items-center gap-2"></div>
+
+        <!-- Botón destacado Limpiar filtros (solo visible cuando hay filtros activos) -->
+        <button id="filter-clear-btn" onclick="resetFilters()" class="hidden text-xs font-semibold text-[#c85a32] hover:text-[#9e3f1c] hover:underline ml-1 cursor-pointer">
           Limpiar filtros
         </button>
       </div>
@@ -261,7 +257,7 @@
             <svg class="w-3.5 h-3.5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
           </h3>
           <label class="flex items-start gap-2.5 text-xs text-stone-700 cursor-pointer">
-            <input type="checkbox" checked class="mt-0.5 rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
+            <input type="checkbox" id="filter-weekly" onchange="toggleWeeklyOnly()" class="mt-0.5 rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
             <div>
               <span class="font-medium">Disponibles esta semana</span>
               <span class="text-stone-400 text-[11px]">(48)</span>
@@ -280,16 +276,16 @@
           </h3>
           <div class="space-y-1.5 text-xs text-stone-700">
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="distancia" class="text-[#1a3d2f] focus:ring-[#1a3d2f]">
+              <input type="radio" name="distancia" value="0" checked onchange="setDistanceFilter(0)" class="text-[#1a3d2f] focus:ring-[#1a3d2f]">
               <span>Cualquier distancia</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="distancia" class="text-[#1a3d2f] focus:ring-[#1a3d2f]">
+              <input type="radio" name="distancia" value="35" onchange="setDistanceFilter(35)" class="text-[#1a3d2f] focus:ring-[#1a3d2f]">
               <span>Hasta 35 km</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="distancia" checked class="text-[#1a3d2f] focus:ring-[#1a3d2f]">
-              <span class="font-semibold text-[#1a3d2f]">Hasta 80 km</span>
+              <input type="radio" name="distancia" value="80" onchange="setDistanceFilter(80)" class="text-[#1a3d2f] focus:ring-[#1a3d2f]">
+              <span>Hasta 80 km</span>
             </label>
             <p class="text-[11px] text-stone-500 mt-1">Distancia aproximada a tu nodo.</p>
           </div>
@@ -306,12 +302,12 @@
           <div class="flex items-center gap-2 text-xs">
             <div class="relative flex-1">
               <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-stone-400 text-xs">$</span>
-              <input type="number" placeholder="Desde" class="w-full pl-6 pr-2 py-1.5 bg-white border border-stone-200 rounded-lg text-xs focus:ring-1 focus:ring-[#1a3d2f] outline-none">
+              <input type="number" id="filter-price-min" oninput="setPriceFilter()" placeholder="Desde" class="w-full pl-6 pr-2 py-1.5 bg-white border border-stone-200 rounded-lg text-xs focus:ring-1 focus:ring-[#1a3d2f] outline-none">
             </div>
             <span class="text-stone-400">–</span>
             <div class="relative flex-1">
               <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-stone-400 text-xs">$</span>
-              <input type="number" placeholder="Hasta" class="w-full pl-6 pr-2 py-1.5 bg-white border border-stone-200 rounded-lg text-xs focus:ring-1 focus:ring-[#1a3d2f] outline-none">
+              <input type="number" id="filter-price-max" oninput="setPriceFilter()" placeholder="Hasta" class="w-full pl-6 pr-2 py-1.5 bg-white border border-stone-200 rounded-lg text-xs focus:ring-1 focus:ring-[#1a3d2f] outline-none">
             </div>
           </div>
           <p class="text-[10px] text-stone-400 mt-1">Rango promedio: $4.000 a $58.000</p>
@@ -327,15 +323,15 @@
           </h3>
           <div class="space-y-1.5 text-xs text-stone-700">
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
+              <input type="checkbox" id="filter-agro" onchange="toggleFarmingPractice('agro')" class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
               <span>Cultivo agroecológico</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
+              <input type="checkbox" id="filter-nochem" onchange="toggleFarmingPractice('nochem')" class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
               <span>Sin químicos de síntesis</span>
             </label>
             <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
+              <input type="checkbox" id="filter-artesanal" onchange="toggleFarmingPractice('artesanal')" class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
               <span>Elaboración artesanal</span>
             </label>
           </div>
@@ -713,9 +709,9 @@
   </div>
 
   <!-- Market JavaScript Logic -->
-  <script src="js/supabase.js?v=4.0"></script>
-  <script src="js/auth.js?v=4.0"></script>
-  <script src="js/market.js?v=4.0"></script>
+  <script src="js/supabase.js?v=4.1"></script>
+  <script src="js/auth.js?v=4.1"></script>
+  <script src="js/market.js?v=4.1"></script>
 </body>
 </html>
 

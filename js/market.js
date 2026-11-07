@@ -221,6 +221,11 @@ let searchQuery = '';
 let offersOnly = false;
 let currentSort = 'recomendados';
 let cart = [];
+let maxDistance = 0;
+let weeklyOnly = false;
+let priceMin = null;
+let priceMax = null;
+let farmingPractices = [];
 
 // =============================================================================
 // 3. Inicialización
@@ -308,10 +313,35 @@ function renderProducts() {
     // Búsqueda
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      const matchTitle = p.title.toLowerCase().includes(q);
-      const matchOrigin = p.origin.toLowerCase().includes(q);
-      const matchSub = p.subtitle.toLowerCase().includes(q);
+      const matchTitle = (p.title || '').toLowerCase().includes(q);
+      const matchOrigin = (p.origin || '').toLowerCase().includes(q);
+      const matchSub = (p.subtitle || '').toLowerCase().includes(q);
       if (!matchTitle && !matchOrigin && !matchSub) return false;
+    }
+    // Disponibles esta semana
+    if (weeklyOnly) {
+      const avail = (p.availability || '').toLowerCase();
+      if (avail.includes('agotado') || avail.includes('no disponible')) return false;
+    }
+    // Distancia máxima
+    if (maxDistance > 0 && typeof p.distanceKm === 'number' && p.distanceKm > maxDistance) {
+      return false;
+    }
+    // Rango de precio
+    if (priceMin !== null && p.price < priceMin) {
+      return false;
+    }
+    if (priceMax !== null && p.price > priceMax) {
+      return false;
+    }
+    // Prácticas de cultivo y elaboración
+    if (farmingPractices && farmingPractices.length > 0) {
+      const text = `${p.tag || ''} ${p.origin || ''} ${p.subtitle || ''}`.toLowerCase();
+      for (const practice of farmingPractices) {
+        if (practice === 'agro' && !text.includes('agro') && !text.includes('cosecha') && !text.includes('huerta')) return false;
+        if (practice === 'nochem' && !text.includes('pura') && !text.includes('fresca') && !text.includes('temporada')) return false;
+        if (practice === 'artesanal' && !text.includes('artesanal') && !text.includes('familia') && !text.includes('apiario')) return false;
+      }
     }
     return true;
   });
@@ -331,14 +361,17 @@ function renderProducts() {
     countLabel.textContent = `${filtered.length} productos para tu próxima entrega`;
   }
 
+  // Actualizar interfaz reactiva de filtros activos y botones de limpiar
+  updateActiveFiltersUI();
+
   if (filtered.length === 0) {
     container.innerHTML = `
       <div class="col-span-full py-16 text-center">
         <div class="w-16 h-16 rounded-full bg-stone-100 text-stone-400 flex items-center justify-center mx-auto mb-3 text-2xl">🌱</div>
         <h4 class="font-serif text-lg font-bold text-stone-700">No encontramos cosechas con esos filtros</h4>
-        <p class="text-xs text-stone-500 mt-1">Prueba seleccionando otra categoría o borrando tu búsqueda.</p>
-        <button onclick="resetFilters()" class="mt-4 px-4 py-2 bg-[#1a3d2f] text-white rounded-full text-xs font-bold hover:bg-[#255240] transition">
-          Ver todos los productos
+        <p class="text-xs text-stone-500 mt-1">Prueba seleccionando otra categoría o limpiando tus filtros.</p>
+        <button onclick="resetFilters()" class="mt-4 px-5 py-2 bg-[#1a3d2f] text-white rounded-full text-xs font-bold hover:bg-[#255240] transition cursor-pointer shadow-sm">
+          Limpiar todos los filtros
         </button>
       </div>
     `;
@@ -427,7 +460,7 @@ function renderProducts() {
 }
 
 // =============================================================================
-// 5. Manejo de Filtros y Búsqueda
+// 5. Manejo de Filtros y Búsqueda Reactiva
 // =============================================================================
 function setCategoryFilter(category) {
   currentCategory = category;
@@ -441,7 +474,7 @@ function highlightCategoryButton(category) {
     const btn = document.getElementById(`cat-btn-${cat}`);
     if (btn) {
       if (cat === category) {
-        btn.className = "w-full flex items-center justify-between px-3 py-2 rounded-xl font-bold bg-[#1a3d2f] text-white transition text-left";
+        btn.className = "w-full flex items-center justify-between px-3 py-2 rounded-xl font-bold bg-[#1a3d2f] text-white transition text-left shadow-2xs";
       } else {
         btn.className = "w-full flex items-center justify-between px-3 py-2 rounded-xl text-stone-700 hover:bg-stone-100 transition text-left font-medium";
       }
@@ -452,6 +485,75 @@ function highlightCategoryButton(category) {
 function toggleOffersOnly() {
   const checkbox = document.getElementById('filter-offers');
   offersOnly = checkbox ? checkbox.checked : false;
+  renderProducts();
+}
+
+function removeOffersFilter() {
+  offersOnly = false;
+  const checkbox = document.getElementById('filter-offers');
+  if (checkbox) checkbox.checked = false;
+  renderProducts();
+}
+
+function toggleWeeklyOnly() {
+  const checkbox = document.getElementById('filter-weekly');
+  weeklyOnly = checkbox ? checkbox.checked : false;
+  renderProducts();
+}
+
+function removeWeeklyFilter() {
+  weeklyOnly = false;
+  const checkbox = document.getElementById('filter-weekly');
+  if (checkbox) checkbox.checked = false;
+  renderProducts();
+}
+
+function setDistanceFilter(dist) {
+  maxDistance = parseInt(dist, 10) || 0;
+  const radios = document.querySelectorAll('input[name="distancia"]');
+  radios.forEach(r => {
+    r.checked = (parseInt(r.value, 10) || 0) === maxDistance;
+  });
+  renderProducts();
+}
+
+function setPriceFilter() {
+  const minEl = document.getElementById('filter-price-min');
+  const maxEl = document.getElementById('filter-price-max');
+  const minVal = (minEl && minEl.value !== '') ? parseFloat(minEl.value) : null;
+  const maxVal = (maxEl && maxEl.value !== '') ? parseFloat(maxEl.value) : null;
+  priceMin = minVal;
+  priceMax = maxVal;
+  renderProducts();
+}
+
+function clearPriceFilter() {
+  priceMin = null;
+  priceMax = null;
+  const minEl = document.getElementById('filter-price-min');
+  if (minEl) minEl.value = '';
+  const maxEl = document.getElementById('filter-price-max');
+  if (maxEl) maxEl.value = '';
+  renderProducts();
+}
+
+function toggleFarmingPractice(practice) {
+  const idx = farmingPractices.indexOf(practice);
+  if (idx > -1) {
+    farmingPractices.splice(idx, 1);
+  } else {
+    farmingPractices.push(practice);
+  }
+  const idMap = { 'agro': 'filter-agro', 'nochem': 'filter-nochem', 'artesanal': 'filter-artesanal' };
+  const el = document.getElementById(idMap[practice]);
+  if (el) el.checked = farmingPractices.includes(practice);
+  renderProducts();
+}
+
+function clearSearchFilter() {
+  searchQuery = '';
+  const searchInput = document.getElementById('market-search');
+  if (searchInput) searchInput.value = '';
   renderProducts();
 }
 
@@ -467,12 +569,179 @@ function resetFilters() {
   currentCategory = 'todos';
   offersOnly = false;
   searchQuery = '';
+  maxDistance = 0;
+  weeklyOnly = false;
+  priceMin = null;
+  priceMax = null;
+  farmingPractices = [];
+
   const searchInput = document.getElementById('market-search');
   if (searchInput) searchInput.value = '';
+
   const offerCheckbox = document.getElementById('filter-offers');
   if (offerCheckbox) offerCheckbox.checked = false;
+
+  const weeklyCheckbox = document.getElementById('filter-weekly');
+  if (weeklyCheckbox) weeklyCheckbox.checked = false;
+
+  const distanceRadios = document.querySelectorAll('input[name="distancia"]');
+  distanceRadios.forEach(r => {
+    r.checked = (r.value === '0' || r.value === 'todas');
+  });
+
+  const minInput = document.getElementById('filter-price-min');
+  if (minInput) minInput.value = '';
+  const maxInput = document.getElementById('filter-price-max');
+  if (maxInput) maxInput.value = '';
+
+  ['filter-agro', 'filter-nochem', 'filter-artesanal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.checked = false;
+  });
+
   highlightCategoryButton('todos');
+
+  // Limpiar parámetro de URL si existe (ej: ?categoria=canastas)
+  if (window.location.search) {
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, '', cleanUrl);
+  }
+
   renderProducts();
+}
+
+function updateActiveFiltersUI() {
+  const container = document.getElementById('active-filters-chips');
+  const countBadge = document.getElementById('filter-count-badge');
+  const countSpan = document.getElementById('filter-count');
+  const clearInlineBtn = document.getElementById('filter-clear-btn-inline');
+  const clearDivider = document.getElementById('filter-divider');
+  const clearBtn = document.getElementById('filter-clear-btn');
+
+  const activeFilters = [];
+
+  // 1. Categoría
+  if (currentCategory && currentCategory !== 'todos') {
+    const categoryNames = {
+      'canastas': 'Canastas Familiares',
+      'verduras': 'Verduras & Granos',
+      'frutas': 'Frutas del Valle',
+      'lacteos': 'Lácteos de Pastoreo',
+      'despensa': 'Mieles & Despensa'
+    };
+    const label = categoryNames[currentCategory] || currentCategory;
+    activeFilters.push({
+      id: 'category',
+      label: label,
+      onRemove: "setCategoryFilter('todos')"
+    });
+  }
+
+  // 2. Búsqueda
+  if (searchQuery && searchQuery.trim() !== '') {
+    activeFilters.push({
+      id: 'search',
+      label: `Búsqueda: "${searchQuery}"`,
+      onRemove: "clearSearchFilter()"
+    });
+  }
+
+  // 3. Ofertas
+  if (offersOnly) {
+    activeFilters.push({
+      id: 'offers',
+      label: 'Solo ofertas',
+      onRemove: "removeOffersFilter()"
+    });
+  }
+
+  // 4. Disponibles esta semana
+  if (weeklyOnly) {
+    activeFilters.push({
+      id: 'weekly',
+      label: 'Disponibles esta semana',
+      onRemove: "removeWeeklyFilter()"
+    });
+  }
+
+  // 5. Distancia
+  if (maxDistance > 0) {
+    activeFilters.push({
+      id: 'distance',
+      label: `Hasta ${maxDistance} km`,
+      onRemove: "setDistanceFilter(0)"
+    });
+  }
+
+  // 6. Rango de precio
+  if (priceMin !== null || priceMax !== null) {
+    let priceLabel = 'Precio: ';
+    if (priceMin !== null && priceMax !== null) {
+      priceLabel += `$${formatCOP(priceMin)} – $${formatCOP(priceMax)}`;
+    } else if (priceMin !== null) {
+      priceLabel += `Desde $${formatCOP(priceMin)}`;
+    } else {
+      priceLabel += `Hasta $${formatCOP(priceMax)}`;
+    }
+    activeFilters.push({
+      id: 'price',
+      label: priceLabel,
+      onRemove: "clearPriceFilter()"
+    });
+  }
+
+  // 7. Prácticas de cultivo
+  if (farmingPractices && farmingPractices.length > 0) {
+    const practiceLabels = {
+      'agro': 'Agroecológico',
+      'nochem': 'Sin químicos',
+      'artesanal': 'Elaboración artesanal'
+    };
+    farmingPractices.forEach(p => {
+      activeFilters.push({
+        id: `practice-${p}`,
+        label: practiceLabels[p] || p,
+        onRemove: `toggleFarmingPractice('${p}')`
+      });
+    });
+  }
+
+  const count = activeFilters.length;
+
+  // Actualizar conteo numérico
+  if (countSpan) countSpan.textContent = count;
+  if (countBadge) {
+    if (count > 0) {
+      countBadge.classList.remove('hidden');
+    } else {
+      countBadge.classList.add('hidden');
+    }
+  }
+
+  // Mostrar u ocultar botones de limpiar
+  if (count > 0) {
+    if (clearInlineBtn) clearInlineBtn.classList.remove('hidden');
+    if (clearDivider) clearDivider.classList.remove('hidden');
+    if (clearBtn) clearBtn.classList.remove('hidden');
+  } else {
+    if (clearInlineBtn) clearInlineBtn.classList.add('hidden');
+    if (clearDivider) clearDivider.classList.add('hidden');
+    if (clearBtn) clearBtn.classList.add('hidden');
+  }
+
+  // Renderizar chips de filtros activos
+  if (container) {
+    if (count === 0) {
+      container.innerHTML = '';
+    } else {
+      container.innerHTML = activeFilters.map(f => `
+        <span class="inline-flex items-center gap-1.5 bg-white border border-stone-200 text-stone-700 px-2.5 py-1 rounded-full text-[11px] font-medium shadow-2xs hover:border-stone-300 transition">
+          <span>${f.label}</span>
+          <button onclick="${f.onRemove}" class="text-stone-400 hover:text-stone-700 text-xs leading-none p-0.5 rounded-full transition cursor-pointer" title="Eliminar filtro">✕</button>
+        </span>
+      `).join('');
+    }
+  }
 }
 
 function setupSearchListener() {
@@ -484,6 +753,21 @@ function setupSearchListener() {
     });
   }
 }
+
+// Exportar globalmente
+window.setCategoryFilter = setCategoryFilter;
+window.toggleOffersOnly = toggleOffersOnly;
+window.removeOffersFilter = removeOffersFilter;
+window.toggleWeeklyOnly = toggleWeeklyOnly;
+window.removeWeeklyFilter = removeWeeklyFilter;
+window.setDistanceFilter = setDistanceFilter;
+window.setPriceFilter = setPriceFilter;
+window.clearPriceFilter = clearPriceFilter;
+window.toggleFarmingPractice = toggleFarmingPractice;
+window.clearSearchFilter = clearSearchFilter;
+window.sortProducts = sortProducts;
+window.resetFilters = resetFilters;
+window.updateActiveFiltersUI = updateActiveFiltersUI;
 
 // =============================================================================
 // 6. Carrito de Compras (Cart System)
