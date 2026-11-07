@@ -164,15 +164,18 @@ class SupabaseService {
   /**
    * Convierte una ruta relativa de imagen o nombre de archivo en su URL pública en Supabase Storage
    * Ejemplo: 'assets/images/tomates.jpg' -> 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg'
+   * Ejemplo avatar: 'avatars/avatar_max.jpg' -> 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/avatars/avatar_max.jpg'
    */
   getPublicAssetUrl(path) {
     if (!path) return '';
     if (path.startsWith('http://') || path.startsWith('https://')) {
-      return path;
+      // Normalizar posibles rutas previas con duplicación errónea de images/avatars
+      return path.replace('/assets/images/avatars/', '/assets/avatars/');
     }
-    // Limpiar prefijo assets/ si está presente
-    let cleanPath = path.replace(/^\/?assets\//, '');
-    if (!cleanPath.startsWith('images/')) {
+    // Limpiar prefijo assets/ o /assets/ si está presente
+    let cleanPath = path.replace(/^\/?assets\//, '').replace(/^\/+/, '');
+    // Si no contiene subcarpeta (ej: 'tomates.jpg'), asumir 'images/'
+    if (!cleanPath.includes('/')) {
       cleanPath = `images/${cleanPath}`;
     }
     return `${SUPABASE_CONFIG.url}/storage/v1/object/public/assets/${cleanPath}`;
@@ -195,7 +198,7 @@ class SupabaseService {
    */
   async uploadAsset(file, filename, folder = 'images') {
     try {
-      const storagePath = `${folder}/${filename}`;
+      const storagePath = folder ? `${folder}/${filename}` : filename;
       const uploadUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/assets/${storagePath}`;
       
       const response = await fetch(uploadUrl, {
@@ -213,21 +216,26 @@ class SupabaseService {
         throw new Error(`Error subiendo asset: ${response.statusText}`);
       }
 
-      const publicUrl = this.getPublicAssetUrl(storagePath);
+      // La URL pública directa en el bucket 'assets'
+      const publicUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/assets/${storagePath}`;
 
       // Registrar o actualizar en la tabla public.assets
-      await this.fetchApi('assets', {
-        method: 'POST',
-        headers: { 'Prefer': 'resolution=merge-duplicates' },
-        body: JSON.stringify({
-          filename: filename,
-          folder: folder,
-          path: `assets/${storagePath}`,
-          mime_type: file.type || 'image/jpeg',
-          size_bytes: file.size || 0,
-          public_url: publicUrl
-        })
-      });
+      try {
+        await this.fetchApi('assets', {
+          method: 'POST',
+          headers: { 'Prefer': 'resolution=merge-duplicates' },
+          body: JSON.stringify({
+            filename: filename,
+            folder: folder || 'images',
+            path: `assets/${storagePath}`,
+            mime_type: file.type || 'image/jpeg',
+            size_bytes: file.size || 0,
+            public_url: publicUrl
+          })
+        });
+      } catch (assetErr) {
+        console.warn('Registro en tabla assets no crítico:', assetErr);
+      }
 
       return publicUrl;
     } catch (e) {

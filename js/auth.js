@@ -10,6 +10,12 @@
 window.DEFAULT_USER_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc2NCcgaGVpZ2h0PSc2NCcgdmlld0JveD0nMCAwIDY0IDY0Jz48Y2lyY2xlIGN4PSczMicgY3k9JzMyJyByPSczMicgZmlsbD0nI2U3ZTVlNCcvPjxwYXRoIGQ9J00zMiAzMmExMCAxMCAwIDEgMCAwLTIwIDEwIDEwIDAgMCAwIDAgMjB6bTAgNmMtOC44NCAwLTIwIDQuNDgtMjAgMTJ2NGg0MHYtNGMwLTcuNTItMTEuMTYtMTItMjAtMTJ6JyBmaWxsPScjNzg3MTZjJy8+PC9zdmc+";
 var DEFAULT_USER_AVATAR = window.DEFAULT_USER_AVATAR;
 
+window.normalizeAvatarUrl = function(url) {
+  if (!url || typeof url !== 'string') return '';
+  return url.replace('/assets/images/avatars/', '/assets/avatars/');
+};
+var normalizeAvatarUrl = window.normalizeAvatarUrl;
+
 const AUTH_ACCOUNTS = {
   cliente: {
     username: 'max',
@@ -219,7 +225,7 @@ async function handleAuthSubmit(event) {
         phone: dbUser.phone || '',
         address: dbUser.location_address || '',
         email: dbUser.email || 'lucia@raizybarrio.co',
-        avatar: dbUser.avatar_url || 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg',
+        avatar: normalizeAvatarUrl(dbUser.avatar_url || 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg'),
         loggedIn: true
       };
       setCurrentUser(adminUser);
@@ -245,7 +251,7 @@ async function handleAuthSubmit(event) {
           address: dbUser.location_address || '',
           preferredNode: dbUser.farm_name || 'Nodo Central · La Perseverancia',
           email: dbUser.email || '',
-          avatar: dbUser.avatar_url || '',
+          avatar: normalizeAvatarUrl(dbUser.avatar_url || ''),
           loggedIn: true
         };
         setCurrentUser(clienteUser);
@@ -273,7 +279,7 @@ async function handleAuthSubmit(event) {
           address: dbUser.location_address || '',
           finca: dbUser.farm_name || 'Huerta El Renacer',
           email: dbUser.email || '',
-          avatar: dbUser.avatar_url || 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg',
+          avatar: normalizeAvatarUrl(dbUser.avatar_url || 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg'),
           loggedIn: true
         };
         setCurrentUser(prodUser);
@@ -340,6 +346,11 @@ function showAuthError(msg) {
   }
 }
 
+function normalizeAvatarUrl(url) {
+  if (!url || typeof url !== 'string') return '';
+  return url.replace('/assets/images/avatars/', '/assets/avatars/');
+}
+
 /**
  * Actualiza la barra de navegación para mostrar el usuario activo o botones de inicio.
  * REGLA: Al lado del botón de la canasta SOLO se muestra la foto de usuario (sin texto con el nombre).
@@ -350,7 +361,7 @@ function updateAuthUI() {
   if (!authContainer) return;
 
   if (user) {
-    const avatarSrc = (user.avatar && user.avatar.trim() !== '') ? user.avatar : window.DEFAULT_USER_AVATAR;
+    const avatarSrc = (user.avatar && user.avatar.trim() !== '') ? normalizeAvatarUrl(user.avatar) : window.DEFAULT_USER_AVATAR;
     let profileLink = '#';
     let profileLabel = 'Mi perfil';
 
@@ -473,7 +484,10 @@ async function syncCurrentUserFromSupabase() {
       if (db.phone !== undefined && user.phone !== (db.phone || '')) { user.phone = db.phone || ''; hasChanges = true; }
       if (db.location_address !== undefined && user.address !== (db.location_address || '')) { user.address = db.location_address || ''; hasChanges = true; }
       if (db.farm_name !== undefined && user.preferredNode !== (db.farm_name || '')) { user.preferredNode = db.farm_name || 'Nodo Central · La Perseverancia'; hasChanges = true; }
-      if (db.avatar_url !== undefined && user.avatar !== (db.avatar_url || '')) { user.avatar = db.avatar_url || ''; hasChanges = true; }
+      if (db.avatar_url !== undefined) {
+        const cleanAvatar = normalizeAvatarUrl(db.avatar_url || '');
+        if (user.avatar !== cleanAvatar) { user.avatar = cleanAvatar; hasChanges = true; }
+      }
       if (db.email && user.email !== db.email) { user.email = db.email; hasChanges = true; }
 
       if (hasChanges) {
@@ -770,7 +784,7 @@ async function openClientSettingsModal() {
 
   const preview = document.getElementById('client-profile-img-preview');
   if (preview) {
-    preview.src = (user.avatar && user.avatar.trim() !== '') ? user.avatar : window.DEFAULT_USER_AVATAR;
+    preview.src = (user.avatar && user.avatar.trim() !== '') ? normalizeAvatarUrl(user.avatar) : window.DEFAULT_USER_AVATAR;
   }
 
   const roleDisplay = document.getElementById('client-profile-role-display');
@@ -841,7 +855,7 @@ async function openClientSettingsModal() {
         user.phone = (fresh.phone !== null && fresh.phone !== undefined) ? fresh.phone : '';
         user.address = (fresh.location_address !== null && fresh.location_address !== undefined) ? fresh.location_address : '';
         user.preferredNode = (fresh.farm_name !== null && fresh.farm_name !== undefined) ? fresh.farm_name : (user.preferredNode || 'Nodo Central · La Perseverancia');
-        user.avatar = (fresh.avatar_url !== null && fresh.avatar_url !== undefined) ? fresh.avatar_url : '';
+        user.avatar = (fresh.avatar_url !== null && fresh.avatar_url !== undefined) ? normalizeAvatarUrl(fresh.avatar_url) : '';
         user.email = fresh.email || user.email;
 
         // Sincronizar en localStorage
@@ -855,7 +869,7 @@ async function openClientSettingsModal() {
         if (nodeInput && user.preferredNode) nodeInput.value = user.preferredNode;
         if (emailInput) emailInput.value = user.email;
         if (preview) {
-          preview.src = (user.avatar && user.avatar.trim() !== '') ? user.avatar : window.DEFAULT_USER_AVATAR;
+          preview.src = (user.avatar && user.avatar.trim() !== '') ? normalizeAvatarUrl(user.avatar) : window.DEFAULT_USER_AVATAR;
         }
 
         updateAuthUI();
@@ -890,7 +904,7 @@ function cancelClientSettings() {
     const preview = document.getElementById('client-profile-img-preview');
     if (preview) {
       preview.src = (window.clientSettingsOriginal.avatar && window.clientSettingsOriginal.avatar.trim() !== '')
-        ? window.clientSettingsOriginal.avatar
+        ? normalizeAvatarUrl(window.clientSettingsOriginal.avatar)
         : window.DEFAULT_USER_AVATAR;
     }
   }
@@ -980,7 +994,7 @@ async function saveAllClientSettings() {
         const filename = `avatar_${user.username || user.id || 'user'}_${Date.now()}.${cleanExt}`;
 
         if (window.supabase && typeof window.supabase.uploadAsset === 'function') {
-          finalAvatarUrl = await window.supabase.uploadAsset(file, filename, 'avatars');
+          finalAvatarUrl = normalizeAvatarUrl(await window.supabase.uploadAsset(file, filename, 'avatars'));
         }
       }
     }
@@ -1024,7 +1038,7 @@ async function saveAllClientSettings() {
     user.phone = phoneVal;
     user.address = addressVal;
     user.preferredNode = nodeVal;
-    user.avatar = (finalAvatarUrl !== null) ? finalAvatarUrl : '';
+    user.avatar = (finalAvatarUrl !== null) ? normalizeAvatarUrl(finalAvatarUrl) : '';
     if (updatedEmail) user.email = updatedEmail;
 
     setCurrentUser(user);

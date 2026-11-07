@@ -812,7 +812,7 @@ async function handleLogin(e) {
       phone: dbUser.phone || '',
       address: dbUser.location_address || '',
       preferredNode: dbUser.farm_name || 'Nodo Central · La Perseverancia',
-      avatar: dbUser.avatar_url || '',
+      avatar: (typeof normalizeAvatarUrl === 'function') ? normalizeAvatarUrl(dbUser.avatar_url || '') : (dbUser.avatar_url || '').replace('/assets/images/avatars/', '/assets/avatars/'),
       loggedIn: true
     };
 
