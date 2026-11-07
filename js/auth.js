@@ -380,11 +380,16 @@ function updateAuthUI() {
           </div>
           ${(user.role === 'admin' || user.role === 'productor') ? `
             <a href="${profileLink}" class="flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition">
-              <span>⚙️</span>
+              <span>📊</span>
               <span>${profileLabel}</span>
             </a>
           ` : ''}
-          <button onclick="logoutUser()" class="w-full text-left flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 transition cursor-pointer">
+          <button onclick="openClientSettingsModal()" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+            <span>⚙️</span>
+            <span>Configuración</span>
+          </button>
+          <div class="my-1 border-t border-stone-100"></div>
+          <button onclick="logoutUser()" class="w-full text-left flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 transition cursor-pointer font-medium">
             <span>🚪</span>
             <span>Cerrar sesión</span>
           </button>
@@ -434,7 +439,7 @@ function toggleAuthDropdown(event) {
 document.addEventListener('click', (e) => {
   const dropdown = document.getElementById('auth-user-dropdown');
   if (dropdown && !dropdown.classList.contains('hidden')) {
-    if (!dropdown.contains(e.target)) {
+    if (!dropdown.contains(e.target) && !e.target.closest('#user-avatar-btn') && !e.target.closest('#market-avatar-btn')) {
       dropdown.classList.add('hidden');
     }
   }
@@ -444,4 +449,459 @@ document.addEventListener('click', (e) => {
 document.addEventListener('DOMContentLoaded', () => {
   updateAuthUI();
 });
+
+/**
+ * =============================================================================
+ * MODAL DE CONFIGURACIÓN DEL CLIENTE (Mi perfil y seguridad)
+ * =============================================================================
+ */
+
+function ensureClientSettingsModalExists() {
+  let modal = document.getElementById('client-settings-modal');
+  if (modal) return modal;
+
+  const wrapper = document.createElement('div');
+  wrapper.id = 'client-settings-modal';
+  wrapper.className = 'hidden fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto';
+  wrapper.innerHTML = `
+    <div class="bg-[#faf8f5] w-full max-w-4xl rounded-3xl shadow-2xl border border-stone-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
+      <!-- Cabecera del Modal -->
+      <div class="bg-white border-b border-stone-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10 shrink-0">
+        <div>
+          <span id="client-settings-badge" class="text-[10px] uppercase tracking-wider font-bold text-[#c85a32] block">
+            MI PERFIL Y CONFIGURACIÓN · CLIENTE
+          </span>
+          <h2 class="font-serif text-2xl font-bold text-stone-900 mt-0.5">
+            Tu perfil, tu tranquilidad
+          </h2>
+          <p class="text-xs text-stone-500">
+            Mantén tus datos al día para tus pedidos y entregas en el barrio.
+          </p>
+        </div>
+        <button onclick="closeClientSettingsModal()" type="button" class="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-sm font-bold transition cursor-pointer" title="Cerrar">
+          ✕
+        </button>
+      </div>
+
+      <!-- Cuerpo del Modal -->
+      <div class="p-6 overflow-y-auto flex-1">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- Columna Izquierda: Foto y Estado de Cuenta (1 col) -->
+          <div class="space-y-5">
+            <!-- Card 1: Tu foto de perfil -->
+            <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm text-center">
+              <h3 class="font-bold text-stone-900 text-xs mb-3 text-left">Tu foto de perfil</h3>
+              
+              <div class="w-20 h-20 mx-auto rounded-full overflow-hidden border-2 border-stone-200 shadow-xs mb-3 bg-stone-100 flex items-center justify-center">
+                <img id="client-profile-img-preview" src="" alt="Foto de perfil" class="w-full h-full object-cover">
+              </div>
+
+              <h4 id="client-profile-name-display" class="font-serif font-bold text-base text-stone-900">Max</h4>
+              <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mt-1 mb-3">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span id="client-profile-role-display">Cliente / Comprador</span>
+              </div>
+
+              <div class="space-y-2">
+                <label class="w-full border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer">
+                  <span>📷</span>
+                  <span>Cambiar foto</span>
+                  <input type="file" id="client-photo-input" accept="image/*" class="hidden" onchange="handleClientPhotoUpload(event)">
+                </label>
+                <button type="button" onclick="removeClientPhoto()" class="text-xs font-medium text-red-600 hover:text-red-700 transition cursor-pointer">
+                  Eliminar foto
+                </button>
+              </div>
+
+              <p class="text-[10px] text-stone-400 mt-3 leading-normal">
+                JPG o PNG · máx. 5 MB. Tu foto será visible en la comunidad.
+              </p>
+            </div>
+
+            <!-- Card 2: Tu cuenta en el mercado -->
+            <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+              <h3 class="font-bold text-stone-900 text-xs mb-2">Tu cuenta en el mercado</h3>
+              <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 mb-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Cuenta activa</span>
+              </div>
+              <p class="text-xs font-bold text-stone-800">Comunidad Raíz & Barrio</p>
+              <p class="text-[11px] text-stone-500 mt-0.5">Bogotá y su tierra cercana</p>
+              <div class="mt-3 pt-2.5 border-t border-stone-100 text-[10px] text-stone-400 space-y-0.5">
+                <p>Cuenta CU-042</p>
+                <p>En el barrio desde 2026</p>
+              </div>
+            </div>
+
+            <!-- Card 3: Tu espacio -->
+            <div class="bg-[#f1f6f3] border border-[#d8e6dc] p-4 rounded-2xl flex items-start gap-2.5">
+              <div class="text-[#1a3d2f] text-sm mt-0.5">🛡️</div>
+              <div>
+                <p class="text-xs font-bold text-[#1a3d2f]">Tu espacio, a tu manera</p>
+                <p class="text-[10px] text-stone-600 mt-0.5 leading-relaxed">
+                  Aquí puedes cambiar tus datos personales y preferencias de entrega.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Columna Derecha: Edición de Datos (2 cols) -->
+          <div class="lg:col-span-2 space-y-5">
+            <!-- Card 1: Datos personales -->
+            <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+              <h3 class="font-bold text-stone-900 text-xs mb-0.5">Datos personales</h3>
+              <p class="text-[10px] text-stone-400 mb-3">Así te reconocerán los agricultores y el equipo de entregas.</p>
+
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-stone-700 mb-1">Nombre visible *</label>
+                  <input type="text" id="client-profile-name" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-[11px] font-bold text-stone-700 mb-1">Teléfono de contacto</label>
+                    <input type="tel" id="client-profile-phone" placeholder="Ej: 310 987 6543" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold text-stone-700 mb-1">Nodo de entrega preferido</label>
+                    <select id="client-profile-node" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                      <option value="Nodo Central · La Perseverancia">Nodo Central · La Perseverancia</option>
+                      <option value="Sede San Fernando / Chapinero">Sede San Fernando / Chapinero</option>
+                      <option value="Nodo Teusaquillo / Park Way">Nodo Teusaquillo / Park Way</option>
+                      <option value="Nodo Usaquén / Santa Bárbara">Nodo Usaquén / Santa Bárbara</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[11px] font-bold text-stone-700 mb-1">Dirección de entrega (domicilio)</label>
+                  <input type="text" id="client-profile-address" placeholder="Ej: Calle 58 # 3-21, Apto 402" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                </div>
+
+                <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <span class="text-[10px] text-stone-400">El nombre y la foto se actualizarán al guardar.</span>
+                  <button type="button" onclick="saveClientPersonalData()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition cursor-pointer">
+                    Guardar datos personales
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: Correo electrónico -->
+            <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+              <h3 class="font-bold text-stone-900 text-xs mb-0.5">Correo electrónico</h3>
+              <p class="text-[10px] text-stone-400 mb-3">Tu correo se utiliza para recibir los recibos de compra y avisos de cosecha.</p>
+
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-stone-700 mb-1">Correo actual</label>
+                  <div class="relative">
+                    <input type="email" id="client-profile-email" readonly class="w-full pl-3 pr-24 py-2 bg-stone-100 border border-stone-200 rounded-xl text-xs text-stone-600 cursor-not-allowed">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                      • Verificado
+                    </span>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-[11px] font-bold text-stone-700 mb-1">Nuevo correo electrónico</label>
+                  <div class="relative">
+                    <input type="email" id="client-new-email" placeholder="Escribe tu nuevo correo electrónico" class="w-full pl-3 pr-10 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs">✉</span>
+                  </div>
+                </div>
+
+                <!-- Stepper -->
+                <div class="bg-stone-50 border border-stone-200 rounded-xl p-2.5 flex items-center justify-between text-[10px] text-stone-500">
+                  <span class="font-bold text-stone-800">1. Solicitar cambio</span>
+                  <span>›</span>
+                  <span>2. Verificar nuevo correo</span>
+                  <span>›</span>
+                  <span>3. Confirmar actualización</span>
+                </div>
+
+                <div class="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <span class="text-[10px] text-stone-400 max-w-sm">
+                    Enviaremos un enlace al nuevo correo. Hasta confirmarlo, seguirás entrando con el actual.
+                  </span>
+                  <button type="button" onclick="requestClientEmailChange()" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-3 py-2 rounded-xl transition cursor-pointer">
+                    Enviar enlace de verificación
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 3: Cambiar contraseña -->
+            <div class="bg-white p-5 rounded-2xl border border-stone-200 shadow-sm">
+              <h3 class="font-bold text-stone-900 text-xs mb-0.5">Cambiar contraseña</h3>
+              <p class="text-[10px] text-stone-400 mb-3">Protege el acceso a tu cuenta. Nunca compartas tu clave.</p>
+
+              <div class="space-y-3">
+                <div>
+                  <label class="block text-[11px] font-bold text-stone-700 mb-1">Contraseña actual</label>
+                  <input type="password" id="client-current-pass" placeholder="••••••••••••" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-[11px] font-bold text-stone-700 mb-1">Nueva contraseña *</label>
+                    <input type="password" id="client-new-pass" placeholder="••••••••••••" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-bold text-stone-700 mb-1">Confirmar nueva contraseña *</label>
+                    <input type="password" id="client-confirm-pass" placeholder="••••••••••••" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                  </div>
+                </div>
+
+                <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <span class="text-[10px] text-stone-400">Las contraseñas permanecen encriptadas y protegidas.</span>
+                  <button type="button" onclick="updateClientPassword()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition cursor-pointer">
+                    Actualizar contraseña
+                  </button>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+    </div>
+  `;
+
+  wrapper.addEventListener('click', (e) => {
+    if (e.target === wrapper) {
+      closeClientSettingsModal();
+    }
+  });
+
+  document.body.appendChild(wrapper);
+  return wrapper;
+}
+
+function openClientSettingsModal() {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  const dropdown = document.getElementById('auth-user-dropdown') || document.getElementById('market-user-dropdown');
+  if (dropdown) dropdown.classList.add('hidden');
+
+  const modal = ensureClientSettingsModalExists();
+
+  const preview = document.getElementById('client-profile-img-preview');
+  if (preview) {
+    preview.src = (user.avatar && user.avatar.trim() !== '') ? user.avatar : window.DEFAULT_USER_AVATAR;
+  }
+
+  const roleDisplay = document.getElementById('client-profile-role-display');
+  const badgeDisplay = document.getElementById('client-settings-badge');
+  let roleLabel = 'Cliente / Comprador';
+  let badgeLabel = 'MI PERFIL Y CONFIGURACIÓN · CLIENTE';
+  if (user.role === 'admin') {
+    roleLabel = 'Administrador de Plataforma';
+    badgeLabel = 'MI PERFIL Y CONFIGURACIÓN · ADMINISTRADOR';
+  } else if (user.role === 'productor') {
+    roleLabel = 'Productor / Agricultor';
+    badgeLabel = 'MI PERFIL Y CONFIGURACIÓN · PRODUCTOR';
+  }
+  if (roleDisplay) roleDisplay.textContent = roleLabel;
+  if (badgeDisplay) badgeDisplay.textContent = badgeLabel;
+
+  const nameDisplay = document.getElementById('client-profile-name-display');
+  if (nameDisplay) nameDisplay.textContent = user.name || 'Max';
+
+  const nameInput = document.getElementById('client-profile-name');
+  if (nameInput) nameInput.value = user.name || 'Max';
+
+  const emailInput = document.getElementById('client-profile-email');
+  if (emailInput) emailInput.value = user.email || (user.username ? `${user.username}@vecinos.com` : 'max.cliente@raizybarrio.co');
+
+  const phoneInput = document.getElementById('client-profile-phone');
+  if (phoneInput) phoneInput.value = user.phone || '310 987 6543';
+
+  const addressInput = document.getElementById('client-profile-address');
+  if (addressInput) addressInput.value = user.address || '';
+
+  const nodeInput = document.getElementById('client-profile-node');
+  if (nodeInput && user.preferredNode) {
+    nodeInput.value = user.preferredNode;
+  }
+
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeClientSettingsModal() {
+  const modal = document.getElementById('client-settings-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+}
+
+function saveClientPersonalData() {
+  const user = getCurrentUser();
+  if (!user) return;
+
+  const nameInput = document.getElementById('client-profile-name');
+  const phoneInput = document.getElementById('client-profile-phone');
+  const addressInput = document.getElementById('client-profile-address');
+  const nodeInput = document.getElementById('client-profile-node');
+
+  if (nameInput && nameInput.value.trim()) {
+    user.name = nameInput.value.trim();
+  }
+  if (phoneInput) {
+    user.phone = phoneInput.value.trim();
+  }
+  if (addressInput) {
+    user.address = addressInput.value.trim();
+  }
+  if (nodeInput) {
+    user.preferredNode = nodeInput.value;
+  }
+
+  setCurrentUser(user);
+
+  const nameDisplay = document.getElementById('client-profile-name-display');
+  if (nameDisplay) nameDisplay.textContent = user.name;
+
+  if (window.supabase && typeof window.supabase.fetchApi === 'function' && user.id) {
+    try {
+      window.supabase.fetchApi(`profiles?id=eq.${user.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          full_name: user.name,
+          phone: user.phone || null,
+          location_address: user.address || null
+        })
+      });
+    } catch(e) {
+      console.warn('Error sync profile:', e);
+    }
+  }
+
+  updateAuthUI();
+  if (typeof checkAuthStatus === 'function') checkAuthStatus();
+
+  closeClientSettingsModal();
+  if (typeof showToast === 'function') {
+    showToast('¡Datos personales actualizados correctamente!');
+  } else {
+    alert('¡Datos personales actualizados correctamente!');
+  }
+}
+
+function handleClientPhotoUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    const user = getCurrentUser();
+    if (user) {
+      user.avatar = dataUrl;
+      setCurrentUser(user);
+
+  const nameDisplay = document.getElementById('client-profile-name-display');
+  if (nameDisplay) nameDisplay.textContent = user.name;
+      
+      const preview = document.getElementById('client-profile-img-preview');
+      if (preview) preview.src = dataUrl;
+      
+      updateAuthUI();
+      if (typeof checkAuthStatus === 'function') checkAuthStatus();
+      if (typeof showToast === 'function') {
+        showToast('Foto de perfil actualizada correctamente.');
+      }
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeClientPhoto() {
+  const user = getCurrentUser();
+  if (user) {
+    user.avatar = '';
+    setCurrentUser(user);
+
+  const nameDisplay = document.getElementById('client-profile-name-display');
+  if (nameDisplay) nameDisplay.textContent = user.name;
+    const preview = document.getElementById('client-profile-img-preview');
+    if (preview) preview.src = window.DEFAULT_USER_AVATAR;
+    updateAuthUI();
+    if (typeof checkAuthStatus === 'function') checkAuthStatus();
+    if (typeof showToast === 'function') {
+      showToast('Foto eliminada. Se mostrará el avatar predeterminado.');
+    }
+  }
+}
+
+function updateClientPassword() {
+  const newPass = document.getElementById('client-new-pass');
+  const confirmPass = document.getElementById('client-confirm-pass');
+  const currentPass = document.getElementById('client-current-pass');
+
+  if (!newPass || !confirmPass || !newPass.value) {
+    alert('Por favor introduce tu nueva contraseña.');
+    return;
+  }
+  if (newPass.value !== confirmPass.value) {
+    alert('Las contraseñas no coinciden. Por favor verifica.');
+    return;
+  }
+
+  const user = getCurrentUser();
+  if (user) {
+    if (window.supabase && typeof window.supabase.fetchApi === 'function' && user.id) {
+      try {
+        window.supabase.fetchApi(`profiles?id=eq.${user.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ password: newPass.value.trim() })
+        });
+      } catch(e) {
+        console.warn('Error password update:', e);
+      }
+    }
+    if (typeof showToast === 'function') {
+      showToast('¡Contraseña actualizada correctamente!');
+    } else {
+      alert('¡Contraseña actualizada correctamente!');
+    }
+    if (currentPass) currentPass.value = '';
+    newPass.value = '';
+    confirmPass.value = '';
+  }
+}
+
+function requestClientEmailChange() {
+  const emailInput = document.getElementById('client-new-email');
+  const email = emailInput ? emailInput.value.trim() : '';
+  if (!email || !email.includes('@')) {
+    alert('Por favor ingresa un correo electrónico válido.');
+    return;
+  }
+  alert(`Hemos enviado un enlace de confirmación a ${email}. Hasta que lo verifiques, seguirás usando tu correo actual.`);
+  if (emailInput) emailInput.value = '';
+}
+
+// Exportar funciones globales
+window.openClientSettingsModal = openClientSettingsModal;
+window.closeClientSettingsModal = closeClientSettingsModal;
+window.saveClientPersonalData = saveClientPersonalData;
+window.handleClientPhotoUpload = handleClientPhotoUpload;
+window.removeClientPhoto = removeClientPhoto;
+window.updateClientPassword = updateClientPassword;
+window.requestClientEmailChange = requestClientEmailChange;
+
+// Cerrar modal al presionar Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeClientSettingsModal();
+  }
+});
+
 

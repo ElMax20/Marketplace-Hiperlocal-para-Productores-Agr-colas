@@ -765,6 +765,7 @@ function handleRegister(e) {
   };
 
   localStorage.setItem('raiz_user', JSON.stringify(newUser));
+  localStorage.setItem('rb_current_user', JSON.stringify(newUser));
   closeAuthModal();
   checkAuthStatus();
   showToast(`¡Cuenta creada con éxito! Bienvenido, ${name}.`);
