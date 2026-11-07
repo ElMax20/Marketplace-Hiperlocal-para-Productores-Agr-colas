@@ -15,7 +15,10 @@ const AUTH_ACCOUNTS = {
     username: 'max',
     password: '123',
     role: 'cliente',
-    name: 'Max',
+    name: 'Elmaxi_09',
+    phone: '0997766751',
+    address: '',
+    preferredNode: 'Nodo Central · La Perseverancia',
     email: 'max@vecinos.com',
     avatar: '' // Sin foto personalizada -> mostrará foto predeterminada
   },
@@ -213,6 +216,8 @@ async function handleAuthSubmit(event) {
         username: dbUser.username,
         role: 'admin',
         name: dbUser.full_name || 'Lucía Torres',
+        phone: dbUser.phone || '',
+        address: dbUser.location_address || '',
         email: dbUser.email || 'lucia@raizybarrio.co',
         avatar: dbUser.avatar_url || 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg',
         loggedIn: true
@@ -236,7 +241,10 @@ async function handleAuthSubmit(event) {
           username: dbUser.username,
           role: 'cliente',
           name: dbUser.full_name || dbUser.username,
-          email: dbUser.email,
+          phone: dbUser.phone || '',
+          address: dbUser.location_address || '',
+          preferredNode: dbUser.farm_name || 'Nodo Central · La Perseverancia',
+          email: dbUser.email || '',
           avatar: dbUser.avatar_url || '',
           loggedIn: true
         };
@@ -261,8 +269,10 @@ async function handleAuthSubmit(event) {
           username: dbUser.username,
           role: 'productor',
           name: dbUser.full_name || dbUser.username,
+          phone: dbUser.phone || '',
+          address: dbUser.location_address || '',
           finca: dbUser.farm_name || 'Huerta El Renacer',
-          email: dbUser.email,
+          email: dbUser.email || '',
           avatar: dbUser.avatar_url || 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg',
           loggedIn: true
         };
@@ -445,9 +455,42 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// Sincronizar datos del usuario activo directamente desde Supabase
+async function syncCurrentUserFromSupabase() {
+  const user = getCurrentUser();
+  if (!user || !user.loggedIn) return;
+  if (!window.supabase || typeof window.supabase.fetchApi !== 'function') return;
+
+  try {
+    const endpoint = user.id 
+      ? `profiles?id=eq.${user.id}&select=*`
+      : `profiles?username=ilike.${encodeURIComponent(user.username || user.name)}&select=*`;
+    const res = await window.supabase.fetchApi(endpoint);
+    if (res && res.length > 0) {
+      const db = res[0];
+      let hasChanges = false;
+      if (db.full_name && user.name !== db.full_name) { user.name = db.full_name; hasChanges = true; }
+      if (db.phone !== undefined && user.phone !== (db.phone || '')) { user.phone = db.phone || ''; hasChanges = true; }
+      if (db.location_address !== undefined && user.address !== (db.location_address || '')) { user.address = db.location_address || ''; hasChanges = true; }
+      if (db.farm_name !== undefined && user.preferredNode !== (db.farm_name || '')) { user.preferredNode = db.farm_name || 'Nodo Central · La Perseverancia'; hasChanges = true; }
+      if (db.avatar_url !== undefined && user.avatar !== (db.avatar_url || '')) { user.avatar = db.avatar_url || ''; hasChanges = true; }
+      if (db.email && user.email !== db.email) { user.email = db.email; hasChanges = true; }
+
+      if (hasChanges) {
+        setCurrentUser(user);
+        updateAuthUI();
+        if (typeof checkAuthStatus === 'function') checkAuthStatus();
+      }
+    }
+  } catch (err) {
+    console.warn('Sync profile silent failure:', err);
+  }
+}
+
 // Iniciar al cargar
 document.addEventListener('DOMContentLoaded', () => {
   updateAuthUI();
+  syncCurrentUserFromSupabase();
 });
 
 /**
@@ -716,7 +759,7 @@ function ensureClientSettingsModalExists() {
   return wrapper;
 }
 
-function openClientSettingsModal() {
+async function openClientSettingsModal() {
   const user = getCurrentUser();
   if (!user) return;
 
@@ -725,27 +768,10 @@ function openClientSettingsModal() {
 
   const modal = ensureClientSettingsModalExists();
 
-  // Guardar estado original para permitir cancelar fielmente
-  window.clientSettingsOriginal = JSON.parse(JSON.stringify(user));
-  window.clientSettingsDraft = {
-    avatar: user.avatar || '',
-    name: user.name || '',
-    phone: user.phone || '',
-    preferredNode: user.preferredNode || 'Nodo Central · La Perseverancia',
-    address: user.address || '',
-    hasPhotoChange: false
-  };
-
   const preview = document.getElementById('client-profile-img-preview');
   if (preview) {
     preview.src = (user.avatar && user.avatar.trim() !== '') ? user.avatar : window.DEFAULT_USER_AVATAR;
   }
-
-  const statusBadge = document.getElementById('client-photo-draft-status');
-  if (statusBadge) statusBadge.classList.add('hidden');
-
-  const fileInput = document.getElementById('client-photo-input');
-  if (fileInput) fileInput.value = '';
 
   const roleDisplay = document.getElementById('client-profile-role-display');
   const badgeDisplay = document.getElementById('client-settings-badge');
@@ -765,16 +791,16 @@ function openClientSettingsModal() {
   if (nameDisplay) nameDisplay.textContent = user.name || 'Max';
 
   const nameInput = document.getElementById('client-profile-name');
-  if (nameInput) nameInput.value = user.name || 'Max';
+  if (nameInput) nameInput.value = user.name || '';
 
   const emailInput = document.getElementById('client-profile-email');
-  if (emailInput) emailInput.value = user.email || (user.username ? `${user.username}@vecinos.com` : 'max.cliente@raizybarrio.co');
+  if (emailInput) emailInput.value = user.email || '';
 
   const newEmailInput = document.getElementById('client-new-email');
   if (newEmailInput) newEmailInput.value = '';
 
   const phoneInput = document.getElementById('client-profile-phone');
-  if (phoneInput) phoneInput.value = user.phone || '310 987 6543';
+  if (phoneInput) phoneInput.value = user.phone || '';
 
   const addressInput = document.getElementById('client-profile-address');
   if (addressInput) addressInput.value = user.address || '';
@@ -791,8 +817,63 @@ function openClientSettingsModal() {
   const confirmPass = document.getElementById('client-confirm-pass');
   if (confirmPass) confirmPass.value = '';
 
+  const statusBadge = document.getElementById('client-photo-draft-status');
+  if (statusBadge) statusBadge.classList.add('hidden');
+
+  const fileInput = document.getElementById('client-photo-input');
+  if (fileInput) fileInput.value = '';
+
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
+
+  // Consultar directamente a la base de datos Supabase para verificar los datos más frescos
+  if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+    try {
+      const endpoint = user.id 
+        ? `profiles?id=eq.${user.id}&select=*`
+        : `profiles?username=ilike.${encodeURIComponent(user.username || user.name)}&select=*`;
+      const freshProfiles = await window.supabase.fetchApi(endpoint);
+      if (freshProfiles && freshProfiles.length > 0) {
+        const fresh = freshProfiles[0];
+        user.id = fresh.id || user.id;
+        user.username = fresh.username || user.username;
+        user.name = fresh.full_name || user.name;
+        user.phone = (fresh.phone !== null && fresh.phone !== undefined) ? fresh.phone : '';
+        user.address = (fresh.location_address !== null && fresh.location_address !== undefined) ? fresh.location_address : '';
+        user.preferredNode = (fresh.farm_name !== null && fresh.farm_name !== undefined) ? fresh.farm_name : (user.preferredNode || 'Nodo Central · La Perseverancia');
+        user.avatar = (fresh.avatar_url !== null && fresh.avatar_url !== undefined) ? fresh.avatar_url : '';
+        user.email = fresh.email || user.email;
+
+        // Sincronizar en localStorage
+        setCurrentUser(user);
+
+        // Actualizar formulario del modal con los datos exactos de la BD
+        if (nameInput) nameInput.value = user.name;
+        if (nameDisplay) nameDisplay.textContent = user.name;
+        if (phoneInput) phoneInput.value = user.phone;
+        if (addressInput) addressInput.value = user.address;
+        if (nodeInput && user.preferredNode) nodeInput.value = user.preferredNode;
+        if (emailInput) emailInput.value = user.email;
+        if (preview) {
+          preview.src = (user.avatar && user.avatar.trim() !== '') ? user.avatar : window.DEFAULT_USER_AVATAR;
+        }
+
+        updateAuthUI();
+        if (typeof checkAuthStatus === 'function') checkAuthStatus();
+      }
+    } catch (err) {
+      console.warn('Error al consultar datos en Supabase:', err);
+    }
+  }
+
+  // Guardar estado original para permitir cancelar fielmente
+  window.clientSettingsOriginal = JSON.parse(JSON.stringify(user));
+  window.clientSettingsDraft = {
+    avatar: user.avatar || '',
+    pendingFile: null,
+    hasPhotoChange: false,
+    hasPhotoDelete: false
+  };
 }
 
 function closeClientSettingsModal() {
@@ -829,7 +910,7 @@ function cancelClientSettings() {
   }
 }
 
-function saveAllClientSettings() {
+async function saveAllClientSettings() {
   const user = getCurrentUser();
   if (!user) return;
 
@@ -878,65 +959,107 @@ function saveAllClientSettings() {
     updatedEmail = emailVal;
   }
 
-  // 4. Aplicar modificaciones al objeto de usuario
-  user.name = newName;
-  if (phoneInput) user.phone = phoneInput.value.trim();
-  if (addressInput) user.address = addressInput.value.trim();
-  if (nodeInput) user.preferredNode = nodeInput.value;
-
-  // Si hubo cambio de foto pendiente en el borrador
-  if (window.clientSettingsDraft && window.clientSettingsDraft.hasPhotoChange) {
-    user.avatar = window.clientSettingsDraft.avatar;
+  // Deshabilitar botón durante el proceso de guardado
+  const saveBtn = document.querySelector('button[onclick="saveAllClientSettings()"]');
+  const originalBtnHtml = saveBtn ? saveBtn.innerHTML : '';
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '<span>⏳</span><span>Guardando en Supabase...</span>';
   }
 
-  // 5. Persistir en localStorage (ambas claves)
-  setCurrentUser(user);
+  try {
+    // 4. Subida o eliminación de la foto en Supabase Storage
+    let finalAvatarUrl = user.avatar || '';
+    if (window.clientSettingsDraft && window.clientSettingsDraft.hasPhotoChange) {
+      if (window.clientSettingsDraft.hasPhotoDelete) {
+        finalAvatarUrl = null;
+      } else if (window.clientSettingsDraft.pendingFile) {
+        const file = window.clientSettingsDraft.pendingFile;
+        const ext = file.name ? file.name.split('.').pop() : 'jpg';
+        const cleanExt = (ext && ext.length <= 4) ? ext : 'jpg';
+        const filename = `avatar_${user.username || user.id || 'user'}_${Date.now()}.${cleanExt}`;
 
-  // 6. Sincronizar en Supabase si está disponible
-  if (window.supabase && typeof window.supabase.fetchApi === 'function' && user.id) {
-    try {
+        if (window.supabase && typeof window.supabase.uploadAsset === 'function') {
+          finalAvatarUrl = await window.supabase.uploadAsset(file, filename, 'avatars');
+        }
+      }
+    }
+
+    const phoneVal = phoneInput ? phoneInput.value.trim() : '';
+    const addressVal = addressInput ? addressInput.value.trim() : '';
+    const nodeVal = nodeInput ? nodeInput.value : '';
+
+    // 5. Sincronización directa en la tabla 'profiles' de Supabase
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
       const patchData = {
-        full_name: user.name,
-        phone: user.phone || null,
-        location_address: user.address || null
+        full_name: newName,
+        phone: phoneVal ? phoneVal : null,
+        location_address: addressVal ? addressVal : null,
+        farm_name: nodeVal ? nodeVal : null
       };
+
+      if (window.clientSettingsDraft && window.clientSettingsDraft.hasPhotoChange) {
+        patchData.avatar_url = finalAvatarUrl;
+      }
       if (updatedPassword) {
         patchData.password = updatedPassword;
       }
-      window.supabase.fetchApi(`profiles?id=eq.${user.id}`, {
+      if (updatedEmail) {
+        patchData.email = updatedEmail;
+      }
+
+      const endpoint = user.id 
+        ? `profiles?id=eq.${user.id}`
+        : `profiles?username=ilike.${encodeURIComponent(user.username || user.name)}`;
+
+      await window.supabase.fetchApi(endpoint, {
         method: 'PATCH',
+        headers: { 'Prefer': 'return=representation' },
         body: JSON.stringify(patchData)
       });
-    } catch(e) {
-      console.warn('Error sync profile:', e);
     }
-  }
 
-  // Limpiar campos temporales
-  if (currentPass) currentPass.value = '';
-  if (newPass) newPass.value = '';
-  if (confirmPass) confirmPass.value = '';
-  if (newEmailInput) newEmailInput.value = '';
+    // 6. Actualizar objeto en memoria y sincronizar localStorage
+    user.name = newName;
+    user.phone = phoneVal;
+    user.address = addressVal;
+    user.preferredNode = nodeVal;
+    user.avatar = (finalAvatarUrl !== null) ? finalAvatarUrl : '';
+    if (updatedEmail) user.email = updatedEmail;
 
-  const statusBadge = document.getElementById('client-photo-draft-status');
-  if (statusBadge) statusBadge.classList.add('hidden');
+    setCurrentUser(user);
 
-  window.clientSettingsDraft = null;
+    // 7. Limpieza de campos y cierre
+    if (currentPass) currentPass.value = '';
+    if (newPass) newPass.value = '';
+    if (confirmPass) confirmPass.value = '';
+    if (newEmailInput) newEmailInput.value = '';
 
-  // Actualizar UI completa inmediatamente
-  updateAuthUI();
-  if (typeof checkAuthStatus === 'function') checkAuthStatus();
+    const statusBadge = document.getElementById('client-photo-draft-status');
+    if (statusBadge) statusBadge.classList.add('hidden');
+    window.clientSettingsDraft = null;
 
-  closeClientSettingsModal();
+    updateAuthUI();
+    if (typeof checkAuthStatus === 'function') checkAuthStatus();
+    closeClientSettingsModal();
 
-  let msg = '¡Cambios guardados con éxito!';
-  if (updatedEmail) {
-    msg += ` Hemos enviado confirmación a ${updatedEmail}.`;
-  }
-  if (typeof showToast === 'function') {
-    showToast(msg);
-  } else {
-    alert(msg);
+    let msg = '¡Datos actualizados y guardados en la base de datos Supabase!';
+    if (updatedEmail) {
+      msg += ` Enlace de confirmación enviado a ${updatedEmail}.`;
+    }
+    if (typeof showToast === 'function') {
+      showToast(msg);
+    } else {
+      alert(msg);
+    }
+  } catch (err) {
+    console.error('Error al guardar en Supabase:', err);
+    alert('Ocurrió un error al guardar en la base de datos: ' + (err.message || err));
+  } finally {
+    if (saveBtn) {
+      saveBtn.disabled = false;
+      saveBtn.innerHTML = originalBtnHtml;
+    }
   }
 }
 
@@ -953,24 +1076,24 @@ function handleClientPhotoUpload(event) {
     return;
   }
 
+  if (!window.clientSettingsDraft) {
+    const user = getCurrentUser() || {};
+    window.clientSettingsDraft = { ...user };
+  }
+
+  window.clientSettingsDraft.pendingFile = file;
+  window.clientSettingsDraft.hasPhotoChange = true;
+  window.clientSettingsDraft.hasPhotoDelete = false;
+
   const reader = new FileReader();
   reader.onload = function(e) {
-    const dataUrl = e.target.result;
-    if (!window.clientSettingsDraft) {
-      const user = getCurrentUser() || {};
-      window.clientSettingsDraft = { ...user, hasPhotoChange: false };
-    }
-    window.clientSettingsDraft.avatar = dataUrl;
-    window.clientSettingsDraft.hasPhotoChange = true;
-
-    // Actualizar únicamente la vista previa en el modal, NO guardar aún
     const preview = document.getElementById('client-profile-img-preview');
-    if (preview) preview.src = dataUrl;
+    if (preview) preview.src = e.target.result;
 
     const statusBadge = document.getElementById('client-photo-draft-status');
     const statusText = document.getElementById('client-photo-draft-text');
     if (statusBadge) statusBadge.classList.remove('hidden');
-    if (statusText) statusText.textContent = '📸 Foto cargada (pulsa Guardar cambios)';
+    if (statusText) statusText.textContent = '📸 Foto lista para guardar en Supabase';
   };
   reader.readAsDataURL(file);
 }
@@ -978,19 +1101,20 @@ function handleClientPhotoUpload(event) {
 function removeClientPhoto() {
   if (!window.clientSettingsDraft) {
     const user = getCurrentUser() || {};
-    window.clientSettingsDraft = { ...user, hasPhotoChange: false };
+    window.clientSettingsDraft = { ...user };
   }
   window.clientSettingsDraft.avatar = '';
+  window.clientSettingsDraft.pendingFile = null;
   window.clientSettingsDraft.hasPhotoChange = true;
+  window.clientSettingsDraft.hasPhotoDelete = true;
 
-  // Actualizar únicamente la vista previa en el modal, NO guardar aún
   const preview = document.getElementById('client-profile-img-preview');
   if (preview) preview.src = window.DEFAULT_USER_AVATAR;
 
   const statusBadge = document.getElementById('client-photo-draft-status');
   const statusText = document.getElementById('client-photo-draft-text');
   if (statusBadge) statusBadge.classList.remove('hidden');
-  if (statusText) statusText.textContent = '🗑️ Foto eliminada (pulsa Guardar cambios)';
+  if (statusText) statusText.textContent = '🗑️ Foto eliminada (pulsa Guardar cambios para confirmar)';
 
   const fileInput = document.getElementById('client-photo-input');
   if (fileInput) fileInput.value = '';

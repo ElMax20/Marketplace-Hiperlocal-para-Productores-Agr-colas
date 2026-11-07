@@ -779,13 +779,67 @@ function handleRegister(e) {
 }
 
 // Inicio de Sesión
-function handleLogin(e) {
+async function handleLogin(e) {
   e.preventDefault();
-  const inputVal = (document.getElementById('login-email').value || '').trim();
+  const emailInput = document.getElementById('login-email');
   const passEl = document.getElementById('login-pass') || document.getElementById('login-password');
+  const inputVal = (emailInput ? emailInput.value : '').trim();
   const passVal = (passEl ? passEl.value : '').trim();
 
-  // Caso 1: Administrador
+  if (!inputVal) {
+    alert('Por favor introduce tu usuario o correo.');
+    return;
+  }
+
+  // 1. Consultar directamente en la base de datos Supabase
+  let dbUser = null;
+  if (window.supabase && typeof window.supabase.login === 'function') {
+    try {
+      dbUser = await window.supabase.login(inputVal, passVal);
+    } catch(err) {
+      console.warn('Error al verificar login en Supabase:', err);
+    }
+  }
+
+  if (dbUser) {
+    const role = (dbUser.role || 'cliente').toLowerCase();
+    const userObj = {
+      id: dbUser.id,
+      username: dbUser.username,
+      name: dbUser.full_name || dbUser.username,
+      role: (role === 'administrador' || role === 'admin') ? 'admin' : role,
+      email: dbUser.email || '',
+      phone: dbUser.phone || '',
+      address: dbUser.location_address || '',
+      preferredNode: dbUser.farm_name || 'Nodo Central · La Perseverancia',
+      avatar: dbUser.avatar_url || '',
+      loggedIn: true
+    };
+
+    localStorage.setItem('raiz_user', JSON.stringify(userObj));
+    localStorage.setItem('rb_current_user', JSON.stringify(userObj));
+    closeAuthModal();
+    checkAuthStatus();
+    showToast(`Sesión iniciada correctamente. Bienvenido ${userObj.name}.`);
+
+    if (userObj.role === 'admin') {
+      window.location.href = 'admin.html';
+      return;
+    }
+    if (userObj.role === 'productor') {
+      window.location.href = 'productor.html';
+      return;
+    }
+
+    if (cart.length > 0) {
+      setTimeout(() => {
+        openCheckoutModal(userObj);
+      }, 400);
+    }
+    return;
+  }
+
+  // 2. Fallback local si no hay conexión con Supabase
   if (inputVal === 'admin') {
     if (passVal && passVal !== 'admin123') {
       alert('Contraseña incorrecta para Administrador (prueba: admin123)');
@@ -805,7 +859,6 @@ function handleLogin(e) {
     return;
   }
 
-  // Caso 2: Productor
   if (inputVal === 'maxp') {
     if (passVal && passVal !== '123') {
       alert('Contraseña incorrecta para Productor (prueba: 123)');
@@ -825,10 +878,9 @@ function handleLogin(e) {
     return;
   }
 
-  // Caso 3: Cliente (max u otro)
   let userName = inputVal.includes('@') ? inputVal.split('@')[0] : inputVal;
   if (inputVal === 'max') {
-    userName = 'Max';
+    userName = 'Elmaxi_09';
     if (passVal && passVal !== '123') {
       alert('Contraseña incorrecta para Cliente (prueba: 123)');
       return;
@@ -838,7 +890,7 @@ function handleLogin(e) {
   const existingUser = {
     name: userName,
     email: inputVal.includes('@') ? inputVal : `${inputVal}@vecinos.com`,
-    phone: '310 987 6543',
+    phone: '0997766751',
     preferredNode: 'Nodo Central · La Perseverancia',
     avatar: '',
     loggedIn: true,

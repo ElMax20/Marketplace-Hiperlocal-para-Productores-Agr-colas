@@ -48,14 +48,14 @@ class SupabaseService {
   // =========================================================================
 
   /**
-   * Valida credenciales contra la tabla 'profiles' en Supabase
+   * Valida credenciales contra la tabla 'profiles' en Supabase (por usuario o correo)
    */
   async login(username, password) {
     try {
       const cleanUser = encodeURIComponent(username.trim());
       const cleanPass = encodeURIComponent(password.trim());
       
-      const query = `profiles?username=ilike.${cleanUser}&password=eq.${cleanPass}&select=*`;
+      const query = `profiles?or=(username.ilike.${cleanUser},email.ilike.${cleanUser})&password=eq.${cleanPass}&select=*`;
       const users = await this.fetchApi(query);
 
       if (users && users.length > 0) {
