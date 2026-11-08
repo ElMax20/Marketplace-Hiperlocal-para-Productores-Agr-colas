@@ -17,8 +17,8 @@ const PRODUCTS_DATA = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg',
     subtitle: '1 kg · Selección de temporada',
     origin: 'Finca La Esperanza · Choachí · a 32 km',
-    rating: '4.9',
-    reviews: 88,
+    rating: '0',
+    reviews: 0,
     price: 0.64,
     originalPrice: 0.85,
     availability: 'Disponible · cosecha del día',
@@ -35,8 +35,8 @@ const PRODUCTS_DATA = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/aguacates.jpg',
     subtitle: '1 kg · 4 a 5 unidades aprox.',
     origin: 'Familia Rojas · La Vega · a 52 km',
-    rating: '4.8',
-    reviews: 64,
+    rating: '0',
+    reviews: 0,
     price: 0.85,
     originalPrice: 0.98,
     availability: 'Disponible · maduro/semimaduro',
@@ -53,8 +53,8 @@ const PRODUCTS_DATA = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/zanahorias.jpg',
     subtitle: '1 kg · con toda su frescura',
     origin: 'Huerta El Renacer · Subachoque · a 45 km',
-    rating: '4.9',
-    reviews: 112,
+    rating: '0',
+    reviews: 0,
     price: 0.40,
     originalPrice: 0.50,
     availability: 'Disponible · cosecha del día',
@@ -71,8 +71,8 @@ const PRODUCTS_DATA = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_familiar.jpg',
     subtitle: '9-10 kg · para 3 a 5 personas',
     origin: 'Red de Familias de Choachí · Choachí · a 30 km',
-    rating: '4.9',
-    reviews: 214,
+    rating: '0',
+    reviews: 0,
     price: 0.95,
     originalPrice: null,
     availability: 'Disponible · 11 canastas',
@@ -89,8 +89,8 @@ const PRODUCTS_DATA = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/fresas.jpg',
     subtitle: '500 g · seleccionadas a mano',
     origin: 'Cooperativa La Colina · Sibaté · a 27 km',
-    rating: '4.8',
-    reviews: 93,
+    rating: '0',
+    reviews: 0,
     price: 0.80,
     originalPrice: 0.95,
     availability: 'Disponible · cosechadas hoy',
@@ -107,8 +107,8 @@ const PRODUCTS_DATA = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/queso_campesino.jpg',
     subtitle: '500 g · fresco de pastoreo',
     origin: 'Lácteos La Pradera · Sopó · a 42 km',
-    rating: '4.9',
-    reviews: 53,
+    rating: '0',
+    reviews: 0,
     price: 0.75,
     originalPrice: null,
     availability: 'Disponible · elaboración de ayer',
@@ -125,8 +125,8 @@ const PRODUCTS_DATA = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/miel_silvestre.jpg',
     subtitle: '500 g · pura, sin mezclas',
     origin: 'Apiario Monte Vivo · La Calera · a 18 km',
-    rating: '5.0',
-    reviews: 47,
+    rating: '0',
+    reviews: 0,
     price: 0.88,
     originalPrice: null,
     availability: 'Disponible · lote de noviembre',
@@ -143,8 +143,8 @@ const PRODUCTS_DATA = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/papa_criolla.jpg',
     subtitle: '1 kg · lavada y seleccionada',
     origin: 'Finca Las Margaritas · Usme · a 29 km',
-    rating: '4.8',
-    reviews: 82,
+    rating: '0',
+    reviews: 0,
     price: 0.52,
     originalPrice: null,
     availability: 'Disponible · cosechado la semana',
@@ -161,8 +161,8 @@ const PRODUCTS_DATA = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/yogur_pastoreo.jpg',
     subtitle: '1 litro · sin azúcar añadida',
     origin: 'Lácteos La Pradera · Sopó · a 42 km',
-    rating: '4.9',
-    reviews: 39,
+    rating: '0',
+    reviews: 0,
     price: 0.65,
     originalPrice: null,
     availability: 'Disponible · conservar refrigerado',
@@ -179,8 +179,8 @@ const PRODUCTS_DATA = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/banano_criollo.jpg',
     subtitle: '1 kg · 6 a 8 unidades aprox.',
     origin: 'Finca El Porvenir · San Francisco · a 68 km',
-    rating: '4.8',
-    reviews: 40,
+    rating: '0',
+    reviews: 0,
     price: 0.38,
     originalPrice: null,
     availability: 'Disponible · maduración natural',
@@ -197,8 +197,8 @@ const PRODUCTS_DATA = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/mermelada_mora.jpg',
     subtitle: '250 g · fruta + panela',
     origin: 'Sabores de la Abuela · Tabio · a 35 km',
-    rating: '4.8',
-    reviews: 23,
+    rating: '0',
+    reviews: 0,
     price: 0.60,
     originalPrice: null,
     availability: 'Disponible · elaboración artesanal',
@@ -215,8 +215,8 @@ const PRODUCTS_DATA = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_esencial.jpg',
     subtitle: '6-7 kg · ideal 1 a 2 personas',
     origin: 'Familia Moreno · Bojacá/Facatativá · a 40 km',
-    rating: '4.8',
-    reviews: 75,
+    rating: '0',
+    reviews: 0,
     price: 0.70,
     originalPrice: null,
     availability: 'Disponible · 8 canastas',
@@ -233,8 +233,8 @@ const PRODUCTS_DATA = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/rabanos.jpg',
     subtitle: '1 manojo · frescos y crujientes',
     origin: 'Huerta El Renacer · Subachoque · a 45 km',
-    rating: '4.8',
-    reviews: 18,
+    rating: '0',
+    reviews: 0,
     price: 0.28,
     originalPrice: null,
     availability: 'Disponible · cosecha del día',
@@ -362,6 +362,57 @@ window.isProductFavorite = isProductFavorite;
 window.getFavoriteIndex = getFavoriteIndex;
 
 // =============================================================================
+// Helper: Estadísticas de Valoración y Opiniones Sincronizadas
+// =============================================================================
+function getProductReviewStats(productId) {
+  if (!productId) {
+    return { rating: 0, ratingDisplay: '0', reviewsCount: 0, hasReviews: false };
+  }
+
+  const p = PRODUCTS_DATA.find(item => item.id === productId || String(item.numericId) === String(productId));
+  const primaryId = p ? p.id : String(productId);
+  const numId = p && p.numericId ? String(p.numericId) : null;
+
+  let reviews = [];
+  try {
+    let raw = localStorage.getItem(`product_reviews_${primaryId}`);
+    if (!raw && numId) {
+      raw = localStorage.getItem(`product_reviews_${numId}`);
+    }
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        reviews = parsed.filter(r => !String(r.id).startsWith('mock-'));
+      }
+    }
+  } catch (e) {
+    reviews = [];
+  }
+
+  const count = reviews.length;
+  if (count === 0) {
+    return {
+      rating: 0,
+      ratingDisplay: '0',
+      reviewsCount: 0,
+      hasReviews: false
+    };
+  }
+
+  const sum = reviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
+  const avgNumeric = Number((sum / count).toFixed(1));
+  const avgStr = avgNumeric.toFixed(1).replace('.', ',');
+
+  return {
+    rating: avgNumeric,
+    ratingDisplay: avgStr,
+    reviewsCount: count,
+    hasReviews: true
+  };
+}
+window.getProductReviewStats = getProductReviewStats;
+
+// =============================================================================
 // 3. Inicialización
 // =============================================================================
 document.addEventListener('DOMContentLoaded', () => {
@@ -373,6 +424,18 @@ document.addEventListener('DOMContentLoaded', () => {
   setupCartDrawerListeners();
   setupSearchListener();
   loadProductsFromSupabase();
+});
+
+// Sincronización en vivo de valoraciones y favoritos al regresar a la pestaña o recibir cambios
+window.addEventListener('storage', (e) => {
+  if (e.key && (e.key.startsWith('product_reviews_') || e.key === 'raiz_favorites')) {
+    initFavoritesFromStorage();
+    renderProducts();
+  }
+});
+
+window.addEventListener('focus', () => {
+  renderProducts();
 });
 
 // Cargar catálogo en tiempo real desde Supabase
@@ -418,8 +481,8 @@ async function loadProductsFromSupabase() {
               image: normalizedImg,
               subtitle: `${dbP.unit} · Cosechado en finca`,
               origin: dbP.description || 'Finca campesina aliada',
-              rating: '4.9',
-              reviews: 45,
+              rating: '0',
+              reviews: 0,
               price: priceNum,
               originalPrice: origPrice,
               availability: dbP.is_available ? 'Disponible · Supabase' : 'Agotado',
@@ -525,7 +588,11 @@ function renderProducts() {
   } else if (currentSort === 'precio-mayor') {
     filtered.sort((a, b) => b.price - a.price);
   } else if (currentSort === 'calificacion') {
-    filtered.sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating));
+    filtered.sort((a, b) => {
+      const aStats = getProductReviewStats(a.id);
+      const bStats = getProductReviewStats(b.id);
+      return bStats.rating - aStats.rating;
+    });
   }
 
   // FIJAR PRODUCTOS FAVORITOS EN EL PRIMER ESPACIO DEL CATÁLOGO
@@ -582,6 +649,7 @@ function renderProducts() {
     const itemInCart = cart.find(item => item.id === p.id);
     const cartQty = itemInCart ? itemInCart.quantity : 0;
     const isFav = isProductFavorite(p.id);
+    const stats = getProductReviewStats(p.id);
 
     return `
       <div 
@@ -651,8 +719,8 @@ function renderProducts() {
             <p class="text-[10px] text-stone-400 mt-1">${p.origin}</p>
 
             <div class="flex items-center gap-1.5 mt-2 text-xs">
-              <span class="text-amber-500 font-bold">★ ${p.rating}</span>
-              <span class="text-stone-400 text-[10px]">(${p.reviews})</span>
+              <span class="${stats.hasReviews ? 'text-amber-500' : 'text-stone-400'} font-bold">★ ${stats.ratingDisplay}</span>
+              <span class="text-stone-400 text-[10px]">(${stats.reviewsCount})</span>
             </div>
           </div>
 

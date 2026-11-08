@@ -593,7 +593,10 @@ function getReviewsStorageKey() {
 
 function getProductReviews() {
   try {
-    const raw = localStorage.getItem(getReviewsStorageKey());
+    let raw = localStorage.getItem(getReviewsStorageKey());
+    if (!raw && currentProduct && currentProduct.numericId) {
+      raw = localStorage.getItem(`product_reviews_${currentProduct.numericId}`);
+    }
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed.filter(r => !String(r.id).startsWith('mock-')) : [];
@@ -604,7 +607,11 @@ function getProductReviews() {
 
 function saveProductReviews(reviews) {
   try {
-    localStorage.setItem(getReviewsStorageKey(), JSON.stringify(reviews));
+    const key = getReviewsStorageKey();
+    localStorage.setItem(key, JSON.stringify(reviews));
+    if (currentProduct && currentProduct.numericId) {
+      localStorage.setItem(`product_reviews_${currentProduct.numericId}`, JSON.stringify(reviews));
+    }
   } catch (e) {
     console.warn('Error al guardar opiniones:', e);
   }
@@ -628,7 +635,7 @@ function renderReviewsSection() {
 
   // Si no hay reviews (Estado inicial por requerimiento del usuario - Imagen 1)
   if (totalCount === 0) {
-    if (headerRating) headerRating.textContent = 'Aún sin valoraciones · 0 opiniones';
+    if (headerRating) headerRating.textContent = '0 · Aún sin valoraciones · 0 opiniones';
     if (headerStars) {
       headerStars.className = 'flex text-stone-300 text-sm tracking-tighter';
       headerStars.innerHTML = '<span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span>';
