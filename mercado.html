@@ -49,6 +49,18 @@
       transform: translateY(-3px);
       box-shadow: 0 12px 24px -10px rgba(26, 61, 47, 0.12);
     }
+    /* Animación de despliegue y colapso de secciones de filtros */
+    .filter-section-content {
+      transition: max-height 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+      max-height: 400px;
+      opacity: 1;
+      overflow: hidden;
+    }
+    .filter-section-content.collapsed {
+      max-height: 0;
+      opacity: 0;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body class="bg-[#FAF7F2] text-stone-800 antialiased selection:bg-[#c85a32] selection:text-white flex flex-col min-h-screen">
@@ -252,42 +264,56 @@
 
         <!-- Para tu próxima entrega -->
         <div>
-          <h3 class="text-xs font-bold text-stone-800 mb-2 flex items-center justify-between">
-            <span>Para tu próxima entrega</span>
-            <svg class="w-3.5 h-3.5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          </h3>
-          <label class="flex items-start gap-2.5 text-xs text-stone-700 cursor-pointer">
-            <input type="checkbox" id="filter-weekly" onchange="toggleWeeklyOnly()" class="mt-0.5 rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
-            <div>
-              <span class="font-medium">Disponibles esta semana</span>
-              <span class="text-stone-400 text-[11px]">(48)</span>
-              <p class="text-[11px] text-stone-500 mt-0.5 leading-tight">Productos que puedes recoger el sábado en tu Nodo Central.</p>
-            </div>
-          </label>
+          <button 
+            type="button" 
+            onclick="toggleFilterSection('weekly')" 
+            class="w-full text-xs font-bold text-stone-800 mb-2 flex items-center justify-between cursor-pointer select-none group text-left"
+            title="Desplegar / Colapsar"
+          >
+            <span class="group-hover:text-[#1a3d2f] transition-colors">Para tu próxima entrega</span>
+            <svg id="filter-arrow-weekly" class="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-700 transition-transform duration-200 transform rotate-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="filter-content-weekly" class="filter-section-content">
+            <label class="flex items-start gap-2.5 text-xs text-stone-700 cursor-pointer pt-0.5">
+              <input type="checkbox" id="filter-weekly" onchange="toggleWeeklyOnly()" class="mt-0.5 rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
+              <div>
+                <span class="font-medium">Disponibles esta semana</span>
+                <span class="text-stone-400 text-[11px]">(48)</span>
+                <p class="text-[11px] text-stone-500 mt-0.5 leading-tight">Productos que puedes recoger el sábado en tu Nodo Central.</p>
+              </div>
+            </label>
+          </div>
         </div>
 
         <hr class="border-stone-200">
 
         <!-- Cercanía de la finca -->
         <div>
-          <h3 class="text-xs font-bold text-stone-800 mb-2 flex items-center justify-between">
-            <span>Cercanía de la finca</span>
-            <svg class="w-3.5 h-3.5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          </h3>
-          <div class="space-y-1.5 text-xs text-stone-700">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="distancia" value="0" checked onchange="setDistanceFilter(0)" class="text-[#1a3d2f] focus:ring-[#1a3d2f]">
-              <span>Cualquier distancia</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="distancia" value="35" onchange="setDistanceFilter(35)" class="text-[#1a3d2f] focus:ring-[#1a3d2f]">
-              <span>Hasta 35 km</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="radio" name="distancia" value="80" onchange="setDistanceFilter(80)" class="text-[#1a3d2f] focus:ring-[#1a3d2f]">
-              <span>Hasta 80 km</span>
-            </label>
-            <p class="text-[11px] text-stone-500 mt-1">Distancia aproximada a tu nodo.</p>
+          <button 
+            type="button" 
+            onclick="toggleFilterSection('distance')" 
+            class="w-full text-xs font-bold text-stone-800 mb-2 flex items-center justify-between cursor-pointer select-none group text-left"
+            title="Desplegar / Colapsar"
+          >
+            <span class="group-hover:text-[#1a3d2f] transition-colors">Cercanía de la finca</span>
+            <svg id="filter-arrow-distance" class="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-700 transition-transform duration-200 transform rotate-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="filter-content-distance" class="filter-section-content">
+            <div class="space-y-1.5 text-xs text-stone-700 pt-0.5">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="distancia" value="0" checked onchange="setDistanceFilter(0)" class="text-[#1a3d2f] focus:ring-[#1a3d2f]">
+                <span>Cualquier distancia</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="distancia" value="35" onchange="setDistanceFilter(35)" class="text-[#1a3d2f] focus:ring-[#1a3d2f]">
+                <span>Hasta 35 km</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="radio" name="distancia" value="80" onchange="setDistanceFilter(80)" class="text-[#1a3d2f] focus:ring-[#1a3d2f]">
+                <span>Hasta 80 km</span>
+              </label>
+              <p class="text-[11px] text-stone-500 mt-1">Distancia aproximada a tu nodo.</p>
+            </div>
           </div>
         </div>
 
@@ -295,45 +321,59 @@
 
         <!-- Precio por producto -->
         <div>
-          <h3 class="text-xs font-bold text-stone-800 mb-2 flex items-center justify-between">
-            <span>Precio por producto</span>
-            <svg class="w-3.5 h-3.5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          </h3>
-          <div class="flex items-center gap-2 text-xs">
-            <div class="relative flex-1">
-              <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-stone-400 text-xs">$</span>
-              <input type="number" id="filter-price-min" step="0.01" oninput="setPriceFilter()" placeholder="Desde" class="w-full pl-6 pr-2 py-1.5 bg-white border border-stone-200 rounded-lg text-xs focus:ring-1 focus:ring-[#1a3d2f] outline-none">
+          <button 
+            type="button" 
+            onclick="toggleFilterSection('price')" 
+            class="w-full text-xs font-bold text-stone-800 mb-2 flex items-center justify-between cursor-pointer select-none group text-left"
+            title="Desplegar / Colapsar"
+          >
+            <span class="group-hover:text-[#1a3d2f] transition-colors">Precio por producto</span>
+            <svg id="filter-arrow-price" class="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-700 transition-transform duration-200 transform rotate-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="filter-content-price" class="filter-section-content">
+            <div class="flex items-center gap-2 text-xs pt-0.5">
+              <div class="relative flex-1">
+                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-stone-400 text-xs">$</span>
+                <input type="number" id="filter-price-min" step="0.01" oninput="setPriceFilter()" placeholder="Desde" class="w-full pl-6 pr-2 py-1.5 bg-white border border-stone-200 rounded-lg text-xs focus:ring-1 focus:ring-[#1a3d2f] outline-none">
+              </div>
+              <span class="text-stone-400">–</span>
+              <div class="relative flex-1">
+                <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-stone-400 text-xs">$</span>
+                <input type="number" id="filter-price-max" step="0.01" oninput="setPriceFilter()" placeholder="Hasta" class="w-full pl-6 pr-2 py-1.5 bg-white border border-stone-200 rounded-lg text-xs focus:ring-1 focus:ring-[#1a3d2f] outline-none">
+              </div>
             </div>
-            <span class="text-stone-400">–</span>
-            <div class="relative flex-1">
-              <span class="absolute inset-y-0 left-0 pl-2.5 flex items-center text-stone-400 text-xs">$</span>
-              <input type="number" id="filter-price-max" step="0.01" oninput="setPriceFilter()" placeholder="Hasta" class="w-full pl-6 pr-2 py-1.5 bg-white border border-stone-200 rounded-lg text-xs focus:ring-1 focus:ring-[#1a3d2f] outline-none">
-            </div>
+            <p class="text-[10px] text-stone-400 mt-1">Rango promedio: $0,28 a $0,95</p>
           </div>
-          <p class="text-[10px] text-stone-400 mt-1">Rango promedio: $0,28 a $0,95</p>
         </div>
 
         <hr class="border-stone-200">
 
         <!-- Cultivo y elaboración -->
         <div>
-          <h3 class="text-xs font-bold text-stone-800 mb-2 flex items-center justify-between">
-            <span>Cultivo y elaboración</span>
-            <svg class="w-3.5 h-3.5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          </h3>
-          <div class="space-y-1.5 text-xs text-stone-700">
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="filter-agro" onchange="toggleFarmingPractice('agro')" class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
-              <span>Cultivo agroecológico</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="filter-nochem" onchange="toggleFarmingPractice('nochem')" class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
-              <span>Sin químicos de síntesis</span>
-            </label>
-            <label class="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" id="filter-artesanal" onchange="toggleFarmingPractice('artesanal')" class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
-              <span>Elaboración artesanal</span>
-            </label>
+          <button 
+            type="button" 
+            onclick="toggleFilterSection('farming')" 
+            class="w-full text-xs font-bold text-stone-800 mb-2 flex items-center justify-between cursor-pointer select-none group text-left"
+            title="Desplegar / Colapsar"
+          >
+            <span class="group-hover:text-[#1a3d2f] transition-colors">Cultivo y elaboración</span>
+            <svg id="filter-arrow-farming" class="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-700 transition-transform duration-200 transform rotate-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="filter-content-farming" class="filter-section-content">
+            <div class="space-y-1.5 text-xs text-stone-700 pt-0.5">
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="filter-agro" onchange="toggleFarmingPractice('agro')" class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
+                <span>Cultivo agroecológico</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="filter-nochem" onchange="toggleFarmingPractice('nochem')" class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
+                <span>Sin químicos de síntesis</span>
+              </label>
+              <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" id="filter-artesanal" onchange="toggleFarmingPractice('artesanal')" class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
+                <span>Elaboración artesanal</span>
+              </label>
+            </div>
           </div>
         </div>
 
@@ -341,14 +381,21 @@
 
         <!-- Algo bueno para ahorrar -->
         <div>
-          <h3 class="text-xs font-bold text-stone-800 mb-2 flex items-center justify-between">
-            <span>Algo bueno para ahorrar</span>
-            <svg class="w-3.5 h-3.5 text-stone-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-          </h3>
-          <label class="flex items-center gap-2 text-xs text-stone-700 cursor-pointer">
-            <input type="checkbox" id="filter-offers" onchange="toggleOffersOnly()" class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
-            <span>Solo productos en oferta</span>
-          </label>
+          <button 
+            type="button" 
+            onclick="toggleFilterSection('offers')" 
+            class="w-full text-xs font-bold text-stone-800 mb-2 flex items-center justify-between cursor-pointer select-none group text-left"
+            title="Desplegar / Colapsar"
+          >
+            <span class="group-hover:text-[#1a3d2f] transition-colors">Algo bueno para ahorrar</span>
+            <svg id="filter-arrow-offers" class="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-700 transition-transform duration-200 transform rotate-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+          </button>
+          <div id="filter-content-offers" class="filter-section-content">
+            <label class="flex items-center gap-2 text-xs text-stone-700 cursor-pointer pt-0.5">
+              <input type="checkbox" id="filter-offers" onchange="toggleOffersOnly()" class="rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
+              <span>Solo productos en oferta</span>
+            </label>
+          </div>
         </div>
 
         <!-- Help Card -->

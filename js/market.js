@@ -851,7 +851,35 @@ function setupSearchListener() {
   }
 }
 
+/**
+ * Desplegar o disminuir (colapsar) una sección de filtros en la barra lateral
+ * @param {'weekly' | 'distance' | 'price' | 'farming' | 'offers'} sectionId
+ */
+function toggleFilterSection(sectionId) {
+  const content = document.getElementById(`filter-content-${sectionId}`);
+  const arrow = document.getElementById(`filter-arrow-${sectionId}`);
+  if (!content) return;
+
+  const isCollapsed = content.classList.contains('collapsed');
+  if (isCollapsed) {
+    // Desplegar (expandir)
+    content.classList.remove('collapsed');
+    if (arrow) {
+      arrow.classList.remove('-rotate-90');
+      arrow.classList.add('rotate-0');
+    }
+  } else {
+    // Disminuir (colapsar)
+    content.classList.add('collapsed');
+    if (arrow) {
+      arrow.classList.remove('rotate-0');
+      arrow.classList.add('-rotate-90');
+    }
+  }
+}
+
 // Exportar globalmente
+window.toggleFilterSection = toggleFilterSection;
 window.setCategoryFilter = setCategoryFilter;
 window.toggleOffersOnly = toggleOffersOnly;
 window.removeOffersFilter = removeOffersFilter;
