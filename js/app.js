@@ -150,6 +150,14 @@ function removeCartItem(id) {
   updateCartBadge();
 }
 
+function formatCOP(num) {
+  if (num === null || num === undefined || isNaN(num)) return '0,00';
+  const val = Number(num);
+  const parts = val.toFixed(2).split('.');
+  const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${intPart},${parts[1]}`;
+}
+
 function renderCartItems() {
   const container = document.getElementById('cart-items-container');
   if (!container) return;
@@ -178,7 +186,7 @@ function renderCartItems() {
         <h4 class="text-sm font-semibold text-stone-800 truncate">${item.title}</h4>
         <p class="text-xs text-stone-500 truncate">${item.origin || 'Origen verificado'}</p>
         <div class="flex items-center justify-between mt-2">
-          <span class="text-xs font-bold text-[#1a3d2f]">$${(item.price * item.quantity).toLocaleString('es-CO')}</span>
+          <span class="text-xs font-bold text-[#1a3d2f]">$${formatCOP(item.price * item.quantity)}</span>
           <div class="flex items-center border border-stone-200 rounded-md bg-stone-50">
             <button onclick="updateCartQuantity('${item.id}', -1)" class="px-2 py-0.5 text-stone-600 hover:text-stone-900 text-xs">-</button>
             <span class="px-2 py-0.5 text-xs font-medium text-stone-800">${item.quantity}</span>
@@ -214,19 +222,19 @@ function updateCartUI() {
   const totalEl = document.getElementById('cart-total');
   const freeShippingHint = document.getElementById('cart-free-shipping-hint');
 
-  if (subtotalEl) subtotalEl.textContent = `$${subtotal.toLocaleString('es-CO')}`;
+  if (subtotalEl) subtotalEl.textContent = `$${formatCOP(subtotal)}`;
   if (shippingEl) {
     if (subtotal === 0) {
-      shippingEl.innerHTML = '<span class="text-stone-400 font-normal">$0</span>';
+      shippingEl.innerHTML = '<span class="text-stone-400 font-normal">$0,00</span>';
     } else if (selectedDelivery === 'pickup') {
       shippingEl.innerHTML = '<span class="text-emerald-700 font-semibold">Gratis (Retiro en Nodo)</span>';
     } else {
       shippingEl.innerHTML = shippingCost === 0 
         ? '<span class="text-emerald-700 font-semibold">Gratis</span>' 
-        : `$${shippingCost.toLocaleString('es-CO')}`;
+        : `$${formatCOP(shippingCost)}`;
     }
   }
-  if (totalEl) totalEl.textContent = `$${total.toLocaleString('es-CO')}`;
+  if (totalEl) totalEl.textContent = `$${formatCOP(total)}`;
 
   if (freeShippingHint) {
     if (subtotal === 0) {
@@ -235,7 +243,7 @@ function updateCartUI() {
       freeShippingHint.innerHTML = '✨ ¡Felicidades! Tienes <strong>envío gratis</strong> garantizado.';
     } else {
       const rest = 40000 - subtotal;
-      freeShippingHint.innerHTML = `🌱 Agrega <strong>$${rest.toLocaleString('es-CO')}</strong> más para entrega a domicilio gratis.`;
+      freeShippingHint.innerHTML = `🌱 Agrega <strong>$${formatCOP(rest)}</strong> más para entrega a domicilio gratis.`;
     }
   }
 }

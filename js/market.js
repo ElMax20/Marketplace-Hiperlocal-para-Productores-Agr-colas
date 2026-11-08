@@ -1254,7 +1254,11 @@ function confirmOrderPayment() {
 // 9. Utilidades y Notificaciones Toast
 // =============================================================================
 function formatCOP(num) {
-  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  if (num === null || num === undefined || isNaN(num)) return '0,00';
+  const val = Number(num);
+  const parts = val.toFixed(2).split('.');
+  const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${intPart},${parts[1]}`;
 }
 
 function showToast(msg) {

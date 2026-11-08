@@ -98,8 +98,8 @@ function updatePreviewCard() {
 
   if (previewPrice && priceInput) {
     let p = priceInput.value.trim();
-    if (!p.startsWith('$')) p = '$' + p;
-    previewPrice.textContent = p || '$0';
+    if (p && !p.startsWith('$')) p = '$' + p;
+    previewPrice.textContent = p || '$0,00';
   }
 
   if (previewUnit && unitSelect) {

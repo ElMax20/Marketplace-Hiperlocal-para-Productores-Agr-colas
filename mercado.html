@@ -310,7 +310,7 @@
               <input type="number" id="filter-price-max" oninput="setPriceFilter()" placeholder="Hasta" class="w-full pl-6 pr-2 py-1.5 bg-white border border-stone-200 rounded-lg text-xs focus:ring-1 focus:ring-[#1a3d2f] outline-none">
             </div>
           </div>
-          <p class="text-[10px] text-stone-400 mt-1">Rango promedio: $4.000 a $58.000</p>
+          <p class="text-[10px] text-stone-400 mt-1">Rango promedio: $4.000,00 a $58.000,00</p>
         </div>
 
         <hr class="border-stone-200">
@@ -511,15 +511,15 @@
       <div class="p-5 border-t border-stone-200 bg-stone-50 space-y-3">
         <div class="flex justify-between text-xs text-stone-600">
           <span>Subtotal productos:</span>
-          <span id="cart-subtotal" class="font-semibold text-stone-800">$0</span>
+          <span id="cart-subtotal" class="font-semibold text-stone-800">$0,00</span>
         </div>
         <div class="flex justify-between text-xs text-stone-600">
           <span>Recogida en Nodo Comunitario:</span>
-          <span class="font-bold text-emerald-700">GRATIS ($0)</span>
+          <span class="font-bold text-emerald-700">GRATIS ($0,00)</span>
         </div>
         <div class="flex justify-between text-base font-bold text-[#1a3d2f] pt-2 border-t border-stone-200">
           <span>Total a pagar:</span>
-          <span id="cart-total">$0</span>
+          <span id="cart-total">$0,00</span>
         </div>
 
         <button onclick="handleProceedToCheckout()" class="w-full bg-[#1a3d2f] hover:bg-[#235340] text-white font-bold py-3.5 rounded-full shadow-lg transition flex items-center justify-center gap-2 text-sm">
@@ -672,7 +672,7 @@
         <!-- Order Total -->
         <div class="p-3 bg-[#FAF7F2] rounded-xl flex justify-between items-center font-bold text-sm text-[#1a3d2f]">
           <span>Total a pagar:</span>
-          <span id="checkout-final-total" class="text-base text-[#c85a32]">$0</span>
+          <span id="checkout-final-total" class="text-base text-[#c85a32]">$0,00</span>
         </div>
 
         <button onclick="confirmOrderPayment()" class="w-full bg-[#1a3d2f] hover:bg-[#24523f] text-white font-bold py-3.5 rounded-full shadow-lg transition text-xs flex items-center justify-center gap-2">
@@ -709,9 +709,9 @@
   </div>
 
   <!-- Market JavaScript Logic -->
-  <script src="js/supabase.js?v=4.1"></script>
-  <script src="js/auth.js?v=4.1"></script>
-  <script src="js/market.js?v=4.1"></script>
+  <script src="js/supabase.js?v=4.2"></script>
+  <script src="js/auth.js?v=4.2"></script>
+  <script src="js/market.js?v=4.2"></script>
 </body>
 </html>
 

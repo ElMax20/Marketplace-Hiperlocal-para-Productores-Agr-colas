@@ -640,7 +640,7 @@ function setupPreviewListeners() {
       const prev = document.getElementById('new-preview-price');
       const val = e.target.value.replace(/[^0-9]/g, '');
       const unit = newUnit ? newUnit.value.split('·')[0].trim().toLowerCase() : 'manojo';
-      if (prev) prev.textContent = `$${val ? formatCOP(Number(val)) : '2.800'} / ${unit}`;
+      if (prev) prev.textContent = `$${val ? formatCOP(Number(val)) : '2.800,00'} / ${unit}`;
     });
   }
 
@@ -661,15 +661,18 @@ function setupPreviewListeners() {
       const prev = document.getElementById('edit-preview-price');
       const val = e.target.value.replace(/[^0-9]/g, '');
       const unit = editUnit ? editUnit.value.replace(/[^a-zA-Z]/g, '').toLowerCase() : 'kg';
-      if (prev) prev.textContent = `$${val ? formatCOP(Number(val)) : '4.000'} / ${unit}`;
+      if (prev) prev.textContent = `$${val ? formatCOP(Number(val)) : '4.000,00'} / ${unit}`;
     });
   }
 }
 
 /**
- * Formatea números a pesos colombianos COP
+ * Formatea números a pesos colombianos COP con exactamente dos decimales
  */
 function formatCOP(num) {
-  if (isNaN(num)) return num;
-  return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  if (num === null || num === undefined || isNaN(num)) return '0,00';
+  const val = Number(num);
+  const parts = val.toFixed(2).split('.');
+  const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  return `${intPart},${parts[1]}`;
 }
