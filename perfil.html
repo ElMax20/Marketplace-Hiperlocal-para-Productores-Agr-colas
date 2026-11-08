@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Perfil y Preferencias | Raíz & Barrio</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Playfair Display & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-serif {
+      font-family: 'Playfair Display', serif;
+    }
+  </style>
+</head>
+<body class="bg-[#f7f5f0] min-h-screen text-stone-800 antialiased selection:bg-[#1a3d2f] selection:text-white flex flex-col justify-between">
+
+  <!-- ========================================================================= -->
+  <!-- 1. Franja Superior Verde de Anuncios y Entregas                          -->
+  <!-- ========================================================================= -->
+  <aside class="bg-[#1a3d2f] text-emerald-100 text-[11px] py-1.5 px-4 text-center font-medium tracking-wide">
+    <a href="index.html#nodos" class="hover:underline flex items-center justify-center gap-1.5">
+      <span>🌿</span>
+      <span>Entregas consolidadas esta semana | Puntos de recolección disponibles: <strong>Conoce tu nodo →</strong></span>
+    </a>
+  </aside>
+
+  <!-- ========================================================================= -->
+  <!-- 2. Barra de Navegación Principal                                         -->
+  <!-- ========================================================================= -->
+  <header class="bg-white border-b border-stone-200/80 sticky top-0 z-40 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 gap-4">
+        
+        <!-- Logo de Raíz & Barrio -->
+        <a href="index.html" class="flex items-center gap-2.5 shrink-0 group">
+          <div class="w-8 h-8 rounded-lg bg-[#1a3d2f] text-emerald-200 flex items-center justify-center font-bold text-base shadow-xs group-hover:bg-[#255240] transition">
+            🌱
+          </div>
+          <div>
+            <span class="font-serif text-lg font-bold text-stone-900 leading-none block">raíz & barrio</span>
+            <span class="text-[9px] font-bold uppercase tracking-widest text-[#c85a32] block -mt-0.5">Mercado de cercanía</span>
+          </div>
+        </a>
+
+        <!-- Enlace Volver al mercado -->
+        <a href="mercado.html" class="hidden md:inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600 hover:text-[#1a3d2f] transition py-1.5 px-3 rounded-full hover:bg-stone-50 border border-transparent hover:border-stone-200">
+          <span>←</span>
+          <span>Volver al mercado</span>
+        </a>
+
+        <!-- Selector de Nodo y Perfil a la Derecha -->
+        <div class="flex items-center gap-3 sm:gap-4 shrink-0">
+          
+          <!-- Pill Selector de Nodo -->
+          <div class="hidden sm:flex items-center gap-1.5 bg-stone-50 border border-stone-200/80 px-3 py-1.5 rounded-full text-xs text-stone-700">
+            <span class="text-[#c85a32] text-xs">📍</span>
+            <span class="text-stone-400">Recoger en:</span>
+            <span id="nav-user-node" class="font-bold text-[#1a3d2f]">Nodo Central</span>
+            <span class="text-[10px] text-stone-400">⌄</span>
+          </div>
+
+          <!-- Usuario y Mi Cuenta -->
+          <div class="flex items-center gap-2 pl-2 border-l border-stone-100">
+            <div class="w-8 h-8 rounded-full overflow-hidden border border-stone-200 bg-stone-100 shrink-0 shadow-2xs">
+              <img 
+                id="nav-user-avatar" 
+                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" 
+                alt="Avatar" 
+                class="w-full h-full object-cover"
+                onerror="this.src='https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg'"
+              >
+            </div>
+            <div class="hidden sm:block text-left text-xs leading-tight">
+              <span id="nav-user-name" class="font-bold text-stone-900 block truncate max-w-[120px]">Camila Rojas</span>
+              <span id="nav-user-role-label" class="text-[10px] text-stone-400 block">Mi cuenta · Compradora</span>
+            </div>
+
+            <!-- Botón Tuerca de Configuración -->
+            <a 
+              href="perfil.html" 
+              class="w-8 h-8 rounded-full border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-600 flex items-center justify-center text-sm transition shadow-2xs"
+              title="Configuración de usuario"
+            >
+              ⚙
+            </a>
+
+            <!-- Botón Canasta -->
+            <a 
+              href="mercado.html?openCart=1" 
+              class="relative w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-[#1a3d2f] flex items-center justify-center transition shadow-2xs"
+              title="Ver canasta de compras"
+            >
+              <span class="text-sm">👜</span>
+              <span id="nav-cart-counter" class="absolute -top-1 -right-1 bg-[#c85a32] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">0</span>
+            </a>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- 3. Contenedor Principal: Perfil y Preferencias                            -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+    
+    <!-- Migas de pan -->
+    <nav class="flex items-center gap-1.5 text-xs text-stone-400 mb-2">
+      <a href="mercado.html" class="hover:text-stone-700 transition">Mercado</a>
+      <span>›</span>
+      <span class="text-stone-500">Mi cuenta</span>
+      <span>›</span>
+      <span class="text-stone-800 font-semibold">Perfil y preferencias</span>
+    </nav>
+
+    <!-- Encabezado de Página -->
+    <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-stone-200/80 mb-6">
+      <div>
+        <span id="header-user-kicker" class="text-[10px] font-bold uppercase tracking-wider text-[#c85a32] block">
+          MI CUENTA · COMPRADORA
+        </span>
+        <h1 class="font-serif text-3xl sm:text-4xl text-stone-900 font-normal mt-0.5">
+          Tu perfil, tu tranquilidad
+        </h1>
+        <p id="header-user-welcome" class="text-xs sm:text-sm text-stone-500 mt-1">
+          Camila, cuida tus datos y deja todo listo para tu próxima cosecha.
+        </p>
+      </div>
+
+      <!-- Pill: Tu información está protegida -->
+      <div class="inline-flex items-center gap-1.5 bg-emerald-50/70 border border-emerald-200/80 text-emerald-800 px-3 py-1 rounded-full text-xs font-medium self-start sm:self-auto shrink-0 shadow-2xs">
+        <span class="text-emerald-600 font-bold">✓</span>
+        <span>Tu información está protegida</span>
+      </div>
+    </div>
+
+    <!-- ======================================================================= -->
+    <!-- Grid Principal de Dos Columnas                                          -->
+    <!-- ======================================================================= -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      
+      <!-- ===================================================================== -->
+      <!-- Columna Izquierda (Sidebar): Foto, Navegación y Estado               -->
+      <!-- ===================================================================== -->
+      <aside class="lg:col-span-4 xl:col-span-3 space-y-5">
+        
+        <!-- Tarjeta 1: Tu foto de perfil -->
+        <div class="bg-white rounded-2xl border border-stone-200 p-6 text-center shadow-xs">
+          <h2 class="font-bold text-stone-800 text-xs text-left mb-4">Tu foto de perfil</h2>
+          
+          <!-- Avatar grande circular -->
+          <div class="w-24 h-24 mx-auto rounded-full overflow-hidden border-2 border-stone-200 shadow-xs relative bg-stone-100 flex items-center justify-center">
+            <img 
+              id="profile-avatar-preview" 
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" 
+              alt="Foto de perfil" 
+              class="w-full h-full object-cover"
+              onerror="this.src='https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg'"
+            >
+          </div>
+
+          <!-- Indicador de foto pendiente de guardar -->
+          <div id="photo-draft-badge" class="hidden mt-2">
+            <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
+              <span>Foto pendiente de guardar</span>
+            </span>
+          </div>
+
+          <!-- Nombre y Rol -->
+          <h3 id="profile-name-display" class="font-serif font-bold text-lg text-stone-900 mt-3">
+            Camila Rojas
+          </h3>
+          <div class="mt-1">
+            <span id="profile-role-pill" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              <span id="profile-role-text">Compradora</span>
+            </span>
+          </div>
+          <span id="profile-username-handle" class="text-xs text-stone-400 mt-1 block">
+            @camila.rojas
+          </span>
+
+          <!-- Botones de foto -->
+          <div class="mt-4 space-y-2">
+            <label class="w-full border border-stone-300 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer shadow-2xs">
+              <span>📷</span>
+              <span>Cambiar foto</span>
+              <input type="file" id="photo-file-input" accept="image/*" class="hidden" onchange="handlePhotoFileSelected(event)">
+            </label>
+            <button 
+              type="button" 
+              onclick="handleRemovePhoto()" 
+              class="text-xs font-semibold text-red-600 hover:text-red-700 transition cursor-pointer"
+            >
+              Eliminar foto
+            </button>
+          </div>
+
+          <p class="text-[10px] text-stone-400 mt-3 leading-normal">
+            JPG o PNG · máximo 5 MB.<br>Tu foto se actualiza al guardar.
+          </p>
+        </div>
+
+        <!-- Menú de Navegación: Tu espacio en el barrio -->
+        <div class="space-y-1">
+          <span class="text-[10px] font-bold uppercase tracking-wider text-stone-400 px-3 block mb-1.5">
+            TU ESPACIO EN EL BARRIO
+          </span>
+          <button 
+            type="button"
+            class="w-full bg-[#1a3d2f] text-white font-semibold text-xs py-2.5 px-3.5 rounded-xl flex items-center gap-2.5 shadow-xs text-left"
+          >
+            <span>👤</span>
+            <span>Perfil y preferencias</span>
+          </button>
+          <a 
+            href="mercado.html" 
+            class="w-full text-stone-600 hover:bg-stone-100 hover:text-stone-900 font-medium text-xs py-2.5 px-3.5 rounded-xl flex items-center gap-2.5 transition text-left block"
+          >
+            <span>📦</span>
+            <span>Mis pedidos</span>
+          </a>
+          <a 
+            href="mercado.html" 
+            class="w-full text-stone-600 hover:bg-stone-100 hover:text-stone-900 font-medium text-xs py-2.5 px-3.5 rounded-xl flex items-center gap-2.5 transition text-left block"
+          >
+            <span>♡</span>
+            <span>Mis favoritos</span>
+          </a>
+        </div>
+
+        <!-- Tarjeta 3: Qué bueno tenerte en el barrio -->
+        <div class="bg-[#f8f6f0] border border-stone-200/70 rounded-2xl p-5 shadow-2xs">
+          <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/60 mb-2">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            <span>Cuenta activa</span>
+          </div>
+          <h3 class="font-serif text-base font-bold text-stone-900 mt-1">
+            Qué bueno tenerte en el barrio.
+          </h3>
+          <p id="sidebar-user-since" class="text-xs text-stone-600 mt-1 leading-relaxed">
+            Compradora desde septiembre de 2026.<br>
+            Tu nodo: <span id="sidebar-user-node" class="font-semibold text-stone-800">Central · La Perseverancia</span>.
+          </p>
+        </div>
+
+        <!-- Tarjeta 4: Estamos cerca (Soporte) -->
+        <div class="px-2 text-stone-800">
+          <span class="text-xl block">💬</span>
+          <h4 class="font-bold text-sm text-stone-900 mt-1">Estamos cerca.</h4>
+          <p class="text-xs text-stone-500 mt-0.5 leading-normal">
+            ¿Necesitas ayuda con tu cuenta o tu próxima compra?
+          </p>
+          <button 
+            type="button" 
+            onclick="showToast('Soporte Raíz & Barrio: soporte@raizybarrio.co o WhatsApp 300 123 4567')" 
+            class="font-bold text-xs text-stone-900 hover:underline inline-flex items-center gap-1 mt-1.5 cursor-pointer"
+          >
+            <span>Contactar soporte</span>
+            <span>↗</span>
+          </button>
+        </div>
+
+      </aside>
+
+      <!-- ===================================================================== -->
+      <!-- Columna Derecha: Cuadrícula de 4 Tarjetas de Configuración            -->
+      <!-- ===================================================================== -->
+      <section class="lg:col-span-8 xl:col-span-9 space-y-6">
+        
+        <!-- Grid 2x2 de Tarjetas -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+          
+          <!-- ================================================================= -->
+          <!-- Card 1: Datos personales y correo                                 -->
+          <!-- ================================================================= -->
+          <div class="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs">
+            <h2 class="font-bold text-sm text-stone-900">Datos personales y correo</h2>
+            <p class="text-xs text-stone-400 mt-0.5 mb-4">Así te reconoceremos en tu próxima compra.</p>
+
+            <form onsubmit="event.preventDefault(); saveSettingsChanges();" class="space-y-3.5">
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">Nombre completo *</label>
+                <input 
+                  type="text" 
+                  id="input-full-name" 
+                  required
+                  value="Camila Rojas" 
+                  class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
+                >
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">Nombre de usuario *</label>
+                <input 
+                  type="text" 
+                  id="input-username" 
+                  required
+                  value="camila.rojas" 
+                  class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
+                >
+                <p class="text-[11px] text-emerald-700 font-medium mt-1 flex items-center gap-1">
+                  <span>✓</span>
+                  <span>Nombre de usuario disponible</span>
+                </p>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">Teléfono de contacto</label>
+                <input 
+                  type="tel" 
+                  id="input-phone" 
+                  value="300 456 7890" 
+                  placeholder="Ej. 300 123 4567"
+                  class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
+                >
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">Correo electrónico actual</label>
+                <input 
+                  type="email" 
+                  id="input-current-email" 
+                  readonly 
+                  value="camila.rojas@correo.com" 
+                  class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-100 text-stone-600 focus:outline-none cursor-not-allowed"
+                >
+                <div class="mt-1.5">
+                  <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                    <span>✓</span>
+                    <span>Correo verificado</span>
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">Nuevo correo electrónico</label>
+                <input 
+                  type="email" 
+                  id="input-new-email" 
+                  placeholder="Escribe tu nuevo correo" 
+                  class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
+                >
+                <p class="text-[10px] text-stone-400 mt-1.5 leading-tight">
+                  Para cambiar tu correo, verifica el enlace que enviaremos a la nueva dirección. El actual seguirá activo hasta entonces.
+                </p>
+                <button 
+                  type="button" 
+                  onclick="handleSendEmailVerification()" 
+                  class="mt-3 inline-flex items-center gap-1.5 px-4 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 hover:bg-stone-50 transition shadow-2xs cursor-pointer"
+                >
+                  <span>✉</span>
+                  <span>Enviar enlace de verificación</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- ================================================================= -->
+          <!-- Card 2: Contraseña y seguridad                                    -->
+          <!-- ================================================================= -->
+          <div class="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs">
+            <h2 class="font-bold text-sm text-stone-900">Contraseña y seguridad</h2>
+            <p class="text-xs text-stone-400 mt-0.5 mb-4">Cuida el acceso a tu cuenta. Solo tú conoces tu contraseña.</p>
+
+            <form onsubmit="event.preventDefault(); handleUpdatePassword();" class="space-y-3.5">
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">Contraseña actual *</label>
+                <div class="relative">
+                  <input 
+                    type="password" 
+                    id="input-pass-current" 
+                    value="••••••••••••" 
+                    placeholder="Contraseña actual"
+                    class="w-full text-xs p-3 pr-10 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
+                  >
+                  <button 
+                    type="button" 
+                    onclick="togglePassVisibility('input-pass-current', this)" 
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-stone-400 hover:text-stone-700 text-sm"
+                  >
+                    👁
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">Nueva contraseña *</label>
+                <div class="relative">
+                  <input 
+                    type="password" 
+                    id="input-pass-new" 
+                    value="••••••••••••" 
+                    placeholder="Nueva contraseña segura"
+                    class="w-full text-xs p-3 pr-10 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
+                  >
+                  <button 
+                    type="button" 
+                    onclick="togglePassVisibility('input-pass-new', this)" 
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-stone-400 hover:text-stone-700 text-sm"
+                  >
+                    👁
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-bold text-stone-700 mb-1">Confirmar nueva contraseña *</label>
+                <div class="relative">
+                  <input 
+                    type="password" 
+                    id="input-pass-confirm" 
+                    value="••••••••••••" 
+                    placeholder="Repite la nueva contraseña"
+                    class="w-full text-xs p-3 pr-10 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
+                  >
+                  <button 
+                    type="button" 
+                    onclick="togglePassVisibility('input-pass-confirm', this)" 
+                    class="absolute inset-y-0 right-0 pr-3 flex items-center text-stone-400 hover:text-stone-700 text-sm"
+                  >
+                    👁
+                  </button>
+                </div>
+              </div>
+
+              <!-- Caja de Requisitos de Contraseña Segura -->
+              <div class="bg-[#f0f6f2] border border-emerald-100 rounded-xl p-3 text-xs text-emerald-900 space-y-1">
+                <p class="font-bold flex items-center gap-1.5 text-emerald-800">
+                  <span>✓</span>
+                  <span>Contraseña segura</span>
+                </p>
+                <ul class="text-[11px] text-stone-600 space-y-0.5 pl-3">
+                  <li>✓ Al menos 12 caracteres</li>
+                  <li>✓ Mayúsculas, minúsculas, números y símbolo</li>
+                  <li>✓ La confirmación coincide</li>
+                </ul>
+              </div>
+
+              <p class="text-[10px] text-stone-400 flex items-start gap-1 leading-tight">
+                <span>🔒</span>
+                <span>Las contraseñas permanecen ocultas. Por seguridad, al actualizarla tendrás que volver a iniciar sesión.</span>
+              </p>
+
+              <button 
+                type="submit" 
+                class="inline-flex items-center gap-1.5 px-4 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 hover:bg-stone-50 transition shadow-2xs cursor-pointer"
+              >
+                Actualizar contraseña
+              </button>
+            </form>
+          </div>
+
+          <!-- ================================================================= -->
+          <!-- Card 3: Tarjetas y opciones de pago                               -->
+          <!-- ================================================================= -->
+          <div class="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs">
+            <h2 class="font-bold text-sm text-stone-900">Tarjetas y opciones de pago</h2>
+            <p class="text-xs text-stone-400 mt-0.5 mb-4">Elige cómo quieres pagar tus compras en el mercado.</p>
+
+            <!-- Tarjeta VISA Preferida -->
+            <div class="bg-[#faf8f4] border border-stone-200/80 rounded-xl p-4 shadow-2xs">
+              <div class="flex items-center justify-between mb-2">
+                <span class="font-bold text-sm tracking-wider text-stone-900">VISA</span>
+                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span>✓</span>
+                  <span>Método preferido</span>
+                </span>
+              </div>
+              <p class="font-mono text-base tracking-widest text-stone-800 my-2 font-bold">
+                ••••  ••••  ••••  4821
+              </p>
+              <div class="flex items-center justify-between text-[10px] text-stone-400 pt-1">
+                <div>
+                  <span class="block text-[9px] uppercase tracking-wider">TITULAR</span>
+                  <span id="card-holder-name-display" class="font-semibold text-stone-700 text-xs">Camila Rojas</span>
+                </div>
+                <div class="text-right">
+                  <span class="block text-[9px] uppercase tracking-wider">CADUCA</span>
+                  <span class="font-semibold text-stone-700 text-xs">08/28</span>
+                </div>
+              </div>
+              
+              <div class="mt-3 pt-2.5 border-t border-stone-200/60 flex items-center gap-3 text-xs font-semibold">
+                <button type="button" onclick="showToast('Opciones de edición de tarjeta activadas.')" class="text-stone-700 hover:underline cursor-pointer">
+                  Editar
+                </button>
+                <button type="button" onclick="showToast('Tarjeta de pago retirada.')" class="text-red-600 hover:underline cursor-pointer">
+                  Eliminar
+                </button>
+              </div>
+            </div>
+
+            <button 
+              type="button" 
+              onclick="showToast('Añadir método de pago: PSE, Tarjeta o billetera digital.')" 
+              class="mt-3.5 inline-flex items-center gap-1.5 px-4 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 hover:bg-stone-50 transition shadow-2xs cursor-pointer"
+            >
+              + Añadir método de pago
+            </button>
+
+            <!-- Otros métodos -->
+            <div class="mt-4 pt-3.5 border-t border-stone-100 text-xs">
+              <p class="font-semibold text-stone-700 mb-2">También puedes pagar con</p>
+              <div class="space-y-2">
+                <div class="flex items-center justify-between text-stone-700">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm">🏛</span>
+                    <span>PSE · Débito desde tu banco</span>
+                  </div>
+                  <button type="button" onclick="showToast('PSE establecido como método preferido.')" class="text-[11px] text-stone-500 hover:text-stone-900 underline cursor-pointer">
+                    Hacer preferido
+                  </button>
+                </div>
+                <div class="flex items-center justify-between text-stone-700">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm">📱</span>
+                    <span>Nequi · Billetera digital</span>
+                  </div>
+                  <button type="button" onclick="showToast('Nequi establecido como método preferido.')" class="text-[11px] text-stone-500 hover:text-stone-900 underline cursor-pointer">
+                    Hacer preferido
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <p class="text-[10px] text-stone-400 mt-3 flex items-start gap-1 leading-tight">
+              <span>🔒</span>
+              <span>Tus datos de pago están protegidos. Nunca mostramos el número completo ni el código de seguridad.</span>
+            </p>
+          </div>
+
+          <!-- ================================================================= -->
+          <!-- Card 4: Ubicación y preferencia de entrega                        -->
+          <!-- ================================================================= -->
+          <div class="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs">
+            <h2 class="font-bold text-sm text-stone-900">Ubicación y preferencia de entrega</h2>
+            <p class="text-xs text-stone-400 mt-0.5 mb-4">Tu mercado se adapta al lugar donde quieres recibirlo.</p>
+
+            <!-- Opción 1: Recogida en nodo (Preferida) -->
+            <div class="bg-[#f0f6f2] border-2 border-[#1a3d2f] rounded-xl p-3.5 shadow-2xs">
+              <div class="flex items-center justify-between text-xs mb-1.5">
+                <div class="flex items-center gap-1.5 font-bold text-stone-900">
+                  <span class="w-3.5 h-3.5 rounded-full border-2 border-[#1a3d2f] flex items-center justify-center">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#1a3d2f]"></span>
+                  </span>
+                  <span>Recogida en nodo</span>
+                </div>
+                <span class="text-[10px] font-bold text-emerald-800 bg-white border border-emerald-200 px-2 py-0.5 rounded-full">
+                  Preferida
+                </span>
+              </div>
+              <h3 id="delivery-node-title" class="font-bold text-xs text-stone-900">
+                Nodo Central · La Perseverancia
+              </h3>
+              <p class="text-[11px] text-stone-500 mt-0.5">Carrera 5 n.º 30A-10 · Bogotá</p>
+              <p class="text-[11px] text-stone-500">Sáb. 7 nov. · 8:00 a. m. – 12:00 p. m.</p>
+              
+              <div class="flex items-center justify-between pt-2 border-t border-emerald-100/80 mt-2 text-xs">
+                <span class="font-semibold text-stone-700">Recogida gratis</span>
+                <button type="button" onclick="openNodeSelectorModal()" class="font-bold text-[#1a3d2f] hover:underline flex items-center gap-0.5 cursor-pointer">
+                  <span>Cambiar nodo</span>
+                  <span>→</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Opción 2: A domicilio · Casa -->
+            <div class="bg-white border border-stone-200 rounded-xl p-3.5 mt-3 shadow-2xs">
+              <div class="flex items-center justify-between text-xs mb-1.5">
+                <div class="flex items-center gap-1.5 font-bold text-stone-700">
+                  <span class="w-3.5 h-3.5 rounded-full border border-stone-300"></span>
+                  <span>A domicilio · Casa</span>
+                </div>
+              </div>
+              <p id="delivery-home-address" class="text-[11px] text-stone-700 font-medium">Carrera 7 n.º 32-16, apto. 402</p>
+              <p class="text-[11px] text-stone-500">La Merced · Bogotá, D. C.</p>
+              <p class="text-[11px] text-stone-500">Sáb. 7 nov. · 2:00 – 6:00 p. m. · $8.000 por pedido</p>
+              
+              <div class="flex items-center justify-between pt-2 border-t border-stone-100 mt-2 text-xs">
+                <div class="flex items-center gap-2.5 font-semibold text-stone-600">
+                  <button type="button" onclick="editAddressModal()" class="hover:underline cursor-pointer">Modificar</button>
+                  <button type="button" onclick="showToast('Dirección eliminada.')" class="text-red-600 hover:underline cursor-pointer">Eliminar</button>
+                </div>
+                <button type="button" onclick="showToast('Domicilio establecido como preferencia.')" class="font-semibold text-stone-600 hover:text-stone-900 underline text-[11px] cursor-pointer">
+                  Hacer preferida
+                </button>
+              </div>
+            </div>
+
+            <button 
+              type="button" 
+              onclick="editAddressModal()" 
+              class="mt-3.5 inline-flex items-center gap-1.5 px-4 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 hover:bg-stone-50 transition shadow-2xs cursor-pointer"
+            >
+              + Agregar dirección
+            </button>
+
+            <p class="text-[10px] text-stone-400 mt-3 leading-tight">
+              Usaremos tu nodo preferido en el mercado. Puedes elegir otra opción antes de confirmar cada pedido.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- Barra Inferior de Guardado: Tus cambios, a tu ritmo                 -->
+        <!-- =================================================================== -->
+        <div class="bg-white rounded-2xl border border-stone-200 p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+          <div>
+            <h3 class="font-bold text-xs text-stone-900">Tus cambios, a tu ritmo</h3>
+            <p class="text-[11px] text-stone-400 mt-0.5">
+              Guarda tu foto, datos y preferencias. El correo y la contraseña se actualizan con sus propias acciones.
+            </p>
+          </div>
+          <div class="flex items-center gap-3 shrink-0">
+            <button 
+              type="button" 
+              onclick="cancelSettingsChanges()" 
+              class="px-5 py-2.5 rounded-xl border border-stone-200 text-xs font-semibold text-stone-700 hover:bg-stone-50 transition cursor-pointer"
+            >
+              Cancelar
+            </button>
+            <button 
+              type="button" 
+              id="btn-save-settings"
+              onclick="saveSettingsChanges()" 
+              class="px-6 py-2.5 rounded-xl bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold transition shadow-sm flex items-center gap-2 cursor-pointer"
+            >
+              <span>Guardar cambios</span>
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- 4. Pie de Página                                                          -->
+  <!-- ========================================================================= -->
+  <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-stone-200/80 mt-12 w-full flex flex-col sm:flex-row items-center justify-between text-xs text-stone-400 gap-3">
+    <div>
+      © 2026 Raíz & Barrio · Bogotá y su tierra cercana.
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="#" class="hover:text-stone-700 transition">Ayuda</a>
+      <a href="#" class="hover:text-stone-700 transition">Privacidad</a>
+      <button onclick="handleLogout()" class="hover:text-red-600 transition text-red-500 font-semibold cursor-pointer">
+        Cerrar sesión
+      </button>
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- 5. Modal de Encuadre Interactivo de Foto (Evita Descuadre - Requerimiento 3)-->
+  <!-- ========================================================================= -->
+  <div id="avatar-cropper-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs select-none">
+    <div class="bg-white rounded-3xl max-w-sm sm:max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Encabezado del cropper -->
+      <div class="bg-stone-50 border-b border-stone-200 px-5 py-3.5 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-sm font-bold shadow-2xs">✂️</span>
+          <div>
+            <h3 class="font-serif font-bold text-stone-900 text-sm">Ajustar encuadre de la foto</h3>
+            <p class="text-[10px] text-stone-500">Mueve y ajusta el zoom para que tu foto quede perfecta</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeAvatarCropperModal(false)" class="w-8 h-8 rounded-full bg-white hover:bg-stone-200 text-stone-500 flex items-center justify-center text-sm font-bold transition shadow-xs cursor-pointer" title="Cancelar">
+          ✕
+        </button>
+      </div>
+
+      <!-- Canvas interactivo con marco circular -->
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-3.5 flex-1">
+        <div class="relative mx-auto flex flex-col items-center">
+          <div class="relative rounded-2xl overflow-hidden shadow-inner bg-stone-900 border border-stone-300 touch-none select-none flex items-center justify-center" style="width: 280px; height: 280px;">
+            <canvas id="cropper-canvas" width="280" height="280" class="cursor-grab active:cursor-grabbing block" style="touch-action: none;"></canvas>
+            
+            <div class="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-xs text-white text-[10px] font-medium px-3 py-1 rounded-full pointer-events-none flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+              <span>✋ Arrastra para centrar</span>
+              <span>•</span>
+              <span>🔍 Zoom</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controles de Zoom -->
+        <div class="bg-stone-50 p-3 rounded-2xl border border-stone-200 space-y-2">
+          <div class="flex items-center justify-between text-xs text-stone-700 font-bold">
+            <span>Zoom / Acercamiento</span>
+            <span id="cropper-zoom-label" class="text-[11px] font-mono text-[#1a3d2f] bg-white px-2 py-0.5 rounded-md border border-stone-200">100%</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button type="button" id="cropper-zoom-out-btn" class="w-7 h-7 rounded-lg bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 flex items-center justify-center text-sm font-bold shadow-xs transition cursor-pointer" title="Alejar">
+              −
+            </button>
+            <input 
+              type="range" 
+              id="cropper-zoom-slider" 
+              min="0.5" 
+              max="3" 
+              step="0.05" 
+              value="1" 
+              class="flex-1 accent-[#1a3d2f] h-2 bg-stone-200 rounded-lg cursor-pointer"
+            >
+            <button type="button" id="cropper-zoom-in-btn" class="w-7 h-7 rounded-lg bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 flex items-center justify-center text-sm font-bold shadow-xs transition cursor-pointer" title="Acercar">
+              +
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pie del Editor -->
+      <div class="bg-stone-50 border-t border-stone-200 px-5 py-3 flex items-center justify-between gap-3 shrink-0">
+        <button type="button" onclick="closeAvatarCropperModal(false)" class="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 rounded-xl transition cursor-pointer">
+          Cancelar
+        </button>
+        <button type="button" onclick="confirmAvatarCrop()" class="px-5 py-2.5 bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer">
+          <span>✓</span>
+          <span>Confirmar encuadre</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Toast Flotante -->
+  <aside 
+    id="toast" 
+    class="fixed bottom-6 right-6 max-w-sm bg-stone-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 text-xs opacity-0 pointer-events-none transition-all duration-300 z-[90]"
+  >
+    <span class="text-base">✨</span>
+    <span id="toast-message" class="flex-1 font-medium">Cambios guardados</span>
+  </aside>
+
+  <!-- Scripts: Supabase y Lógica de Perfil -->
+  <script src="js/supabase.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/perfil.js"></script>
+</body>
+</html>

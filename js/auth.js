@@ -373,25 +373,40 @@ function updateAuthUI() {
       profileLabel = 'Espacio de Productor';
     }
 
+    const roleLabelDesc = user.role === 'productor' ? 'Mi cuenta · Productor' : (user.role === 'admin' ? 'Mi cuenta · Admin' : 'Mi cuenta · Comprador');
+
     authContainer.innerHTML = `
-      <div class="relative flex items-center">
-        <!-- Foto de perfil pequeña y discreta (34x34px) -->
+      <div class="relative flex items-center gap-2">
+        <!-- Usuario con foto y nombre -->
         <button 
           id="user-avatar-btn" 
           onclick="toggleAuthDropdown(event)" 
           type="button"
-          class="rounded-full overflow-hidden border border-stone-200 hover:ring-2 hover:ring-[#1a3d2f] focus:outline-none transition flex items-center justify-center p-0 cursor-pointer bg-stone-100 shrink-0 shadow-xs"
-          style="width: 34px; height: 34px; min-width: 34px; min-height: 34px; max-width: 34px; max-height: 34px;"
+          class="flex items-center gap-2 hover:bg-stone-50 py-1 px-1.5 rounded-xl transition border border-transparent hover:border-stone-200 cursor-pointer text-left shrink-0"
           title="${user.name || 'Mi cuenta'}"
         >
-          <img 
-            src="${avatarSrc}" 
-            alt="Perfil" 
-            class="rounded-full object-cover"
-            style="width: 34px; height: 34px; min-width: 34px; min-height: 34px; max-width: 34px; max-height: 34px; display: block;"
-            onerror="this.onerror=null; this.src=window.DEFAULT_USER_AVATAR;"
-          >
+          <div class="w-8 h-8 rounded-full overflow-hidden border border-stone-200 bg-stone-100 shrink-0 shadow-2xs">
+            <img 
+              src="${avatarSrc}" 
+              alt="Perfil" 
+              class="w-full h-full object-cover"
+              onerror="this.onerror=null; this.src=window.DEFAULT_USER_AVATAR;"
+            >
+          </div>
+          <div class="hidden sm:block leading-tight text-xs">
+            <span class="font-bold text-stone-900 block truncate max-w-[110px]">${user.name}</span>
+            <span class="text-[10px] text-stone-400 block">${roleLabelDesc}</span>
+          </div>
         </button>
+
+        <!-- Botón Tuerca de Configuración Directa -->
+        <a 
+          href="perfil.html" 
+          class="w-8 h-8 rounded-full border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-600 flex items-center justify-center text-sm transition shadow-2xs shrink-0"
+          title="Configuración de usuario"
+        >
+          ⚙
+        </a>
 
         <!-- Dropdown flotante al pulsar el avatar -->
         <div id="auth-user-dropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-stone-100 py-1.5 z-50 text-xs text-stone-700">
@@ -405,10 +420,10 @@ function updateAuthUI() {
               <span>${profileLabel}</span>
             </a>
           ` : ''}
-          <button onclick="openClientSettingsModal()" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+          <a href="perfil.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
             <span>⚙️</span>
             <span>Configuración</span>
-          </button>
+          </a>
           <div class="my-1 border-t border-stone-100"></div>
           <button onclick="logoutUser()" class="w-full text-left flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 transition cursor-pointer font-medium">
             <span>🚪</span>
@@ -774,6 +789,8 @@ function ensureClientSettingsModalExists() {
 }
 
 async function openClientSettingsModal() {
+  window.location.href = 'perfil.html';
+  return;
   const user = getCurrentUser();
   if (!user) return;
 
