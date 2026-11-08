@@ -9,6 +9,7 @@
 const PRODUCTS_DATA = [
   {
     id: 'tomate-huerta',
+    numericId: 1,
     title: 'Tomate de huerta',
     category: 'verduras',
     tag: 'Cosecha fresca',
@@ -26,6 +27,7 @@ const PRODUCTS_DATA = [
   },
   {
     id: 'aguacate-hass',
+    numericId: 2,
     title: 'Aguacate Hass',
     category: 'frutas',
     tag: 'Listo para pronto',
@@ -43,6 +45,7 @@ const PRODUCTS_DATA = [
   },
   {
     id: 'zanahoria-tierra',
+    numericId: 3,
     title: 'Zanahoria de tierra',
     category: 'verduras',
     tag: 'Cosechado hoy',
@@ -60,6 +63,7 @@ const PRODUCTS_DATA = [
   },
   {
     id: 'canasta-huerto-familiar',
+    numericId: 11,
     title: 'Canasta Huerto Familiar',
     category: 'canastas',
     tag: 'La favorita del barrio',
@@ -77,6 +81,7 @@ const PRODUCTS_DATA = [
   },
   {
     id: 'fresas-temporada',
+    numericId: 4,
     title: 'Fresas de temporada',
     category: 'frutas',
     tag: 'De temporada',
@@ -94,6 +99,7 @@ const PRODUCTS_DATA = [
   },
   {
     id: 'queso-campesino',
+    numericId: 7,
     title: 'Queso campesino',
     category: 'lacteos',
     tag: 'Artesanal',
@@ -111,6 +117,7 @@ const PRODUCTS_DATA = [
   },
   {
     id: 'miel-flores',
+    numericId: 9,
     title: 'Miel de flores silvestres',
     category: 'despensa',
     tag: 'Cosecha local',
@@ -128,6 +135,7 @@ const PRODUCTS_DATA = [
   },
   {
     id: 'papa-criolla',
+    numericId: 5,
     title: 'Papa criolla',
     category: 'verduras',
     tag: 'Recién cosechada',
@@ -145,6 +153,7 @@ const PRODUCTS_DATA = [
   },
   {
     id: 'yogur-pastoreo',
+    numericId: 8,
     title: 'Yogur natural de pastoreo',
     category: 'lacteos',
     tag: 'Artesanal',
@@ -162,6 +171,7 @@ const PRODUCTS_DATA = [
   },
   {
     id: 'banano-criollo',
+    numericId: 6,
     title: 'Banano criollo',
     category: 'frutas',
     tag: 'De temporada',
@@ -179,6 +189,7 @@ const PRODUCTS_DATA = [
   },
   {
     id: 'mermelada-mora',
+    numericId: 10,
     title: 'Mermelada de mora',
     category: 'despensa',
     tag: 'Hecho en pequeñas tandas',
@@ -196,6 +207,7 @@ const PRODUCTS_DATA = [
   },
   {
     id: 'canasta-agroecologica',
+    numericId: 12,
     title: 'Canasta Agroecológica',
     category: 'canastas',
     tag: 'Selección semanal',
@@ -210,8 +222,54 @@ const PRODUCTS_DATA = [
     availability: 'Disponible · 8 canastas',
     distanceKm: 40,
     isOffer: false
+  },
+  {
+    id: 'rabanos-temporada',
+    numericId: 13,
+    title: 'Rábanos de temporada',
+    category: 'verduras',
+    tag: 'Cosechado hoy',
+    discount: null,
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/rabanos.jpg',
+    subtitle: '1 manojo · frescos y crujientes',
+    origin: 'Huerta El Renacer · Subachoque · a 45 km',
+    rating: '4.8',
+    reviews: 18,
+    price: 0.28,
+    originalPrice: null,
+    availability: 'Disponible · cosecha del día',
+    distanceKm: 45,
+    isOffer: false
   }
 ];
+
+// =============================================================================
+// Helper: Normalización de URLs de Imágenes (Garantizar Supabase Storage público)
+// =============================================================================
+function normalizeProductImageUrl(url) {
+  if (!url || typeof url !== 'string') {
+    return 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg';
+  }
+  const clean = url.trim();
+  if (clean.startsWith('http://') || clean.startsWith('https://')) {
+    if (clean.includes('canasta_agroecologica.jpg')) {
+      return clean.replace('canasta_agroecologica.jpg', 'canasta_esencial.jpg');
+    }
+    return clean;
+  }
+  if (clean.startsWith('assets/images/')) {
+    const filename = clean.replace('assets/images/', '');
+    const validFile = filename === 'canasta_agroecologica.jpg' ? 'canasta_esencial.jpg' : filename;
+    return `https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/${validFile}`;
+  }
+  if (clean.startsWith('assets/')) {
+    return `https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/${clean}`;
+  }
+  const filename = clean.replace(/^\/+/, '');
+  const validFile = filename === 'canasta_agroecologica.jpg' ? 'canasta_esencial.jpg' : filename;
+  return `https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/${validFile}`;
+}
+window.normalizeProductImageUrl = normalizeProductImageUrl;
 
 // =============================================================================
 // 2. Estado de la Aplicación
@@ -250,28 +308,47 @@ async function loadProductsFromSupabase() {
         
         dbProducts.forEach(dbP => {
           const catName = categoryMap[dbP.category_id] || 'verduras';
-          const existingIdx = PRODUCTS_DATA.findIndex(p => p.id === String(dbP.id) || p.title.toLowerCase() === dbP.title.toLowerCase());
-          const mapped = {
-            id: String(dbP.id),
-            title: dbP.title,
-            category: catName,
-            tag: 'Cosecha fresca',
-            image: dbP.image_url || 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg',
-            subtitle: `${dbP.unit} · Cosechado en finca`,
-            origin: dbP.description || 'Finca campesina aliada',
-            rating: '4.9',
-            reviews: 45,
-            price: Number(dbP.price),
-            originalPrice: Math.round(Number(dbP.price) * 1.15),
-            availability: dbP.is_available ? 'Disponible · Supabase' : 'Agotado',
-            distanceKm: 38,
-            isOffer: false
-          };
+          const existingIdx = PRODUCTS_DATA.findIndex(p => 
+            p.id === String(dbP.id) || 
+            (p.numericId && Number(p.numericId) === Number(dbP.id)) ||
+            p.title.toLowerCase() === dbP.title.toLowerCase()
+          );
+
+          const normalizedImg = normalizeProductImageUrl(dbP.image_url);
+          const priceNum = Number(dbP.price);
+          const origPrice = Math.round(priceNum * 1.15 * 100) / 100;
 
           if (existingIdx !== -1) {
-            PRODUCTS_DATA[existingIdx] = { ...PRODUCTS_DATA[existingIdx], ...mapped };
+            // Preservar el slug ID original (ej: 'tomate-huerta') para mantener coherencia en las URLs
+            PRODUCTS_DATA[existingIdx] = {
+              ...PRODUCTS_DATA[existingIdx],
+              numericId: dbP.id,
+              title: dbP.title,
+              category: catName,
+              image: normalizedImg,
+              price: priceNum,
+              originalPrice: origPrice,
+              subtitle: `${dbP.unit} · Cosechado en finca`,
+              availability: dbP.is_available ? 'Disponible · Supabase' : 'Agotado'
+            };
           } else {
-            PRODUCTS_DATA.push(mapped);
+            PRODUCTS_DATA.push({
+              id: String(dbP.id),
+              numericId: dbP.id,
+              title: dbP.title,
+              category: catName,
+              tag: 'Cosecha fresca',
+              image: normalizedImg,
+              subtitle: `${dbP.unit} · Cosechado en finca`,
+              origin: dbP.description || 'Finca campesina aliada',
+              rating: '4.9',
+              reviews: 45,
+              price: priceNum,
+              originalPrice: origPrice,
+              availability: dbP.is_available ? 'Disponible · Supabase' : 'Agotado',
+              distanceKm: 38,
+              isOffer: false
+            });
           }
         });
 
@@ -400,7 +477,7 @@ function renderProducts() {
         <!-- Contenedor de Imagen y Badges -->
         <div class="relative aspect-[4/3] bg-stone-100 overflow-hidden">
           <img 
-            src="${p.image}" 
+            src="${normalizeProductImageUrl(p.image)}" 
             alt="${p.title}" 
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             onerror="this.src='https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/hero_basket.jpg'"

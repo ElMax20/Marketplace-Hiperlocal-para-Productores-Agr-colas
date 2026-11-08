@@ -269,11 +269,11 @@ const DETAILED_PRODUCTS = [
     badgeIcon: '🌿',
     farmName: 'Huertas de la Sabana',
     farmLocation: 'Subachoque, Cundinamarca · a 42 km de tu nodo',
-    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_agroecologica.jpg',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_esencial.jpg',
     subtitle: '6-7 kg · para 1 a 2 personas',
     unit: 'canasta semanal',
     unitLabel: 'COP / canasta',
-    price: 0.78,
+    price: 0.70,
     originalPrice: null,
     discount: null,
     stock: 15,
@@ -281,8 +281,56 @@ const DETAILED_PRODUCTS = [
     description: 'Selección compacta de alimentos agroecológicos vivos: hojas verdes, hortalizas de raíz, hierbas aromáticas y fruta de temporada directa de parcelas con certificación campesina participativa.',
     care: 'Conservar tubérculos y raíces en lugar fresco. Mantener verduras de hoja en bolsa de tela o contenedor en la gaveta baja del refrigerador.',
     shippingCost: 0.35
+  },
+  {
+    id: 'rabanos-temporada',
+    numericId: 13,
+    title: 'Rábanos de temporada',
+    category: 'verduras',
+    badge: 'Cosechado hoy · Sin químicos',
+    badgeIcon: '🌱',
+    farmName: 'Huerta El Renacer',
+    farmLocation: 'Subachoque, Cundinamarca · a 45 km de tu nodo',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/rabanos.jpg',
+    subtitle: '1 manojo · frescos y crujientes',
+    unit: 'manojo',
+    unitLabel: 'COP / manojo',
+    price: 0.28,
+    originalPrice: null,
+    discount: null,
+    stock: 30,
+    stockText: 'En stock: 30 manojos',
+    description: 'Rábanos frescos y crujientes cosechados al amanecer en Subachoque. De pulpa firme, color carmesí vivo y suave picor refrescante.',
+    care: 'Retira las hojas y guarda los rábanos en un recipiente ventilado en refrigeración.',
+    shippingCost: 0.35
   }
 ];
+
+// Helper para normalizar URLs de imágenes de productos
+function normalizeProductImageUrl(url) {
+  if (!url || typeof url !== 'string') {
+    return 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg';
+  }
+  const clean = url.trim();
+  if (clean.startsWith('http://') || clean.startsWith('https://')) {
+    if (clean.includes('canasta_agroecologica.jpg')) {
+      return clean.replace('canasta_agroecologica.jpg', 'canasta_esencial.jpg');
+    }
+    return clean;
+  }
+  if (clean.startsWith('assets/images/')) {
+    const filename = clean.replace('assets/images/', '');
+    const validFile = filename === 'canasta_agroecologica.jpg' ? 'canasta_esencial.jpg' : filename;
+    return `https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/${validFile}`;
+  }
+  if (clean.startsWith('assets/')) {
+    return `https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/${clean}`;
+  }
+  const filename = clean.replace(/^\/+/, '');
+  const validFile = filename === 'canasta_agroecologica.jpg' ? 'canasta_esencial.jpg' : filename;
+  return `https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/${validFile}`;
+}
+window.normalizeProductImageUrl = normalizeProductImageUrl;
 
 // =============================================================================
 // 2. Estado Global de la Página
@@ -306,8 +354,12 @@ function initProductPage() {
   const params = new URLSearchParams(window.location.search);
   const paramId = params.get('id');
 
-  // Buscar el producto por id de texto o número
-  currentProduct = DETAILED_PRODUCTS.find(p => p.id === paramId || String(p.numericId) === paramId);
+  // Buscar el producto por id de texto, número o título
+  currentProduct = DETAILED_PRODUCTS.find(p => 
+    p.id === paramId || 
+    String(p.numericId) === paramId ||
+    (paramId && p.title.toLowerCase() === paramId.toLowerCase())
+  );
   if (!currentProduct) {
     currentProduct = DETAILED_PRODUCTS[0]; // Tomate de huerta por defecto
   }
@@ -337,7 +389,7 @@ function renderProductDetails(p) {
   // Columna Izquierda
   const imgEl = document.getElementById('prod-image');
   if (imgEl) {
-    imgEl.src = p.image;
+    imgEl.src = normalizeProductImageUrl(p.image);
     imgEl.alt = p.title;
   }
   const badgeIconEl = document.getElementById('prod-badge-icon');
