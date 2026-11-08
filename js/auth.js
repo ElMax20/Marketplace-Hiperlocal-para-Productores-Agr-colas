@@ -411,6 +411,14 @@ function updateAuthUI() {
               <span>${profileLabel}</span>
             </a>
           ` : ''}
+          <a href="pedidos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+            <span>📦</span>
+            <span>Mis pedidos</span>
+          </a>
+          <a href="favoritos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+            <span>❤️</span>
+            <span>Mis favoritos</span>
+          </a>
           <a href="perfil.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
             <span>⚙️</span>
             <span>Configuración</span>

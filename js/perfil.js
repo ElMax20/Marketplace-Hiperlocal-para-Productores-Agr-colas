@@ -109,6 +109,12 @@ function renderProfileUI(u) {
   const navName = document.getElementById('nav-user-name');
   if (navName) navName.textContent = u.name || 'Mi cuenta';
 
+  const dropName = document.getElementById('dropdown-user-name');
+  if (dropName) dropName.textContent = u.name || 'Mi cuenta';
+
+  const dropRole = document.getElementById('dropdown-user-role');
+  if (dropRole) dropRole.textContent = roleText;
+
   const navAvatar = document.getElementById('nav-user-avatar');
   if (navAvatar) navAvatar.src = u.avatar || DEFAULT_AVATAR;
 
