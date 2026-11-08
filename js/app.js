@@ -461,15 +461,39 @@ function initQuantitySteppers() {
     }
   });
 
+  // Click en tarjetas de productos para ver detalle (excepto si hace clic en botón o stepper)
+  document.querySelectorAll('[data-product-id]').forEach(card => {
+    card.classList.add('cursor-pointer');
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('.qty-stepper')) return;
+      const id = card.getAttribute('data-product-id');
+      if (id) {
+        window.location.href = `producto.html?id=${encodeURIComponent(id)}`;
+      }
+    });
+  });
+
+  // Click en tarjetas de canastas para ver detalle
+  document.querySelectorAll('[data-basket-id]').forEach(card => {
+    card.classList.add('cursor-pointer');
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('button')) return;
+      const id = card.getAttribute('data-basket-id');
+      const mappedId = id === 'canasta-familiar' ? 'canasta-huerto-familiar' : (id === 'canasta-esencial' ? 'canasta-agroecologica' : id);
+      window.location.href = `producto.html?id=${encodeURIComponent(mappedId)}`;
+    });
+  });
+
   // Botones "Añadir" en productos de temporada
   document.querySelectorAll('.btn-add-product').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const card = e.target.closest('[data-product-id]');
       if (!card) return;
 
       const id = card.getAttribute('data-product-id');
       const title = card.getAttribute('data-product-title');
-      const price = parseInt(card.getAttribute('data-product-price'));
+      const price = parseFloat(card.getAttribute('data-product-price')) || 0;
       const unit = card.getAttribute('data-product-unit');
       const image = card.getAttribute('data-product-image');
       const origin = card.getAttribute('data-product-origin');
@@ -491,12 +515,13 @@ function initQuantitySteppers() {
   // Botones de Canastas Semanales
   document.querySelectorAll('.btn-add-basket').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const basketCard = e.target.closest('[data-basket-id]');
       if (!basketCard) return;
 
       const id = basketCard.getAttribute('data-basket-id');
       const title = basketCard.getAttribute('data-basket-title');
-      const price = parseInt(basketCard.getAttribute('data-basket-price'));
+      const price = parseFloat(basketCard.getAttribute('data-basket-price')) || 0;
       const image = basketCard.getAttribute('data-basket-image');
 
       addToCart({

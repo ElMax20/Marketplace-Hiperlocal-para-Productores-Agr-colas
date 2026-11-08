@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Detalle del Producto | Raíz & Barrio</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Playfair Display & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-serif {
+      font-family: 'Playfair Display', serif;
+    }
+  </style>
+</head>
+<body class="bg-[#f6f4ee] min-h-screen py-4 sm:py-8 px-3 sm:px-6 flex flex-col items-center justify-start text-stone-800 antialiased selection:bg-[#1a3d2f] selection:text-white">
+
+  <!-- Contenedor Principal de la Ficha (Diseño idéntico a la imagen de referencia) -->
+  <main class="max-w-4xl w-full bg-white rounded-3xl sm:rounded-[32px] shadow-xl border border-stone-200/90 p-6 sm:p-10 relative my-auto">
+    
+    <!-- Barra Superior: Del campo a tu mesa | Cerrar -->
+    <header class="flex items-center justify-between pb-5 border-b border-stone-100 mb-6 sm:mb-8">
+      <span class="text-[11px] sm:text-xs font-bold tracking-widest text-[#c85a32] uppercase">
+        DEL CAMPO A TU MESA
+      </span>
+      <button 
+        onclick="closeProductPage()" 
+        class="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-400 hover:text-stone-800 transition py-1 px-2 rounded-lg hover:bg-stone-50"
+        title="Volver al mercado"
+      >
+        <span>Cerrar</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- Grid de Dos Columnas -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+      
+      <!-- Columna Izquierda: Imagen y Datos de la Finca -->
+      <section class="lg:col-span-5 flex flex-col">
+        <!-- Imagen del Producto -->
+        <div class="aspect-[4/3] rounded-2xl overflow-hidden bg-stone-100 shadow-sm border border-stone-100">
+          <img 
+            id="prod-image" 
+            src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg" 
+            alt="Producto" 
+            class="w-full h-full object-cover"
+            onerror="this.src='https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/hero_basket.jpg'"
+          >
+        </div>
+
+        <!-- Pill de Etiqueta / Cultivo -->
+        <div class="mt-4">
+          <span id="prod-badge" class="inline-block bg-[#edf4ee] text-[#1a3d2f] text-[11px] font-bold px-3 py-1 rounded-full">
+            Cosechado hoy · Agroecológico
+          </span>
+        </div>
+
+        <!-- Nombre de la Finca -->
+        <h2 id="prod-farm-name" class="font-serif text-2xl font-bold text-stone-900 mt-3">
+          Finca La Esperanza
+        </h2>
+
+        <!-- Ubicación y Distancia -->
+        <p id="prod-farm-location" class="text-xs text-[#24503E] font-medium mt-1">
+          Choachí, Cundinamarca · a 30 km
+        </p>
+
+        <!-- Descripción Narrativa de la Cosecha -->
+        <p id="prod-description" class="text-xs text-stone-600 leading-relaxed mt-4">
+          Tomates de temporada, maduros en la planta y seleccionados a mano. De pulpa jugosa y sabor de huerta, ideales para ensaladas y guisos.
+        </p>
+
+        <!-- Recomendación de Conservación y Cuidado -->
+        <p id="prod-care" class="text-[11px] text-stone-400 leading-relaxed mt-4 pt-4 border-t border-stone-100">
+          Conserva en un lugar fresco y seco. Lava antes de consumir. El tamaño y el color pueden variar naturalmente.
+        </p>
+      </section>
+
+      <!-- Columna Derecha: Título, Precios, Opciones de Entrega y Carrito -->
+      <section class="lg:col-span-7 flex flex-col">
+        
+        <!-- Título del Producto -->
+        <h1 id="prod-title" class="font-serif text-3xl sm:text-4xl font-bold text-stone-900">
+          Tomate de huerta
+        </h1>
+
+        <!-- Subtítulo / Selección de temporada -->
+        <p id="prod-subtitle" class="text-xs text-stone-500 mt-1">
+          1 kg · selección de temporada
+        </p>
+
+        <!-- Valoración en Cabecera (En 0 y vacía por requerimiento) -->
+        <div class="flex items-center gap-1.5 mt-2.5 text-xs">
+          <div id="prod-header-stars" class="flex text-stone-300 text-sm tracking-tighter">
+            <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+          </div>
+          <span id="prod-header-rating" class="text-xs text-stone-400 font-medium">
+            0,0 · 0 opiniones
+          </span>
+        </div>
+
+        <!-- Bloque de Precio -->
+        <div class="flex items-baseline gap-2.5 mt-4 flex-wrap">
+          <span id="prod-price" class="text-3xl sm:text-4xl font-extrabold text-stone-900">
+            $0,64
+          </span>
+          <span id="prod-original-price" class="text-sm text-stone-400 line-through">
+            $0,85
+          </span>
+          <span id="prod-discount" class="text-xs font-bold text-[#c85a32] bg-[#fbf0ec] px-2 py-0.5 rounded">
+            -25%
+          </span>
+          <span id="prod-unit-label" class="text-xs text-stone-400 font-medium">
+            COP / kg
+          </span>
+        </div>
+
+        <!-- Estado de Stock -->
+        <div class="flex items-center gap-2 mt-3 text-xs font-semibold text-emerald-800">
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+          <span id="prod-stock">En stock: 24 unidades de 1 kg</span>
+        </div>
+
+        <!-- Opciones de Entrega (Radio Cards interactivas) -->
+        <div class="mt-5 space-y-2.5">
+          <!-- Opción 1: Recogida en Nodo Central (Gratis) -->
+          <div 
+            id="card-delivery-pickup" 
+            onclick="setDeliveryOption('pickup')" 
+            class="p-3.5 sm:p-4 rounded-xl border-2 border-[#1a3d2f] bg-[#f0f5f2] cursor-pointer transition flex items-start gap-3"
+          >
+            <div class="mt-0.5 w-4 h-4 rounded-full border-2 border-[#1a3d2f] flex items-center justify-center shrink-0">
+              <div id="dot-pickup" class="w-2 h-2 rounded-full bg-[#1a3d2f]"></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-stone-900">Recogida en Nodo Central · Gratis</span>
+              </div>
+              <p class="text-[11px] text-stone-500 mt-0.5">La Perseverancia · Sáb. 7 nov.</p>
+              <p class="text-[11px] text-stone-500">8:00 a. m. – 12:00 p. m.</p>
+            </div>
+          </div>
+
+          <!-- Opción 2: A domicilio en Bogotá -->
+          <div 
+            id="card-delivery-home" 
+            onclick="setDeliveryOption('home')" 
+            class="p-3.5 sm:p-4 rounded-xl border border-stone-200 bg-white hover:border-stone-300 cursor-pointer transition flex items-start gap-3"
+          >
+            <div class="mt-0.5 w-4 h-4 rounded-full border border-stone-300 flex items-center justify-center shrink-0">
+              <div id="dot-home" class="w-2 h-2 rounded-full bg-transparent"></div>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-stone-900">
+                  A domicilio en Bogotá · <span id="delivery-price-label">$0,35</span>
+                </span>
+              </div>
+              <p class="text-[11px] text-stone-500 mt-0.5">Sáb. 7 nov. – 2:00 – 6:00 p. m.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Caja de Desglose de Costos (Idéntica al diseño) -->
+        <div class="mt-5 bg-[#faf8f5] rounded-2xl p-4 sm:p-5 border border-stone-200/80 text-xs">
+          <div class="space-y-1.5 text-stone-600">
+            <div class="flex justify-between">
+              <span id="breakdown-prod-qty">Producto · 1 × 1 kg</span>
+              <span id="breakdown-subtotal" class="font-medium text-stone-900">$0,64</span>
+            </div>
+            <div class="flex justify-between">
+              <span id="breakdown-delivery-title">Recogida en nodo</span>
+              <span id="breakdown-delivery-cost" class="font-medium text-stone-900">$0,00</span>
+            </div>
+            <div class="flex justify-between">
+              <span>Otros cargos</span>
+              <span class="font-medium text-stone-900">$0,00</span>
+            </div>
+          </div>
+          
+          <div class="border-t border-stone-200 my-3"></div>
+          
+          <div class="flex items-baseline justify-between">
+            <span id="breakdown-total-title" class="font-bold text-stone-900 text-sm">Total con recogida</span>
+            <span id="breakdown-total" class="text-2xl font-extrabold text-stone-900">$0,64</span>
+          </div>
+          <p id="breakdown-footnote" class="text-[10px] text-stone-400 mt-1">
+            Impuestos incluidos. Con envío a domicilio: $0,99 COP.
+          </p>
+        </div>
+
+        <!-- Fila de Acciones: Stepper + Botón Agregar al Carrito -->
+        <div class="mt-5 flex items-center gap-3">
+          <!-- Stepper de Cantidad -->
+          <div class="flex items-center border border-stone-200 rounded-xl bg-white px-2 py-1 text-xs font-bold shadow-2xs">
+            <button 
+              onclick="updateQty(-1)" 
+              class="w-7 h-7 rounded-lg hover:bg-stone-100 flex items-center justify-center text-stone-600 text-base font-bold transition"
+            >−</button>
+            <span id="qty-value" class="w-8 text-center text-stone-900 font-bold text-sm">1</span>
+            <button 
+              onclick="updateQty(1)" 
+              class="w-7 h-7 rounded-lg hover:bg-stone-100 flex items-center justify-center text-stone-600 text-base font-bold transition"
+            >+</button>
+          </div>
+
+          <!-- Botón de Agregar al carrito -->
+          <button 
+            id="btn-add-to-cart"
+            onclick="handleAddToCart()" 
+            class="flex-1 bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs sm:text-sm font-bold py-3 px-5 rounded-xl transition shadow-sm flex items-center justify-center gap-2 group"
+          >
+            <svg class="w-4 h-4 text-emerald-300 group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+            </svg>
+            <span>Agregar al carrito</span>
+          </button>
+        </div>
+
+        <!-- Notas al pie de disponibilidad y carrito -->
+        <div class="mt-3 text-[11px] text-stone-400 space-y-0.5">
+          <p id="cart-item-hint">Ya tienes 0 unidades en tu carrito.</p>
+          <p>Pide antes del viernes a las 6:00 p. m.</p>
+        </div>
+
+      </section>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- Sección Inferior: Comentarios y Valoración del Producto (Vacío en 0)       -->
+    <!-- ========================================================================= -->
+    <section class="mt-12 pt-8 border-t border-stone-200">
+      
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <div>
+          <h2 class="font-serif text-2xl font-bold text-stone-900">Opiniones y valoración</h2>
+          <p class="text-xs text-stone-500 mt-0.5">
+            Comentarios y calificaciones directas de los vecinos del barrio
+          </p>
+        </div>
+
+        <button 
+          onclick="toggleReviewForm()" 
+          class="inline-flex items-center gap-2 px-4 py-2 border border-[#1a3d2f] text-[#1a3d2f] hover:bg-[#1a3d2f] hover:text-white rounded-xl text-xs font-bold transition self-start sm:self-auto"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+          </svg>
+          <span id="btn-toggle-review-text">Escribir opinión</span>
+        </button>
+      </div>
+
+      <!-- Resumen de Valoración (Por requerimiento: vacío y en 0) -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-6 bg-[#faf8f5] border border-stone-200/80 rounded-2xl p-6">
+        
+        <!-- Puntuación General -->
+        <div class="md:col-span-4 flex flex-col items-center justify-center text-center md:border-r border-stone-200/80 pr-0 md:pr-6">
+          <span id="rating-score-display" class="text-5xl font-extrabold text-stone-400">0,0</span>
+          <div id="rating-stars-display" class="flex text-stone-300 text-lg my-1.5 tracking-tighter">
+            <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+          </div>
+          <span id="rating-count-display" class="text-xs font-medium text-stone-400">0 valoraciones</span>
+        </div>
+
+        <!-- Barras de desglose de 5 a 1 estrellas (todas en 0%) -->
+        <div class="md:col-span-8 flex flex-col justify-center space-y-1.5 text-xs text-stone-500">
+          <div class="flex items-center gap-2">
+            <span class="w-12 text-[11px] text-stone-400">5 estrellas</span>
+            <div class="flex-1 h-2 bg-stone-200 rounded-full overflow-hidden">
+              <div id="bar-5-star" class="h-full bg-amber-400 rounded-full w-0 transition-all duration-500"></div>
+            </div>
+            <span id="pct-5-star" class="w-8 text-right text-[11px] text-stone-400">0%</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-12 text-[11px] text-stone-400">4 estrellas</span>
+            <div class="flex-1 h-2 bg-stone-200 rounded-full overflow-hidden">
+              <div id="bar-4-star" class="h-full bg-amber-400 rounded-full w-0 transition-all duration-500"></div>
+            </div>
+            <span id="pct-4-star" class="w-8 text-right text-[11px] text-stone-400">0%</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-12 text-[11px] text-stone-400">3 estrellas</span>
+            <div class="flex-1 h-2 bg-stone-200 rounded-full overflow-hidden">
+              <div id="bar-3-star" class="h-full bg-amber-400 rounded-full w-0 transition-all duration-500"></div>
+            </div>
+            <span id="pct-3-star" class="w-8 text-right text-[11px] text-stone-400">0%</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-12 text-[11px] text-stone-400">2 estrellas</span>
+            <div class="flex-1 h-2 bg-stone-200 rounded-full overflow-hidden">
+              <div id="bar-2-star" class="h-full bg-amber-400 rounded-full w-0 transition-all duration-500"></div>
+            </div>
+            <span id="pct-2-star" class="w-8 text-right text-[11px] text-stone-400">0%</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-12 text-[11px] text-stone-400">1 estrella</span>
+            <div class="flex-1 h-2 bg-stone-200 rounded-full overflow-hidden">
+              <div id="bar-1-star" class="h-full bg-amber-400 rounded-full w-0 transition-all duration-500"></div>
+            </div>
+            <span id="pct-1-star" class="w-8 text-right text-[11px] text-stone-400">0%</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Formulario para agregar una opinión (Oculto inicialmente) -->
+      <div id="review-form-card" class="hidden mt-6 bg-white p-5 sm:p-6 rounded-2xl border border-stone-200 shadow-sm transition">
+        <h3 class="font-serif text-lg font-bold text-stone-900 mb-1">Deja tu opinión sobre este producto</h3>
+        <p class="text-xs text-stone-500 mb-4">Tu experiencia ayuda a que otros vecinos apoyen a nuestros productores locales.</p>
+
+        <form id="review-form" onsubmit="submitReview(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-bold text-stone-700 mb-1">Calificación *</label>
+            <div class="flex items-center gap-1.5" id="star-picker">
+              <button type="button" onclick="setFormStars(1)" class="star-btn text-2xl text-stone-300 hover:text-amber-400 transition">★</button>
+              <button type="button" onclick="setFormStars(2)" class="star-btn text-2xl text-stone-300 hover:text-amber-400 transition">★</button>
+              <button type="button" onclick="setFormStars(3)" class="star-btn text-2xl text-stone-300 hover:text-amber-400 transition">★</button>
+              <button type="button" onclick="setFormStars(4)" class="star-btn text-2xl text-stone-300 hover:text-amber-400 transition">★</button>
+              <button type="button" onclick="setFormStars(5)" class="star-btn text-2xl text-stone-300 hover:text-amber-400 transition">★</button>
+              <span id="star-picker-label" class="text-xs text-stone-400 ml-2">Selecciona una calificación</span>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-bold text-stone-700 mb-1">Tu nombre o apodo *</label>
+              <input 
+                type="text" 
+                id="review-name" 
+                required 
+                placeholder="Ej. Max o Vecino de Chapinero" 
+                class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none"
+              >
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-stone-700 mb-1">Barrio o localidad (opcional)</label>
+              <input 
+                type="text" 
+                id="review-neighborhood" 
+                placeholder="Ej. La Perseverancia, Bogotá" 
+                class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none"
+              >
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-stone-700 mb-1">Comentario *</label>
+            <textarea 
+              id="review-comment" 
+              required 
+              rows="3" 
+              placeholder="¿Qué tal estuvo la frescura, el sabor y la entrega de este producto?" 
+              class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none resize-none"
+            ></textarea>
+          </div>
+
+          <div class="flex items-center justify-end gap-2.5 pt-2">
+            <button 
+              type="button" 
+              onclick="toggleReviewForm()" 
+              class="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 rounded-xl"
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              class="px-5 py-2.5 bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold rounded-xl transition shadow-sm"
+            >
+              Publicar comentario
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Lista de Comentarios del Producto -->
+      <div id="reviews-container" class="mt-6 space-y-3">
+        <!-- Estado Vacío Inicial (Idéntico a requerimiento: vacío) -->
+        <div id="reviews-empty-state" class="text-center py-10 px-4 bg-stone-50/50 rounded-2xl border border-dashed border-stone-200/90">
+          <div class="w-12 h-12 mx-auto rounded-full bg-stone-100 flex items-center justify-center text-stone-400 mb-3 text-xl">
+            💬
+          </div>
+          <h4 class="font-bold text-stone-700 text-sm">Aún no hay comentarios ni valoraciones</h4>
+          <p class="text-xs text-stone-400 max-w-md mx-auto mt-1">
+            Este producto todavía no cuenta con opiniones registradas. Sé el primero en probarlo y compartir tu valoración con el barrio.
+          </p>
+        </div>
+
+        <!-- Lista dinámica de comentarios inyectados -->
+        <div id="reviews-list" class="space-y-3"></div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- Toast Flotante de Notificaciones -->
+  <aside 
+    id="toast" 
+    class="fixed bottom-6 right-6 max-w-sm bg-stone-900 text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 text-xs opacity-0 pointer-events-none transition-all duration-300 z-50"
+  >
+    <span class="text-base">🧺</span>
+    <span id="toast-message" class="flex-1 font-medium">Producto añadido</span>
+    <a href="mercado.html" class="underline text-emerald-400 font-bold hover:text-emerald-300">Ir al mercado</a>
+  </aside>
+
+  <!-- Lógica y Base de Datos Integrada para la Ficha del Producto -->
+  <script src="js/producto.js"></script>
+</body>
+</html>
