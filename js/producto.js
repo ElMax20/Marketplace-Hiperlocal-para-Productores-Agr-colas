@@ -485,10 +485,31 @@ function handleAddToCart() {
 }
 
 function handleBuyNow() {
-  handleAddToCart();
-  setTimeout(() => {
-    window.location.href = 'mercado.html';
-  }, 300);
+  if (!currentProduct) return;
+
+  // Agregar o actualizar el producto con la cantidad seleccionada en el carrito
+  const cart = getLocalCart();
+  const existingIdx = cart.findIndex(item => item.id === currentProduct.id);
+
+  if (existingIdx !== -1) {
+    cart[existingIdx].quantity = currentQuantity;
+  } else {
+    cart.push({
+      id: currentProduct.id,
+      title: currentProduct.title,
+      price: currentProduct.price,
+      subtitle: currentProduct.subtitle,
+      origin: currentProduct.farmLocation,
+      image: currentProduct.image,
+      quantity: currentQuantity,
+      unit: currentProduct.unit
+    });
+  }
+
+  saveLocalCart(cart);
+
+  // Redirigir automáticamente al checkout / opciones de pago
+  window.location.href = 'mercado.html?checkout=1';
 }
 
 function updateCartPresenceHint() {
@@ -521,7 +542,9 @@ function getReviewsStorageKey() {
 function getProductReviews() {
   try {
     const raw = localStorage.getItem(getReviewsStorageKey());
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter(r => !String(r.id).startsWith('mock-')) : [];
   } catch (e) {
     return [];
   }
@@ -567,9 +590,6 @@ function renderReviewsSection() {
     if (viewEmpty) viewEmpty.classList.remove('hidden');
     if (viewSummary) viewSummary.classList.add('hidden');
     if (viewFull) viewFull.classList.add('hidden');
-
-    const demoBtn = document.getElementById('btn-toggle-demo-reviews');
-    if (demoBtn) demoBtn.textContent = 'Probar con opiniones de muestra';
     return;
   }
 
@@ -586,9 +606,6 @@ function renderReviewsSection() {
     headerStars.className = 'flex text-amber-500 text-sm tracking-tighter';
     headerStars.innerHTML = generateStarsHtml(avgNumeric);
   }
-
-  const demoBtn = document.getElementById('btn-toggle-demo-reviews');
-  if (demoBtn) demoBtn.textContent = 'Restablecer a 0 valoraciones';
 
   // Desglose de estrellas (1 a 5)
   const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
@@ -989,132 +1006,7 @@ function handlePublishReview() {
 }
 
 // =============================================================================
-// 9. Simulación / Toggle de Muestra (86 Opiniones de Imagen 2 y 3)
-// =============================================================================
-function toggleDemoMockupReviews() {
-  const reviews = getProductReviews();
-  if (reviews.length > 0) {
-    // Si ya tiene reviews, restablecer a 0
-    saveProductReviews([]);
-    currentReviewsView = 'summary';
-    renderReviewsSection();
-    showToast('Producto restablecido a 0 valoraciones (Imagen 1)');
-  } else {
-    // Cargar las 86 opiniones exactas de la muestra de referencia
-    const sampleReviews = generateMockupReviews();
-    saveProductReviews(sampleReviews);
-    currentReviewsView = 'summary';
-    renderReviewsSection();
-    showToast('Cargadas 86 opiniones de muestra (Imágenes 2 y 3)');
-  }
-}
-
-function generateMockupReviews() {
-  const result = [
-    {
-      id: 'mock-1',
-      name: 'Maria Gómez',
-      rating: 5,
-      title: 'Sabor de tomate de verdad',
-      comment: 'Llegaron frescos y en su punto. Los usamos en ensalada y tienen un sabor increíble. La recogida en el nodo fue muy fácil.',
-      date: '2 nov. 2026',
-      verified: true
-    },
-    {
-      id: 'mock-2',
-      name: 'Andrés López',
-      rating: 5,
-      title: 'Muy buenos para cocinar',
-      comment: 'Jugosos y con mucho sabor. Algunos venían más maduros que otros; aproveché esos para una salsa casera. Volvería a pedirlos.',
-      date: '30 oct. 2026',
-      verified: true
-    },
-    {
-      id: 'mock-3',
-      name: 'Lucía Martínez',
-      rating: 5,
-      title: 'Frescos y llenos de sabor',
-      comment: 'Se nota la diferencia con los del supermercado. Los preparamos con un poco de sal y aceite de oliva y quedaron deliciosos. Muy buena selección.',
-      date: '28 oct. 2026',
-      verified: true
-    },
-    {
-      id: 'mock-4',
-      name: 'Jorge Ramírez',
-      rating: 5,
-      title: 'Una cosecha para compartir',
-      comment: 'Pedimos para el almuerzo familiar y nos encantaron. Llegaron firmes, con buen aroma y sin golpes. Qué gusto saber de dónde viene lo que comemos.',
-      date: '25 oct. 2026',
-      verified: true
-    },
-    {
-      id: 'mock-5',
-      name: 'Diana Torres',
-      rating: 5,
-      title: 'Perfectos para las ensaladas de la semana',
-      comment: 'Tienen una pulpa jugosa y un sabor muy natural. Los conservé en un lugar fresco como recomiendan y se mantuvieron muy bien durante la semana.',
-      date: '23 oct. 2026',
-      verified: true
-    },
-    {
-      id: 'mock-6',
-      name: 'Felipe Castro',
-      rating: 5,
-      title: 'Volveré a pedir a esta finca',
-      comment: 'La recogida fue puntual y el tomate estaba en su punto. Hicimos una salsa casera y quedó con un sabor excelente. Gracias por esta cosecha.',
-      date: '18 oct. 2026',
-      verified: true
-    }
-  ];
-
-  // Completar hasta 86 opiniones con la distribución exacta: 78 de 5★, 5 de 4★, 3 de 3★
-  const names = ['Camila Soler', 'Mateo Vargas', 'Valentina Ruiz', 'Daniel Morales', 'Sofía Herrera', 'Juan Pablo Rueda', 'Carolina Cárdenas', 'Gabriel Ospina', 'Paula Silva', 'Esteban Duarte'];
-  
-  // Agregar más 5 estrellas hasta tener 78
-  for (let i = 7; i <= 78; i++) {
-    const name = names[i % names.length];
-    result.push({
-      id: `mock-${i}`,
-      name: name,
-      rating: 5,
-      title: 'Cosecha fresca y auténtica',
-      comment: 'Excelente producto campesino, directo de la finca al barrio sin intermediarios. La calidad se nota en cada comida.',
-      date: `${Math.max(1, 28 - (i % 25))} oct. 2026`,
-      verified: true
-    });
-  }
-
-  // 5 opiniones de 4 estrellas
-  for (let i = 79; i <= 83; i++) {
-    result.push({
-      id: `mock-${i}`,
-      name: names[i % names.length],
-      rating: 4,
-      title: 'Muy buena calidad',
-      comment: 'Muy buen sabor y frescura. Uno de los tomates venía un poco más pequeño pero con excelente consistencia y aroma.',
-      date: `${Math.max(1, 20 - (i % 15))} oct. 2026`,
-      verified: true
-    });
-  }
-
-  // 3 opiniones de 3 estrellas
-  for (let i = 84; i <= 86; i++) {
-    result.push({
-      id: `mock-${i}`,
-      name: names[i % names.length],
-      rating: 3,
-      title: 'Aceptable para guisos',
-      comment: 'El sabor estuvo bien, aunque llegaron algo maduros para ensalada. Ideales para salsa de tomate casera.',
-      date: `${Math.max(1, 15 - (i % 10))} oct. 2026`,
-      verified: true
-    });
-  }
-
-  return result;
-}
-
-// =============================================================================
-// 10. Utilidades Auxiliares
+// 9. Utilidades Auxiliares
 // =============================================================================
 function generateStarsHtml(avgNumeric) {
   const fullStars = Math.floor(avgNumeric);

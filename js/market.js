@@ -284,13 +284,22 @@ async function loadProductsFromSupabase() {
   }
 }
 
-// Leer parámetros de URL (por ejemplo si viene de "Explorar Canastas" -> ?categoria=canastas)
+// Leer parámetros de URL (por ejemplo si viene de "Explorar Canastas" -> ?categoria=canastas o Comprar Ahora -> ?checkout=1)
 function parseUrlParams() {
   const params = new URLSearchParams(window.location.search);
   const cat = params.get('categoria') || params.get('cat');
   if (cat) {
     currentCategory = cat;
     highlightCategoryButton(cat);
+  }
+
+  // Si viene del botón "Comprar ahora" de la ficha de producto
+  const isCheckout = params.get('checkout') === '1' || params.get('checkout') === 'true' || params.get('pago') === '1';
+  if (isCheckout) {
+    setTimeout(() => {
+      initCartFromStorage();
+      openCheckoutModal(getCurrentUser());
+    }, 250);
   }
 }
 
@@ -1232,21 +1241,52 @@ function openCheckoutModal(user) {
   const nodeInfo = document.getElementById('checkout-node-info');
   const totalEl = document.getElementById('checkout-final-total');
 
+  const currentUser = user || (typeof getCurrentUser === 'function' ? getCurrentUser() : null) || {
+    name: 'Vecino del Barrio',
+    email: 'compras@raizbarrio.co',
+    phone: '300 123 4567',
+    preferredNode: 'Nodo Central · La Perseverancia'
+  };
+
   const totalAmount = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
-  if (userInfo) userInfo.textContent = `${user.name} (${user.email} - Tel: ${user.phone || 'N/A'})`;
-  if (nodeInfo) nodeInfo.textContent = `📍 Punto de recogida: ${user.preferredNode || 'Nodo Central · La Perseverancia'}`;
+  if (userInfo) userInfo.textContent = `${currentUser.name} (${currentUser.email}${currentUser.phone ? ` - Tel: ${currentUser.phone}` : ''})`;
+  if (nodeInfo) nodeInfo.textContent = `📍 Punto de recogida: ${currentUser.preferredNode || 'Nodo Central · La Perseverancia'}`;
   if (totalEl) totalEl.textContent = `$${formatCOP(totalAmount)}`;
 
-  payStep.classList.remove('hidden');
-  successStep.classList.add('hidden');
-  modal.classList.remove('hidden');
+  if (window.closeCartDrawer) window.closeCartDrawer();
+  if (payStep) payStep.classList.remove('hidden');
+  if (successStep) successStep.classList.add('hidden');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+  }
 }
 
 function closeCheckoutModal() {
   const modal = document.getElementById('checkout-modal');
-  if (modal) modal.classList.add('hidden');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+  }
 }
+
+function selectPaymentMethod(card) {
+  document.querySelectorAll('.pay-method-card').forEach(c => {
+    c.className = 'pay-method-card p-2.5 rounded-xl border border-stone-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-stone-50 transition';
+    const spanTitle = c.querySelector('span.font-bold');
+    if (spanTitle) spanTitle.className = 'font-bold text-stone-700';
+    const radio = c.querySelector('input[type="radio"]');
+    if (radio) radio.checked = false;
+  });
+
+  card.className = 'pay-method-card p-2.5 rounded-xl border-2 border-[#1a3d2f] bg-[#f4f7f4] flex flex-col items-center justify-center text-center cursor-pointer transition';
+  const activeTitle = card.querySelector('span.font-bold');
+  if (activeTitle) activeTitle.className = 'font-bold text-[#1a3d2f]';
+  const activeRadio = card.querySelector('input[type="radio"]');
+  if (activeRadio) activeRadio.checked = true;
+}
+window.selectPaymentMethod = selectPaymentMethod;
 
 function confirmOrderPayment() {
   const payStep = document.getElementById('checkout-step-pay');
