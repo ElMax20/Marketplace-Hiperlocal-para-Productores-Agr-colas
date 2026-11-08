@@ -128,7 +128,9 @@ CREATE TABLE IF NOT EXISTS public.email_change_requests (
     new_email text NOT NULL,
     verification_token text NOT NULL,
     expires_at timestamptz NOT NULL DEFAULT (now() + interval '15 minutes'),
-    created_at timestamptz NOT NULL DEFAULT now()
+    created_at timestamptz NOT NULL DEFAULT now(),
+    confirmation_url text,
+    verification_url text
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_email_change_requests_token 

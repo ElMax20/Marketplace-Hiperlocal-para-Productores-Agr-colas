@@ -48,14 +48,12 @@ async function initProfilePage() {
   renderProfileUI(currentUser);
   updateCartBadge();
 
-  // 4. Verificar si viene de un enlace de confirmación por correo o restaurar solicitud pendiente
+  // 4. Verificar si viene de un enlace de confirmación por correo desde GitHub
   const urlParams = new URLSearchParams(window.location.search);
   const verifyToken = urlParams.get('verify_email_token') || urlParams.get('token');
   const newEmailParam = urlParams.get('new_email');
   if (verifyToken) {
     await confirmEmailVerification(verifyToken, newEmailParam);
-  } else {
-    restorePendingEmailVerificationUI();
   }
 
   // 5. Sincronizar en segundo plano con Supabase si está disponible
@@ -428,7 +426,7 @@ async function handleUpdatePassword() {
 }
 
 // =============================================================================
-// Cambio y Verificación de Correo Electrónico con Supabase (email_change_requests)
+// Cambio y Verificación de Correo Electrónico con Supabase y n8n
 // =============================================================================
 
 /**
@@ -450,30 +448,14 @@ function generateSecureToken() {
   return (randPart1 + randPart2 + timePart + randPart1).substring(0, 64);
 }
 
-function getWebmailProviderName(email) {
-  const domain = (email || '').split('@')[1]?.toLowerCase() || '';
-  if (domain.includes('gmail.com') || domain.includes('googlemail.com')) return 'Gmail';
-  if (domain.includes('outlook.com') || domain.includes('hotmail.com') || domain.includes('live.com') || domain.includes('msn.com')) return 'Outlook / Hotmail';
-  if (domain.includes('yahoo.com') || domain.includes('ymail.com')) return 'Yahoo Mail';
-  if (domain.includes('icloud.com') || domain.includes('me.com') || domain.includes('mac.com')) return 'iCloud Mail';
-  if (domain.includes('proton.me') || domain.includes('protonmail.com')) return 'Proton Mail';
-  return 'tu bandeja de correo';
-}
-
-function getWebmailUrl(email) {
-  const domain = (email || '').split('@')[1]?.toLowerCase() || '';
-  if (domain.includes('gmail.com') || domain.includes('googlemail.com')) return 'https://mail.google.com';
-  if (domain.includes('outlook.com') || domain.includes('hotmail.com') || domain.includes('live.com') || domain.includes('msn.com')) return 'https://outlook.live.com/mail';
-  if (domain.includes('yahoo.com') || domain.includes('ymail.com')) return 'https://mail.yahoo.com';
-  if (domain.includes('icloud.com') || domain.includes('me.com') || domain.includes('mac.com')) return 'https://www.icloud.com/mail';
-  if (domain.includes('proton.me') || domain.includes('protonmail.com')) return 'https://mail.proton.me';
-  return `mailto:${email}`;
-}
-
 /**
- * Pasos 1, 2 y 3: Manejador para solicitar cambio de correo electrónico.
- * Valida cliente, genera token seguro de 64 hex, guarda en Supabase email_change_requests
- * con expiración a 15 minutos, muestra estado de carga y mensaje de confirmación exacto.
+ * Manejador para solicitar cambio de correo electrónico:
+ * 1. Valida el formato del nuevo correo y que no sea idéntico al actual.
+ * 2. Bloquea el botón y muestra estado de carga temporal.
+ * 3. Genera token de 64 hex y fecha de expiración a 15 minutos.
+ * 4. Inserta el registro en email_change_requests en Supabase (lo que activa el webhook hacia n8n).
+ * 5. NO contacta a Supabase Auth (Supabase NO envía correos, únicamente n8n).
+ * 6. NO muestra ningún cuadro/tarjeta debajo del botón; muestra el toast y limpia el campo.
  */
 async function handleRequestEmailChange() {
   const inputNew = document.getElementById('new_email') || document.getElementById('input-new-email');
@@ -528,9 +510,12 @@ async function handleRequestEmailChange() {
       userId = '00000000-0000-0000-0000-000000000001';
     }
 
+    // Enlace exclusivo hacia la página de configuración del usuario en GitHub Pages
+    const githubPagesConfirmUrl = `https://elmax20.github.io/Marketplace-Hiperlocal-para-Productores-Agr-colas/perfil.html?token=${encodeURIComponent(token)}`;
+
     // Inserción en Supabase tabla email_change_requests
     if (window.supabase && typeof window.supabase.fetchApi === 'function') {
-      // Opcional: limpiar solicitudes anteriores pendientes del mismo usuario para evitar duplicados
+      // Limpiar solicitudes anteriores pendientes del mismo usuario para evitar duplicados
       try {
         await window.supabase.fetchApi(`email_change_requests?user_id=eq.${userId}`, {
           method: 'DELETE'
@@ -539,13 +524,15 @@ async function handleRequestEmailChange() {
         console.warn('Advertencia al limpiar solicitudes pendientes:', cleanErr);
       }
 
-      // Insertar nuevo registro con los 5 campos requeridos
+      // Insertar nuevo registro con los campos requeridos y el enlace de GitHub Pages para n8n
       const insertData = {
         user_id: userId,
         current_email: currentEmail || (currentUser?.username + '@raizybarrio.co'),
         new_email: newEmail,
         verification_token: token,
-        expires_at: expiresAt
+        expires_at: expiresAt,
+        confirmation_url: githubPagesConfirmUrl,
+        verification_url: githubPagesConfirmUrl
       };
 
       await window.supabase.fetchApi('email_change_requests', {
@@ -554,46 +541,12 @@ async function handleRequestEmailChange() {
       });
     }
 
-    // Construir enlace de verificación a la ruta /verify-email
-    const currentDir = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-    const verifyUrl = `${window.location.origin}${currentDir}verify-email.html?token=${token}`;
-
-    // Guardar en localStorage para respaldo y persistencia de UI
-    const pendingData = {
-      token: token,
-      userId: userId,
-      username: currentUser?.username,
-      current_email: currentEmail,
-      newEmail: newEmail,
-      expires_at: expiresAt,
-      confirmUrl: verifyUrl
-    };
-    localStorage.setItem('rb_pending_email_change', JSON.stringify(pendingData));
-
-    // Despacho por servicio de autenticación Supabase si está disponible
-    try {
-      const authEndpoint = 'https://hvjqgvplbmshpucnuzfy.supabase.co/auth/v1/otp';
-      const anonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2anFndnBsYm1zaHB1Y251emZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5OTcyMDgsImV4cCI6MjEwOTU3MzIwOH0.cEWJYxNjq04f8auZzK9PoGlQUa_EnRtORxT6z85LmLU';
-      await fetch(authEndpoint, {
-        method: 'POST',
-        headers: { 'apikey': anonKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: newEmail,
-          create_user: true,
-          data: { action: 'email_change', verify_url: verifyUrl }
-        })
-      });
-    } catch (_) {}
-
-    // 3. Respuesta visual al usuario
+    // 3. Respuesta visual al usuario: solo mensaje toast y limpiar campo (sin generar cuadros)
     const confirmationText = 'Hemos enviado un enlace de confirmación a tu nuevo correo. Por favor revisa tu bandeja de entrada para completar el cambio (el enlace vence en 15 minutos).';
     showToast(confirmationText);
 
     // Limpiar el campo de entrada
     if (inputNew) inputNew.value = '';
-
-    // Mostrar interfaz de estado y accesos directos
-    showEmailVerificationPendingUI(pendingData, true, confirmationText);
 
   } catch (err) {
     console.error('Error al registrar solicitud de cambio de correo en Supabase:', err);
@@ -606,136 +559,26 @@ async function handleRequestEmailChange() {
   }
 }
 
-function showEmailVerificationPendingUI(pendingData, sentSuccess = true, msgText = null) {
-  const container = document.getElementById('email-verification-container');
-  if (!container || !pendingData) return;
-
-  const providerName = getWebmailProviderName(pendingData.newEmail);
-  const webmailUrl = getWebmailUrl(pendingData.newEmail);
-  const defaultMsg = msgText || 'Hemos enviado un enlace de confirmación a tu nuevo correo. Por favor revisa tu bandeja de entrada para completar el cambio (el enlace vence en 15 minutos).';
-
-  container.innerHTML = `
-    <div id="pending-email-card" class="mt-4 p-4 rounded-xl border border-stone-200 bg-stone-50/95 shadow-2xs space-y-3 animate-fade-in">
-      <div class="flex items-start justify-between gap-2">
-        <div class="space-y-1">
-          <span class="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md inline-flex items-center gap-1">
-            <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse inline-block"></span>
-            Enlace activo · Vence en 15 minutos
-          </span>
-          <p class="text-xs font-semibold text-stone-800">
-            Cambiando a: <strong class="text-[#1a3d2f]">${pendingData.newEmail}</strong>
-          </p>
-        </div>
-        <button 
-          type="button" 
-          onclick="cancelPendingEmailVerification()" 
-          title="Cancelar solicitud de cambio de correo"
-          class="text-xs text-stone-400 hover:text-red-600 transition p-1 cursor-pointer font-medium"
-        >
-          ✕ Cancelar
-        </button>
-      </div>
-
-      <div class="text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 p-2.5 rounded-lg leading-relaxed">
-        <p class="font-medium">
-          ${defaultMsg}
-        </p>
-      </div>
-
-      <div class="flex flex-wrap items-center gap-2 pt-1">
-        <a 
-          href="${webmailUrl}" 
-          target="_blank" 
-          rel="noopener noreferrer"
-          class="inline-flex items-center gap-1.5 px-3 py-2 bg-[#1a3d2f] text-white hover:bg-[#143025] text-xs font-semibold rounded-xl shadow-2xs transition cursor-pointer"
-        >
-          <span>📬</span>
-          <span>Abrir ${providerName}</span>
-          <span class="text-[10px]">↗</span>
-        </a>
-
-        <a 
-          href="${pendingData.confirmUrl}" 
-          class="inline-flex items-center gap-1 px-3 py-2 bg-white border border-stone-300 hover:border-emerald-600 hover:text-emerald-700 text-stone-700 text-xs font-semibold rounded-xl transition shadow-2xs cursor-pointer"
-          title="Abrir la ruta de verificación"
-        >
-          <span>✓</span>
-          <span>Abrir enlace (/verify-email)</span>
-        </a>
-
-        <button 
-          type="button" 
-          onclick="copyVerificationLink('${pendingData.confirmUrl}')"
-          class="inline-flex items-center gap-1 px-2.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs rounded-xl transition cursor-pointer"
-          title="Copiar enlace de verificación"
-        >
-          <span>📋</span>
-          <span>Copiar enlace</span>
-        </button>
-      </div>
-    </div>
-  `;
-}
-
-function restorePendingEmailVerificationUI() {
-  try {
-    const raw = localStorage.getItem('rb_pending_email_change');
-    if (!raw) return;
-    const pendingData = JSON.parse(raw);
-    if (pendingData && pendingData.newEmail) {
-      // Verificar si no ha vencido aún
-      if (pendingData.expires_at) {
-        const expiresTime = new Date(pendingData.expires_at).getTime();
-        if (Date.now() > expiresTime) {
-          localStorage.removeItem('rb_pending_email_change');
-          return;
-        }
-      }
-      showEmailVerificationPendingUI(pendingData, true, null);
-    }
-  } catch (e) {
-    console.warn('Error restaurando verificación pendiente:', e);
-  }
-}
-
-function cancelPendingEmailVerification() {
-  localStorage.removeItem('rb_pending_email_change');
-  const container = document.getElementById('email-verification-container');
-  if (container) container.innerHTML = '';
-  const inputNew = document.getElementById('new_email') || document.getElementById('input-new-email');
-  if (inputNew) inputNew.value = '';
-  showToast('Solicitud de cambio de correo cancelada.');
-}
-
-function copyVerificationLink(url) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(() => {
-      showToast('¡Enlace de verificación copiado al portapapeles!');
-    }).catch(() => {
-      prompt('Copia este enlace de verificación:', url);
-    });
-  } else {
-    prompt('Copia este enlace de verificación:', url);
-  }
-}
-
 /**
- * Confirmación directa si el usuario ingresa a perfil con el parámetro ?token=...
+ * Confirmación de correo al abrir perfil.html con ?token=... desde el enlace recibido por correo (GitHub Pages)
  */
 async function confirmEmailVerification(token, explicitEmail) {
   if (!token) return;
 
   try {
-    // 1. Consultar registro en Supabase email_change_requests
     let targetEmail = explicitEmail;
     let userId = currentUser?.id;
 
     if (window.supabase && typeof window.supabase.fetchApi === 'function') {
-      const endpoint = `email_change_requests?verification_token=eq.${encodeURIComponent(token.trim())}&expires_at=gt.now()&select=*`;
+      const cleanToken = token.trim();
+      const endpoint = `email_change_requests?verification_token=eq.${encodeURIComponent(cleanToken)}&expires_at=gt.now()&select=*`;
       const requests = await window.supabase.fetchApi(endpoint);
 
       if (!requests || requests.length === 0) {
-        showToast('El enlace ha caducado o no es válido. Por favor solicita uno nuevo.');
+        showToast('El enlace de verificación ha caducado o no es válido. Por favor solicita uno nuevo.');
+        try {
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (_) {}
         return;
       }
 
@@ -743,13 +586,20 @@ async function confirmEmailVerification(token, explicitEmail) {
       targetEmail = match.new_email;
       userId = match.user_id;
 
-      // Actualizar en base de datos profiles
-      await window.supabase.fetchApi(`profiles?id=eq.${userId}`, {
-        method: 'PATCH',
-        body: { email: targetEmail }
-      });
+      // 1. Actualizar en base de datos Supabase (public.profiles)
+      if (userId && userId !== '00000000-0000-0000-0000-000000000001') {
+        await window.supabase.fetchApi(`profiles?id=eq.${userId}`, {
+          method: 'PATCH',
+          body: { email: targetEmail }
+        });
+      } else if (currentUser?.username) {
+        await window.supabase.fetchApi(`profiles?username=eq.${encodeURIComponent(currentUser.username)}`, {
+          method: 'PATCH',
+          body: { email: targetEmail }
+        });
+      }
 
-      // Eliminar fila de solicitud
+      // 2. Eliminar fila de solicitud para invalidar el token
       try {
         await window.supabase.fetchApi(`email_change_requests?id=eq.${match.id}`, {
           method: 'DELETE'
@@ -762,7 +612,14 @@ async function confirmEmailVerification(token, explicitEmail) {
       return;
     }
 
-    // 2. Actualizar sesión activa en localStorage
+    // 3. Actualizar sesión activa en localStorage
+    if (!currentUser) {
+      try {
+        const raw = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
+        if (raw) currentUser = JSON.parse(raw);
+      } catch (_) {}
+    }
+
     if (currentUser) {
       currentUser.email = targetEmail;
       currentUser.email_verified = true;
@@ -770,26 +627,21 @@ async function confirmEmailVerification(token, explicitEmail) {
       localStorage.setItem('raiz_user', JSON.stringify(currentUser));
     }
 
-    // 3. Limpiar estado pendiente
-    localStorage.removeItem('rb_pending_email_change');
-
-    // 4. Actualizar vista
+    // 4. Actualizar vista en perfil.html
     const inputCurr = document.getElementById('input-current-email');
     if (inputCurr) inputCurr.value = targetEmail;
     const inputNew = document.getElementById('new_email') || document.getElementById('input-new-email');
     if (inputNew) inputNew.value = '';
-    const container = document.getElementById('email-verification-container');
-    if (container) container.innerHTML = '';
 
-    // 5. Limpiar URL
+    // 5. Limpiar URL para que quede limpia sin parámetros
     try {
       window.history.replaceState({}, document.title, window.location.pathname);
     } catch (_) {}
 
     showToast('Tu correo electrónico ha sido actualizado correctamente. Ya puedes iniciar sesión con tu nueva dirección.');
   } catch (err) {
-    console.error('Error al confirmar verificación:', err);
-    showToast('Ocurrió un error al confirmar la verificación.');
+    console.error('Error al confirmar verificación de correo:', err);
+    showToast('Ocurrió un error al confirmar la verificación de correo.');
   }
 }
 
@@ -797,9 +649,9 @@ async function confirmEmailVerification(token, explicitEmail) {
 window.handleRequestEmailChange = handleRequestEmailChange;
 window.handleSendEmailVerification = handleRequestEmailChange;
 window.confirmEmailVerification = confirmEmailVerification;
-window.cancelPendingEmailVerification = cancelPendingEmailVerification;
-window.copyVerificationLink = copyVerificationLink;
-window.restorePendingEmailVerificationUI = restorePendingEmailVerificationUI;
+window.cancelPendingEmailVerification = function() {};
+window.copyVerificationLink = function() {};
+window.restorePendingEmailVerificationUI = function() {};
 
 
 // =============================================================================
