@@ -284,11 +284,88 @@ let weeklyOnly = false;
 let priceMin = null;
 let priceMax = null;
 let farmingPractices = [];
+let favorites = [];
+let favoritesOnly = false;
+
+// =============================================================================
+// Helper: Manejo de Favoritos Persistentes
+// =============================================================================
+function initFavoritesFromStorage() {
+  try {
+    const raw = localStorage.getItem('raiz_favorites');
+    favorites = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(favorites)) favorites = [];
+  } catch (e) {
+    favorites = [];
+  }
+}
+
+function getFavoriteIndex(productId) {
+  if (!productId) return 9999;
+  const p = PRODUCTS_DATA.find(item => item.id === productId || String(item.numericId) === String(productId));
+  const primaryId = p ? p.id : String(productId);
+  const numId = p && p.numericId ? String(p.numericId) : null;
+  const idx1 = favorites.indexOf(primaryId);
+  if (idx1 !== -1) return idx1;
+  if (numId) {
+    const idx2 = favorites.indexOf(numId);
+    if (idx2 !== -1) return idx2;
+  }
+  return 9999;
+}
+
+function isProductFavorite(productId) {
+  if (!productId) return false;
+  const p = PRODUCTS_DATA.find(item => item.id === productId || String(item.numericId) === String(productId));
+  if (!p) return favorites.includes(String(productId));
+  return favorites.includes(p.id) || (p.numericId && favorites.includes(String(p.numericId)));
+}
+
+/**
+ * Alternar producto en favoritos, colorear corazón y fijar al primer espacio
+ */
+function toggleProductFavorite(productId, event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+
+  const p = PRODUCTS_DATA.find(item => item.id === productId || String(item.numericId) === String(productId));
+  const primaryId = p ? p.id : String(productId);
+  const numId = p && p.numericId ? String(p.numericId) : null;
+
+  const isFav = isProductFavorite(primaryId);
+
+  if (isFav) {
+    // Quitar de favoritos
+    favorites = favorites.filter(id => id !== primaryId && id !== numId);
+    if (typeof showToast === 'function') {
+      showToast(`${p ? p.title : 'Producto'} eliminado de favoritos`);
+    }
+  } else {
+    // Agregar al inicio para fijarlo en el primer espacio del catálogo
+    favorites = favorites.filter(id => id !== primaryId && id !== numId);
+    favorites.unshift(primaryId);
+    if (typeof showToast === 'function') {
+      showToast(`❤️ ¡${p ? p.title : 'Producto'} fijado en el primer espacio del catálogo!`);
+    }
+  }
+
+  try {
+    localStorage.setItem('raiz_favorites', JSON.stringify(favorites));
+  } catch (e) {}
+
+  renderProducts();
+}
+window.toggleProductFavorite = toggleProductFavorite;
+window.isProductFavorite = isProductFavorite;
+window.getFavoriteIndex = getFavoriteIndex;
 
 // =============================================================================
 // 3. Inicialización
 // =============================================================================
 document.addEventListener('DOMContentLoaded', () => {
+  initFavoritesFromStorage();
   initCartFromStorage();
   checkAuthStatus();
   parseUrlParams();
@@ -378,6 +455,12 @@ function parseUrlParams() {
       openCheckoutModal(getCurrentUser());
     }, 250);
   }
+
+  // Si viene con filtro de favoritos (ej: desde perfil)
+  const favParam = params.get('favoritos') || params.get('fav');
+  if (favParam === '1' || favParam === 'true') {
+    favoritesOnly = true;
+  }
 }
 
 // =============================================================================
@@ -390,6 +473,10 @@ function renderProducts() {
   let filtered = PRODUCTS_DATA.filter(p => {
     // Categoría
     if (currentCategory !== 'todos' && p.category !== currentCategory) {
+      return false;
+    }
+    // Favoritos únicamente (si está activo el filtro de favoritos)
+    if (favoritesOnly && !isProductFavorite(p.id)) {
       return false;
     }
     // Ofertas
@@ -432,7 +519,7 @@ function renderProducts() {
     return true;
   });
 
-  // Ordenamiento
+  // Ordenamiento base seleccionado por el usuario
   if (currentSort === 'precio-menor') {
     filtered.sort((a, b) => a.price - b.price);
   } else if (currentSort === 'precio-mayor') {
@@ -440,6 +527,19 @@ function renderProducts() {
   } else if (currentSort === 'calificacion') {
     filtered.sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating));
   }
+
+  // FIJAR PRODUCTOS FAVORITOS EN EL PRIMER ESPACIO DEL CATÁLOGO
+  // Los productos con corazón activo se ubican en la primera posición (index 0, 1, ...)
+  filtered.sort((a, b) => {
+    const aFav = isProductFavorite(a.id);
+    const bFav = isProductFavorite(b.id);
+    if (aFav && !bFav) return -1;
+    if (!aFav && bFav) return 1;
+    if (aFav && bFav) {
+      return getFavoriteIndex(a.id) - getFavoriteIndex(b.id);
+    }
+    return 0;
+  });
 
   // Actualizar etiqueta de conteo
   const countLabel = document.getElementById('products-count-label');
@@ -451,6 +551,20 @@ function renderProducts() {
   updateActiveFiltersUI();
 
   if (filtered.length === 0) {
+    if (favoritesOnly) {
+      container.innerHTML = `
+        <div class="col-span-full py-16 text-center">
+          <div class="w-16 h-16 rounded-full bg-rose-50 text-[#c85a32] flex items-center justify-center mx-auto mb-3 text-2xl shadow-xs">❤️</div>
+          <h4 class="font-serif text-lg font-bold text-stone-700">Aún no tienes cosechas favoritas fijadas</h4>
+          <p class="text-xs text-stone-500 mt-1 max-w-sm mx-auto">Haz clic en el corazón de cualquier producto en el mercado para colorearlo y fijarlo en el primer espacio de tu catálogo.</p>
+          <button onclick="removeFavoritesFilter()" class="mt-4 px-5 py-2 bg-[#1a3d2f] text-white rounded-full text-xs font-bold hover:bg-[#255240] transition cursor-pointer shadow-sm">
+            Ver todas las cosechas
+          </button>
+        </div>
+      `;
+      return;
+    }
+
     container.innerHTML = `
       <div class="col-span-full py-16 text-center">
         <div class="w-16 h-16 rounded-full bg-stone-100 text-stone-400 flex items-center justify-center mx-auto mb-3 text-2xl">🌱</div>
@@ -467,10 +581,11 @@ function renderProducts() {
   container.innerHTML = filtered.map(p => {
     const itemInCart = cart.find(item => item.id === p.id);
     const cartQty = itemInCart ? itemInCart.quantity : 0;
+    const isFav = isProductFavorite(p.id);
 
     return `
       <div 
-        class="product-card bg-white rounded-2xl border border-stone-200 overflow-hidden flex flex-col justify-between group cursor-pointer transition-all duration-300 hover:shadow-md hover:border-stone-300"
+        class="product-card bg-white rounded-2xl border ${isFav ? 'border-[#c85a32]/40 ring-1 ring-[#c85a32]/20' : 'border-stone-200'} overflow-hidden flex flex-col justify-between group cursor-pointer transition-all duration-300 hover:shadow-md hover:border-stone-300 relative"
         onclick="openProductDetailPage('${p.id}', event)"
       >
         
@@ -484,17 +599,40 @@ function renderProducts() {
           >
 
           <!-- Tag Superior Izquierdo -->
-          <span class="absolute top-3 left-3 bg-white/95 backdrop-blur-sm text-[#1a3d2f] text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
-            ${p.tag}
-          </span>
+          <div class="absolute top-3 left-3 flex flex-col gap-1 items-start z-10 pointer-events-none">
+            ${isFav ? `
+              <span class="bg-[#c85a32] text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                <span>❤️</span><span>Fijado</span>
+              </span>
+            ` : ''}
+            <span class="bg-white/95 backdrop-blur-sm text-[#1a3d2f] text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+              ${p.tag}
+            </span>
+          </div>
 
           <!-- Botón Favorito Superior Derecho -->
           <button 
             type="button"
-            onclick="event.stopPropagation();" 
-            class="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/95 backdrop-blur-sm text-stone-400 hover:text-[#c85a32] flex items-center justify-center shadow-sm transition"
+            onclick="toggleProductFavorite('${p.id}', event)" 
+            class="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all duration-200 z-20 cursor-pointer ${
+              isFav 
+                ? 'bg-white text-[#c85a32] ring-2 ring-[#c85a32]/30 scale-105 hover:scale-115' 
+                : 'bg-white/95 backdrop-blur-sm text-stone-400 hover:text-[#c85a32] hover:bg-white hover:scale-110'
+            }"
+            title="${isFav ? 'Quitar de favoritos' : 'Fijar en el primer espacio de favoritos'}"
+            aria-label="${isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}"
           >
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+            ${isFav ? `
+              <!-- Corazón completamente coloreado y relleno -->
+              <svg class="w-4 h-4 text-[#c85a32] fill-[#c85a32] stroke-[#c85a32]" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+              </svg>
+            ` : `
+              <!-- Corazón silueta / contorno vacío -->
+              <svg class="w-4 h-4 text-stone-400 hover:text-[#c85a32]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+              </svg>
+            `}
           </button>
 
           <!-- Badge Descuento Inferior Derecho -->
@@ -542,7 +680,7 @@ function renderProducts() {
               <button 
                 type="button"
                 onclick="event.stopPropagation(); addProductToCart('${p.id}')" 
-                class="w-full bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold py-2.5 rounded-full transition shadow-sm flex items-center justify-center gap-1.5"
+                class="w-full bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold py-2.5 rounded-full transition shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
               >
                 <span>+ Añadir</span>
               </button>
@@ -662,9 +800,22 @@ function sortProducts() {
   }
 }
 
+function removeFavoritesFilter() {
+  favoritesOnly = false;
+  if (window.location.search) {
+    const url = new URL(window.location);
+    url.searchParams.delete('favoritos');
+    url.searchParams.delete('fav');
+    window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+  }
+  renderProducts();
+}
+window.removeFavoritesFilter = removeFavoritesFilter;
+
 function resetFilters() {
   currentCategory = 'todos';
   offersOnly = false;
+  favoritesOnly = false;
   searchQuery = '';
   maxDistance = 0;
   weeklyOnly = false;
@@ -716,6 +867,15 @@ function updateActiveFiltersUI() {
   const clearBtn = document.getElementById('filter-clear-btn');
 
   const activeFilters = [];
+
+  // 0. Favoritos
+  if (favoritesOnly) {
+    activeFilters.push({
+      id: 'favorites',
+      label: '❤️ Solo favoritos',
+      onRemove: "removeFavoritesFilter()"
+    });
+  }
 
   // 1. Categoría
   if (currentCategory && currentCategory !== 'todos') {
