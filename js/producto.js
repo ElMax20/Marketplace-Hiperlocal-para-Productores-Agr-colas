@@ -955,11 +955,11 @@ function changeFullPage(page) {
 }
 
 // =============================================================================
-// 8. Formulario de Opinión Interactivo ("¿Cómo estuvo tu cosecha, Camila?")
+// 8. Formulario de Opinión Interactivo ("¿Cómo estuvo tu cosecha?")
 // =============================================================================
 function initCommentForm() {
-  let userName = 'Camila Rojas';
-  let firstName = 'Camila';
+  let userName = '';
+  let firstName = '';
 
   try {
     const rawUser = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
@@ -974,12 +974,14 @@ function initCommentForm() {
 
   const greetingEl = document.getElementById('form-user-greeting');
   if (greetingEl) {
-    greetingEl.textContent = `¿Cómo estuvo tu cosecha, ${firstName}?`;
+    greetingEl.textContent = firstName ? `¿Cómo estuvo tu cosecha, ${firstName}?` : '¿Cómo estuvo tu cosecha?';
   }
 
   const authorNoteEl = document.getElementById('form-author-note');
   if (authorNoteEl) {
-    authorNoteEl.textContent = `Publicarás como ${userName} · Comparte una opinión respetuosa.`;
+    authorNoteEl.textContent = userName 
+      ? `Publicarás como ${userName} · Comparte una opinión respetuosa.` 
+      : 'Comparte una opinión respetuosa con la comunidad.';
   }
 
   setInteractiveStars(5);
@@ -1012,7 +1014,7 @@ function handlePublishReview() {
     return;
   }
 
-  let userName = 'Camila Rojas';
+  let userName = 'Vecino';
   try {
     const rawUser = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
     if (rawUser) {

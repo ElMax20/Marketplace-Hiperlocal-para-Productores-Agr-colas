@@ -21,6 +21,18 @@
       font-family: 'Playfair Display', serif;
     }
   </style>
+
+  <!-- Pre-cargar datos del usuario desde localStorage de forma inmediata para evitar cualquier parpadeo de otro usuario -->
+  <script>
+    (function() {
+      try {
+        var raw = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
+        if (raw) {
+          window.__PRELOADED_USER = JSON.parse(raw);
+        }
+      } catch(e) {}
+    })();
+  </script>
 </head>
 <body class="bg-[#f7f5f0] min-h-screen text-stone-800 antialiased selection:bg-[#1a3d2f] selection:text-white flex flex-col justify-between">
 
@@ -74,15 +86,15 @@
             <div class="w-8 h-8 rounded-full overflow-hidden border border-stone-200 bg-stone-100 shrink-0 shadow-2xs">
               <img 
                 id="nav-user-avatar" 
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" 
+                src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/avatars/avatar_max_1794094307238.jpg" 
                 alt="Avatar" 
                 class="w-full h-full object-cover"
                 onerror="this.src='https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg'"
               >
             </div>
             <div class="hidden sm:block text-left text-xs leading-tight">
-              <span id="nav-user-name" class="font-bold text-stone-900 block truncate max-w-[120px]">Camila Rojas</span>
-              <span id="nav-user-role-label" class="text-[10px] text-stone-400 block">Mi cuenta · Compradora</span>
+              <span id="nav-user-name" class="font-bold text-stone-900 block truncate max-w-[120px]">Max</span>
+              <span id="nav-user-role-label" class="text-[10px] text-stone-400 block">Mi cuenta · Comprador</span>
             </div>
 
             <!-- Botón Canasta -->
@@ -120,13 +132,13 @@
     <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-6 border-b border-stone-200/80 mb-6">
       <div>
         <span id="header-user-kicker" class="text-[10px] font-bold uppercase tracking-wider text-[#c85a32] block">
-          MI CUENTA · COMPRADORA
+          MI CUENTA · COMPRADOR
         </span>
         <h1 class="font-serif text-3xl sm:text-4xl text-stone-900 font-normal mt-0.5">
           Tu perfil, tu tranquilidad
         </h1>
         <p id="header-user-welcome" class="text-xs sm:text-sm text-stone-500 mt-1">
-          Camila, cuida tus datos y deja todo listo para tu próxima cosecha.
+          Max, cuida tus datos y deja todo listo para tu próxima cosecha.
         </p>
       </div>
 
@@ -155,7 +167,7 @@
           <div class="w-24 h-24 mx-auto rounded-full overflow-hidden border-2 border-stone-200 shadow-xs relative bg-stone-100 flex items-center justify-center">
             <img 
               id="profile-avatar-preview" 
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" 
+              src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/avatars/avatar_max_1794094307238.jpg" 
               alt="Foto de perfil" 
               class="w-full h-full object-cover"
               onerror="this.src='https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg'"
@@ -172,16 +184,16 @@
 
           <!-- Nombre y Rol -->
           <h3 id="profile-name-display" class="font-serif font-bold text-lg text-stone-900 mt-3">
-            Camila Rojas
+            Max
           </h3>
           <div class="mt-1">
             <span id="profile-role-pill" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              <span id="profile-role-text">Compradora</span>
+              <span id="profile-role-text">Comprador</span>
             </span>
           </div>
           <span id="profile-username-handle" class="text-xs text-stone-400 mt-1 block">
-            @camila.rojas
+            @max
           </span>
 
           <!-- Botones de foto -->
@@ -289,7 +301,7 @@
                   type="text" 
                   id="input-full-name" 
                   required
-                  value="Camila Rojas" 
+                  value="Max" 
                   class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
                 >
               </div>
@@ -300,7 +312,7 @@
                   type="text" 
                   id="input-username" 
                   required
-                  value="camila.rojas" 
+                  value="max" 
                   class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
                 >
                 <p class="text-[11px] text-emerald-700 font-medium mt-1 flex items-center gap-1">
@@ -314,7 +326,7 @@
                 <input 
                   type="tel" 
                   id="input-phone" 
-                  value="300 456 7890" 
+                  value="0997766751" 
                   placeholder="Ej. 300 123 4567"
                   class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
                 >
@@ -326,7 +338,7 @@
                   type="email" 
                   id="input-current-email" 
                   readonly 
-                  value="camila.rojas@correo.com" 
+                  value="max@vecinos.com" 
                   class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-100 text-stone-600 focus:outline-none cursor-not-allowed"
                 >
                 <div class="mt-1.5">
@@ -477,7 +489,7 @@
               <div class="flex items-center justify-between text-[10px] text-stone-400 pt-1">
                 <div>
                   <span class="block text-[9px] uppercase tracking-wider">TITULAR</span>
-                  <span id="card-holder-name-display" class="font-semibold text-stone-700 text-xs">Camila Rojas</span>
+                  <span id="card-holder-name-display" class="font-semibold text-stone-700 text-xs">Max</span>
                 </div>
                 <div class="text-right">
                   <span class="block text-[9px] uppercase tracking-wider">CADUCA</span>

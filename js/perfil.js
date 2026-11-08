@@ -5,7 +5,7 @@
  * Conexión completa con LocalStorage, Supabase y Cropper de Foto Anti-Descuadre.
  */
 
-const DEFAULT_AVATAR = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80';
+const DEFAULT_AVATAR = 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/avatars/avatar_max_1794094307238.jpg';
 
 let currentUser = null;
 let originalUserData = null;
@@ -25,14 +25,14 @@ async function initProfilePage() {
     console.warn('Error leyendo usuario:', e);
   }
 
-  // 2. Si no hay usuario en sesión, usar plantilla por defecto (Camila Rojas, de la referencia)
+  // 2. Si no hay usuario en sesión, usar plantilla por defecto (Max)
   if (!user) {
     user = {
-      id: 'default-camila',
-      name: 'Camila Rojas',
-      username: 'camila.rojas',
-      email: 'camila.rojas@correo.com',
-      phone: '300 456 7890',
+      id: '00000000-0000-0000-0000-000000000001',
+      name: 'Max',
+      username: 'max',
+      email: 'max@vecinos.com',
+      phone: '0997766751',
       role: 'cliente',
       preferredNode: 'Nodo Central · La Perseverancia',
       address: 'Carrera 7 n.º 32-16, apto. 402',
@@ -42,34 +42,57 @@ async function initProfilePage() {
   }
 
   currentUser = user;
+  originalUserData = JSON.parse(JSON.stringify(currentUser));
 
-  // 3. Consultar datos en Supabase si está disponible para tener la versión más fresca
+  // 3. RENDERIZAR INMEDIATAMENTE (0 milisegundos de espera, sin flash de otro usuario)
+  renderProfileUI(currentUser);
+  updateCartBadge();
+
+  // 4. Sincronizar en segundo plano con Supabase si está disponible
   if (window.supabase && typeof window.supabase.fetchApi === 'function' && user.username) {
     try {
       const endpoint = `profiles?username=ilike.${encodeURIComponent(user.username)}&select=*`;
       const freshProfiles = await window.supabase.fetchApi(endpoint);
       if (freshProfiles && freshProfiles.length > 0) {
         const fresh = freshProfiles[0];
-        currentUser.id = fresh.id || currentUser.id;
-        currentUser.username = fresh.username || currentUser.username;
-        currentUser.name = fresh.full_name || currentUser.name;
-        if (fresh.phone) currentUser.phone = fresh.phone;
-        if (fresh.location_address) currentUser.address = fresh.location_address;
-        if (fresh.farm_name) currentUser.preferredNode = fresh.farm_name;
-        if (fresh.avatar_url) currentUser.avatar = fresh.avatar_url;
-        if (fresh.email) currentUser.email = fresh.email;
-        if (fresh.role) currentUser.role = fresh.role;
+        let hasChanges = false;
+        if (fresh.full_name && fresh.full_name !== currentUser.name) {
+          currentUser.name = fresh.full_name;
+          hasChanges = true;
+        }
+        if (fresh.avatar_url && fresh.avatar_url !== currentUser.avatar) {
+          currentUser.avatar = fresh.avatar_url;
+          hasChanges = true;
+        }
+        if (fresh.email && fresh.email !== currentUser.email) {
+          currentUser.email = fresh.email;
+          hasChanges = true;
+        }
+        if (fresh.phone && fresh.phone !== currentUser.phone) {
+          currentUser.phone = fresh.phone;
+          hasChanges = true;
+        }
+        if (fresh.location_address && fresh.location_address !== currentUser.address) {
+          currentUser.address = fresh.location_address;
+          hasChanges = true;
+        }
+        if (fresh.farm_name && fresh.farm_name !== currentUser.preferredNode) {
+          currentUser.preferredNode = fresh.farm_name;
+          hasChanges = true;
+        }
+        if (fresh.role && fresh.role !== currentUser.role) {
+          currentUser.role = fresh.role;
+          hasChanges = true;
+        }
+        if (hasChanges) {
+          originalUserData = JSON.parse(JSON.stringify(currentUser));
+          renderProfileUI(currentUser);
+        }
       }
     } catch (err) {
       console.warn('Sync con Supabase:', err);
     }
   }
-
-  originalUserData = JSON.parse(JSON.stringify(currentUser));
-
-  // 4. Renderizar toda la interfaz adaptada a este usuario
-  renderProfileUI(currentUser);
-  updateCartBadge();
 }
 
 /**
@@ -77,7 +100,7 @@ async function initProfilePage() {
  */
 function renderProfileUI(u) {
   const firstName = (u.name || 'Vecino').split(' ')[0];
-  const isFemale = (u.name || '').toLowerCase().endsWith('a') || (u.username || '').includes('camila');
+  const isFemale = (u.name || '').toLowerCase().endsWith('a');
   const roleText = u.role === 'productor' 
     ? 'Productor agrícola' 
     : (u.role === 'admin' ? 'Administrador' : (isFemale ? 'Compradora' : 'Comprador'));
@@ -138,7 +161,7 @@ function renderProfileUI(u) {
 
   // Card 3: Tarjeta y Titular
   const cardHolder = document.getElementById('card-holder-name-display');
-  if (cardHolder) cardHolder.textContent = u.name || 'Camila Rojas';
+  if (cardHolder) cardHolder.textContent = u.name || 'Titular de la tarjeta';
 
   // Card 4: Entrega y Dirección
   const deliveryNode = document.getElementById('delivery-node-title');

@@ -21,12 +21,12 @@ const AUTH_ACCOUNTS = {
     username: 'max',
     password: '123',
     role: 'cliente',
-    name: 'Elmaxi_09',
+    name: 'Max',
     phone: '0997766751',
-    address: '',
+    address: 'Carrera 7 n.º 32-16, apto. 402',
     preferredNode: 'Nodo Central · La Perseverancia',
     email: 'max@vecinos.com',
-    avatar: '' // Sin foto personalizada -> mostrará foto predeterminada
+    avatar: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/avatars/avatar_max_1794094307238.jpg'
   },
   productor: {
     username: 'maxp',
