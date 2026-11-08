@@ -1,12 +1,22 @@
 /**
  * Raíz & Barrio - Ficha de Detalle de Producto
- * Gestión de catálogo, selección de despacho, cálculo de costos en tiempo real,
- * carrito de compras y sistema de valoraciones / comentarios (inicialmente en 0).
+ * Diseño fiel a las 3 vistas de referencia:
+ * 1. Estado inicial con 0 valoraciones y 0 comentarios (Imagen 1)
+ * 2. Vista resumen con 2 comentarios destacados y desglose de estrellas (Imagen 3)
+ * 3. Vista expandida "Ver todas las opiniones" con filtros por estrellas y paginación (Imagen 2)
  */
 
 // =============================================================================
-// 1. Catálogo Completo de Productos con Datos Detallados de Finca y Cuidado
+// 1. Catálogo Completo de Productos con Datos Hiperlocales
 // =============================================================================
+const CATEGORY_NAMES = {
+  verduras: 'VERDURAS & RAÍCES',
+  frutas: 'FRUTAS DEL VALLE',
+  canastas: 'CANASTAS FAMILIARES',
+  lacteos: 'LÁCTEOS DE PASTOREO',
+  despensa: 'MIELES & DESPENSA ARTESANAL'
+};
+
 const DETAILED_PRODUCTS = [
   {
     id: 'tomate-huerta',
@@ -14,19 +24,19 @@ const DETAILED_PRODUCTS = [
     title: 'Tomate de huerta',
     category: 'verduras',
     badge: 'Cosechado hoy · Agroecológico',
-    tag: 'Cosecha fresca',
+    badgeIcon: '🌱',
     farmName: 'Finca La Esperanza',
-    farmLocation: 'Choachí, Cundinamarca · a 32 km',
+    farmLocation: 'Choachí, Cundinamarca · a 30 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg',
     subtitle: '1 kg · selección de temporada',
     unit: '1 kg',
     unitLabel: 'COP / kg',
     price: 0.64,
     originalPrice: 0.85,
-    discount: '-25%',
+    discount: '-20%',
     stock: 24,
     stockText: 'En stock: 24 unidades de 1 kg',
-    description: 'Tomates de temporada, maduros en la planta y seleccionados a mano. De pulpa jugosa y sabor de huerta campesina libre de químicos, ideales para ensaladas, salsas frescas y guisos caseros.',
+    description: 'Tomates de temporada, maduros en la planta y seleccionados a mano. De pulpa jugosa y sabor de huerta, ideales para ensaladas y guisos.',
     care: 'Conserva en un lugar fresco y seco. Lava antes de consumir. El tamaño y el color pueden variar naturalmente.',
     shippingCost: 0.35
   },
@@ -36,9 +46,9 @@ const DETAILED_PRODUCTS = [
     title: 'Aguacate Hass',
     category: 'frutas',
     badge: 'Listo para pronto · Cosecha limpia',
-    tag: 'Listo para pronto',
+    badgeIcon: '🥑',
     farmName: 'Familia Rojas',
-    farmLocation: 'La Vega, Cundinamarca · a 52 km',
+    farmLocation: 'La Vega, Cundinamarca · a 52 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/aguacates.jpg',
     subtitle: '1 kg · 4 a 5 unidades aprox.',
     unit: '1 kg',
@@ -58,9 +68,9 @@ const DETAILED_PRODUCTS = [
     title: 'Zanahoria de tierra',
     category: 'verduras',
     badge: 'Cosechado hoy · Sin químicos',
-    tag: 'Cosechado hoy',
+    badgeIcon: '🥕',
     farmName: 'Huerta El Renacer',
-    farmLocation: 'Subachoque, Cundinamarca · a 45 km',
+    farmLocation: 'Subachoque, Cundinamarca · a 45 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/zanahorias.jpg',
     subtitle: '1 kg · con toda su frescura',
     unit: '1 kg',
@@ -80,9 +90,9 @@ const DETAILED_PRODUCTS = [
     title: 'Canasta Huerto Familiar',
     category: 'canastas',
     badge: 'La favorita del barrio · Familiar',
-    tag: 'La favorita del barrio',
+    badgeIcon: '🧺',
     farmName: 'Red de Familias Campesinas',
-    farmLocation: 'Choachí, Cundinamarca · a 30 km',
+    farmLocation: 'Choachí, Cundinamarca · a 30 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_familiar.jpg',
     subtitle: '9-10 kg · para 3 a 5 personas',
     unit: 'canasta semanal',
@@ -102,9 +112,9 @@ const DETAILED_PRODUCTS = [
     title: 'Fresas de temporada',
     category: 'frutas',
     badge: 'De temporada · Cosecha del día',
-    tag: 'De temporada',
+    badgeIcon: '🍓',
     farmName: 'Cooperativa La Colina',
-    farmLocation: 'Sibaté, Cundinamarca · a 27 km',
+    farmLocation: 'Sibaté, Cundinamarca · a 27 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/fresas.jpg',
     subtitle: '500 g · seleccionadas a mano',
     unit: '500g',
@@ -124,9 +134,9 @@ const DETAILED_PRODUCTS = [
     title: 'Queso campesino artesanal',
     category: 'lacteos',
     badge: 'Artesanal · Pastoreo libre',
-    tag: 'Artesanal',
+    badgeIcon: '🧀',
     farmName: 'Lácteos La Pradera',
-    farmLocation: 'Sopó, Cundinamarca · a 42 km',
+    farmLocation: 'Sopó, Cundinamarca · a 42 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/queso_campesino.jpg',
     subtitle: '500 g · fresco de pastoreo',
     unit: '500g',
@@ -146,9 +156,9 @@ const DETAILED_PRODUCTS = [
     title: 'Miel de flores silvestres',
     category: 'despensa',
     badge: '100% Pura · Bosque nativo',
-    tag: 'Cosecha local',
+    badgeIcon: '🍯',
     farmName: 'Apiario Monte Vivo',
-    farmLocation: 'La Calera, Cundinamarca · a 18 km',
+    farmLocation: 'La Calera, Cundinamarca · a 18 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/miel_silvestre.jpg',
     subtitle: '350 g · pura, sin mezclas',
     unit: '350g',
@@ -168,9 +178,9 @@ const DETAILED_PRODUCTS = [
     title: 'Papa criolla nativa',
     category: 'verduras',
     badge: 'Recién cosechada · Tradición',
-    tag: 'Recién cosechada',
+    badgeIcon: '🥔',
     farmName: 'Finca Las Margaritas',
-    farmLocation: 'Usme rural, Bogotá · a 29 km',
+    farmLocation: 'Usme rural, Bogotá · a 29 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/papa_criolla.jpg',
     subtitle: '1 kg · lavada y seleccionada',
     unit: '1 kg',
@@ -190,9 +200,9 @@ const DETAILED_PRODUCTS = [
     title: 'Yogur natural de pastoreo',
     category: 'lacteos',
     badge: 'Artesanal · Probiótico natural',
-    tag: 'Artesanal',
+    badgeIcon: '🥛',
     farmName: 'Lácteos La Pradera',
-    farmLocation: 'Sopó, Cundinamarca · a 42 km',
+    farmLocation: 'Sopó, Cundinamarca · a 42 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/yogur_pastoreo.jpg',
     subtitle: '1 litro · sin azúcar añadida',
     unit: '1L',
@@ -212,9 +222,9 @@ const DETAILED_PRODUCTS = [
     title: 'Banano criollo de ladera',
     category: 'frutas',
     badge: 'De temporada · Agroecológico',
-    tag: 'De temporada',
+    badgeIcon: '🍌',
     farmName: 'Finca El Porvenir',
-    farmLocation: 'San Francisco, Cundinamarca · a 68 km',
+    farmLocation: 'San Francisco, Cundinamarca · a 68 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/banano_criollo.jpg',
     subtitle: '1 kg · 6 a 8 unidades aprox.',
     unit: '1 kg',
@@ -234,9 +244,9 @@ const DETAILED_PRODUCTS = [
     title: 'Mermelada artesanal de mora',
     category: 'despensa',
     badge: 'Pequeñas tandas · Con panela',
-    tag: 'Hecho a mano',
+    badgeIcon: '🫐',
     farmName: 'Sabores de la Abuela',
-    farmLocation: 'Tabio, Cundinamarca · a 35 km',
+    farmLocation: 'Tabio, Cundinamarca · a 35 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/mermelada_mora.jpg',
     subtitle: '280 g · fruta + panela orgánica',
     unit: '280g',
@@ -255,93 +265,74 @@ const DETAILED_PRODUCTS = [
     numericId: 12,
     title: 'Canasta Agroecológica Esencial',
     category: 'canastas',
-    badge: 'Selección semanal · Parejas',
-    tag: 'Selección semanal',
-    farmName: 'Familia Moreno',
-    farmLocation: 'Bojacá, Cundinamarca · a 40 km',
-    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_esencial.jpg',
-    subtitle: '6-7 kg · ideal 1 a 2 personas',
+    badge: '100% Limpia · Cosecha viva',
+    badgeIcon: '🌿',
+    farmName: 'Huertas de la Sabana',
+    farmLocation: 'Subachoque, Cundinamarca · a 42 km de tu nodo',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_agroecologica.jpg',
+    subtitle: '6-7 kg · para 1 a 2 personas',
     unit: 'canasta semanal',
     unitLabel: 'COP / canasta',
-    price: 0.70,
+    price: 0.78,
     originalPrice: null,
     discount: null,
-    stock: 8,
-    stockText: 'En stock: 8 canastas semanales',
-    description: 'Selección equilibrada para solteros o parejas: 5 a 6 variedades indispensables de huerta, 2 frutas cosechadas en su punto y media docena de huevos de pastoreo. Canasta 100% retornable sin residuos plásticos.',
-    care: 'Al recibir, separar verduras de hoja para refrigerar y ubicar raíces en canasto aireado.',
-    shippingCost: 0.35
-  },
-  {
-    id: 'rabanos-temporada',
-    numericId: 13,
-    title: 'Rábanos de temporada',
-    category: 'verduras',
-    badge: 'Cosechado hoy · Agroecológico',
-    tag: 'Cosechado hoy',
-    farmName: 'Huerta El Renacer',
-    farmLocation: 'Subachoque, Cundinamarca · a 45 km',
-    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/rabanos.jpg',
-    subtitle: '1 manojo · 300g aprox.',
-    unit: 'manojo',
-    unitLabel: 'COP / manojo',
-    price: 0.28,
-    originalPrice: null,
-    discount: null,
-    stock: 30,
-    stockText: 'En stock: 30 manojos',
-    description: 'Rábanos frescos de color magenta brillante y centro blanco crocante. Cultivados sin pesticidas, con notas picantes suaves que refrescan cualquier ensalada o encurtido casero.',
-    care: 'Cortar las hojas verdes y conservar las raíces en un recipiente con agua fría en la nevera para mantener su textura crocante.',
+    stock: 15,
+    stockText: 'En stock: 15 canastas semanales',
+    description: 'Selección compacta de alimentos agroecológicos vivos: hojas verdes, hortalizas de raíz, hierbas aromáticas y fruta de temporada directa de parcelas con certificación campesina participativa.',
+    care: 'Conservar tubérculos y raíces en lugar fresco. Mantener verduras de hoja en bolsa de tela o contenedor en la gaveta baja del refrigerador.',
     shippingCost: 0.35
   }
 ];
 
 // =============================================================================
-// 2. Estado de la Vista de Producto
+// 2. Estado Global de la Página
 // =============================================================================
 let currentProduct = null;
 let currentQuantity = 1;
-let selectedDelivery = 'pickup'; // 'pickup' o 'home'
+let currentReviewsView = 'summary'; // 'summary' (Imagen 3) o 'full' (Imagen 2)
+let currentFilterStar = 'all';      // 'all' o 5, 4, 3, 2, 1
+let currentFullPage = 1;
+const REVIEWS_PER_PAGE = 6;
 let formSelectedStars = 5;
 
 // =============================================================================
-// 3. Inicialización al cargar la página
+// 3. Inicialización
 // =============================================================================
 document.addEventListener('DOMContentLoaded', () => {
-  loadProductFromUrl();
-  updateCartPresenceHint();
-  renderProductReviews();
-  prefillReviewAuthor();
+  initProductPage();
 });
 
-/**
- * Busca y carga el producto correspondiente según el parámetro `?id=` de la URL
- */
-function loadProductFromUrl() {
+function initProductPage() {
   const params = new URLSearchParams(window.location.search);
-  const paramId = params.get('id') || params.get('producto') || 'tomate-huerta';
+  const paramId = params.get('id');
 
-  // Buscar coincidencia por id slug, numérico o parcial
-  currentProduct = DETAILED_PRODUCTS.find(p => 
-    p.id === paramId || 
-    String(p.numericId) === paramId ||
-    p.id.includes(paramId) ||
-    paramId.includes(p.id)
-  );
-
-  // Fallback al primer producto si no coincide
+  // Buscar el producto por id de texto o número
+  currentProduct = DETAILED_PRODUCTS.find(p => p.id === paramId || String(p.numericId) === paramId);
   if (!currentProduct) {
-    currentProduct = DETAILED_PRODUCTS[0];
+    currentProduct = DETAILED_PRODUCTS[0]; // Tomate de huerta por defecto
   }
 
-  renderProductData(currentProduct);
+  // Cargar datos en la interfaz
+  renderProductDetails(currentProduct);
+  updateCartPresenceHint();
+  initCommentForm();
+  renderReviewsSection();
 }
 
-/**
- * Renderiza todos los datos del producto en la interfaz
- */
-function renderProductData(p) {
+// =============================================================================
+// 4. Renderizado de Datos del Producto (Fiel a Imagen 1)
+// =============================================================================
+function renderProductDetails(p) {
   document.title = `${p.title} | Raíz & Barrio`;
+
+  // Breadcrumbs
+  const bcCat = document.getElementById('bc-category');
+  const bcProd = document.getElementById('bc-product');
+  if (bcCat) {
+    bcCat.textContent = CATEGORY_NAMES[p.category] || p.category;
+    bcCat.href = `mercado.html?categoria=${p.category}`;
+  }
+  if (bcProd) bcProd.textContent = p.title;
 
   // Columna Izquierda
   const imgEl = document.getElementById('prod-image');
@@ -349,28 +340,31 @@ function renderProductData(p) {
     imgEl.src = p.image;
     imgEl.alt = p.title;
   }
-
+  const badgeIconEl = document.getElementById('prod-badge-icon');
+  if (badgeIconEl) badgeIconEl.textContent = p.badgeIcon || '🌱';
   const badgeEl = document.getElementById('prod-badge');
   if (badgeEl) badgeEl.textContent = p.badge;
 
   const farmNameEl = document.getElementById('prod-farm-name');
   if (farmNameEl) farmNameEl.textContent = p.farmName;
-
-  const farmLocationEl = document.getElementById('prod-farm-location');
-  if (farmLocationEl) farmLocationEl.textContent = p.farmLocation;
-
-  const descEl = document.getElementById('prod-description');
-  if (descEl) descEl.textContent = p.description;
+  const farmLocEl = document.getElementById('prod-farm-location');
+  if (farmLocEl) farmLocEl.textContent = p.farmLocation;
 
   const careEl = document.getElementById('prod-care');
   if (careEl) careEl.textContent = p.care;
 
   // Columna Derecha
+  const kickerEl = document.getElementById('prod-category-kicker');
+  if (kickerEl) kickerEl.textContent = CATEGORY_NAMES[p.category] || p.category.toUpperCase();
+
   const titleEl = document.getElementById('prod-title');
   if (titleEl) titleEl.textContent = p.title;
 
   const subtitleEl = document.getElementById('prod-subtitle');
   if (subtitleEl) subtitleEl.textContent = p.subtitle;
+
+  const descEl = document.getElementById('prod-description');
+  if (descEl) descEl.textContent = p.description;
 
   const priceEl = document.getElementById('prod-price');
   if (priceEl) priceEl.textContent = `$${formatCOP(p.price)}`;
@@ -397,49 +391,19 @@ function renderProductData(p) {
   const stockEl = document.getElementById('prod-stock');
   if (stockEl) stockEl.textContent = p.stockText;
 
-  const deliveryPriceLabel = document.getElementById('delivery-price-label');
-  if (deliveryPriceLabel) deliveryPriceLabel.textContent = `$${formatCOP(p.shippingCost)}`;
-
-  // Actualizar cálculo y desglose de costos
-  recalculateBreakdown();
-}
-
-// =============================================================================
-// 4. Lógica de Despacho y Desglose de Costos
-// =============================================================================
-function setDeliveryOption(type) {
-  selectedDelivery = type;
-  
-  const cardPickup = document.getElementById('card-delivery-pickup');
-  const cardHome = document.getElementById('card-delivery-home');
-  const dotPickup = document.getElementById('dot-pickup');
-  const dotHome = document.getElementById('dot-home');
-
-  if (type === 'pickup') {
-    if (cardPickup) {
-      cardPickup.className = 'p-3.5 sm:p-4 rounded-xl border-2 border-[#1a3d2f] bg-[#f0f5f2] cursor-pointer transition flex items-start gap-3';
-    }
-    if (dotPickup) dotPickup.className = 'w-2 h-2 rounded-full bg-[#1a3d2f]';
-    
-    if (cardHome) {
-      cardHome.className = 'p-3.5 sm:p-4 rounded-xl border border-stone-200 bg-white hover:border-stone-300 cursor-pointer transition flex items-start gap-3';
-    }
-    if (dotHome) dotHome.className = 'w-2 h-2 rounded-full bg-transparent';
-  } else {
-    if (cardPickup) {
-      cardPickup.className = 'p-3.5 sm:p-4 rounded-xl border border-stone-200 bg-white hover:border-stone-300 cursor-pointer transition flex items-start gap-3';
-    }
-    if (dotPickup) dotPickup.className = 'w-2 h-2 rounded-full bg-transparent';
-
-    if (cardHome) {
-      cardHome.className = 'p-3.5 sm:p-4 rounded-xl border-2 border-[#1a3d2f] bg-[#f0f5f2] cursor-pointer transition flex items-start gap-3';
-    }
-    if (dotHome) dotHome.className = 'w-2 h-2 rounded-full bg-[#1a3d2f]';
+  // Despacho a domicilio nota
+  const deliveryHomeNote = document.getElementById('delivery-home-note');
+  if (deliveryHomeNote) {
+    const totalHome = p.price + (p.shippingCost || 0.35);
+    deliveryHomeNote.textContent = `A domicilio en Bogotá: $${formatCOP(p.shippingCost || 0.35)} · Total con envío: $${formatCOP(totalHome)} COP.`;
   }
 
-  recalculateBreakdown();
+  recalculateSubtotal();
 }
 
+// =============================================================================
+// 5. Stepper y Subtotal
+// =============================================================================
 function updateQty(delta) {
   const newQty = currentQuantity + delta;
   if (newQty < 1) return;
@@ -448,53 +412,36 @@ function updateQty(delta) {
     return;
   }
   currentQuantity = newQty;
-  
-  const qtyVal = document.getElementById('qty-value');
-  if (qtyVal) qtyVal.textContent = currentQuantity;
+  const qtyEl = document.getElementById('qty-value');
+  if (qtyEl) qtyEl.textContent = currentQuantity;
 
-  recalculateBreakdown();
+  recalculateSubtotal();
   updateCartPresenceHint();
 }
 
-function recalculateBreakdown() {
+function recalculateSubtotal() {
   if (!currentProduct) return;
-
   const subtotal = currentQuantity * currentProduct.price;
-  const shippingCost = selectedDelivery === 'home' ? currentProduct.shippingCost : 0;
-  const total = subtotal + shippingCost;
-  const totalWithHome = subtotal + currentProduct.shippingCost;
-
-  // Elementos del desglose
-  const prodQtyLabel = document.getElementById('breakdown-prod-qty');
-  if (prodQtyLabel) prodQtyLabel.textContent = `Producto · ${currentQuantity} × ${currentProduct.unit}`;
-
-  const subtotalEl = document.getElementById('breakdown-subtotal');
-  if (subtotalEl) subtotalEl.textContent = `$${formatCOP(subtotal)}`;
-
-  const deliveryTitle = document.getElementById('breakdown-delivery-title');
-  if (deliveryTitle) {
-    deliveryTitle.textContent = selectedDelivery === 'home' ? 'Envío a domicilio' : 'Recogida en nodo';
+  
+  const subtotalLabel = document.getElementById('subtotal-label');
+  if (subtotalLabel) {
+    subtotalLabel.textContent = `Subtotal · ${currentQuantity} × ${currentProduct.unit}`;
   }
 
-  const deliveryCostEl = document.getElementById('breakdown-delivery-cost');
-  if (deliveryCostEl) deliveryCostEl.textContent = `$${formatCOP(shippingCost)}`;
-
-  const totalTitle = document.getElementById('breakdown-total-title');
-  if (totalTitle) {
-    totalTitle.textContent = selectedDelivery === 'home' ? 'Total con domicilio' : 'Total con recogida';
+  const subtotalPrice = document.getElementById('subtotal-price');
+  if (subtotalPrice) {
+    subtotalPrice.textContent = `$${formatCOP(subtotal)}`;
   }
 
-  const totalEl = document.getElementById('breakdown-total');
-  if (totalEl) totalEl.textContent = `$${formatCOP(total)}`;
-
-  const footnoteEl = document.getElementById('breakdown-footnote');
-  if (footnoteEl) {
-    footnoteEl.textContent = `Impuestos incluidos. Con envío a domicilio: $${formatCOP(totalWithHome)} COP.`;
+  const deliveryHomeNote = document.getElementById('delivery-home-note');
+  if (deliveryHomeNote) {
+    const totalHome = subtotal + (currentProduct.shippingCost || 0.35);
+    deliveryHomeNote.textContent = `A domicilio en Bogotá: $${formatCOP(currentProduct.shippingCost || 0.35)} · Total con envío: $${formatCOP(totalHome)} COP.`;
   }
 }
 
 // =============================================================================
-// 5. Gestión del Carrito (Sincronizado con localStorage)
+// 6. Carrito de Compras (Sincronizado con raiz_cart)
 // =============================================================================
 function getLocalCart() {
   try {
@@ -508,13 +455,12 @@ function saveLocalCart(cart) {
   try {
     localStorage.setItem('raiz_cart', JSON.stringify(cart));
   } catch (e) {
-    console.warn('Error guardando carrito:', e);
+    console.warn('Error al guardar carrito:', e);
   }
 }
 
 function handleAddToCart() {
   if (!currentProduct) return;
-
   const cart = getLocalCart();
   const existingIdx = cart.findIndex(item => item.id === currentProduct.id);
 
@@ -538,6 +484,13 @@ function handleAddToCart() {
   showToast(`¡${currentQuantity} × ${currentProduct.title} añadido al carrito!`);
 }
 
+function handleBuyNow() {
+  handleAddToCart();
+  setTimeout(() => {
+    window.location.href = 'mercado.html';
+  }, 300);
+}
+
 function updateCartPresenceHint() {
   if (!currentProduct) return;
   const cart = getLocalCart();
@@ -546,16 +499,21 @@ function updateCartPresenceHint() {
   
   if (hintEl) {
     if (found && found.quantity > 0) {
-      hintEl.innerHTML = `Ya tienes <strong>${found.quantity}</strong> en tu carrito. Agregarás <strong>${currentQuantity}</strong> más.`;
+      hintEl.innerHTML = `Ya tienes <strong>${found.quantity} ${currentProduct.unit}</strong> en tu carrito. Agregarás <strong>${currentQuantity} ${currentProduct.unit}</strong> más.`;
     } else {
-      hintEl.textContent = 'Aún no tienes este producto en tu carrito.';
+      hintEl.textContent = 'Ya tienes 0 unidades en tu carrito.';
     }
   }
 }
 
 // =============================================================================
-// 6. Sección de Comentarios y Valoraciones (Inicialmente Vacío y en 0)
+// 7. Sistema de Opiniones y Valoraciones ("Lo que dice el barrio")
+//    Manejo de las 3 Vistas:
+//    - Vista 1: 0 opiniones / 0 valoraciones (Imagen 1)
+//    - Vista 2: Resumen con 2 opiniones destacadas y desglose (Imagen 3)
+//    - Vista 3: Vista completa expandida con filtros y paginación (Imagen 2)
 // =============================================================================
+
 function getReviewsStorageKey() {
   return currentProduct ? `product_reviews_${currentProduct.id}` : 'product_reviews_default';
 }
@@ -573,193 +531,607 @@ function saveProductReviews(reviews) {
   try {
     localStorage.setItem(getReviewsStorageKey(), JSON.stringify(reviews));
   } catch (e) {
-    console.warn('Error guardando reviews:', e);
+    console.warn('Error al guardar opiniones:', e);
   }
 }
 
-function renderProductReviews() {
+/**
+ * Renderiza la sección completa de opiniones según la cantidad existente
+ */
+function renderReviewsSection() {
   const reviews = getProductReviews();
   const totalCount = reviews.length;
 
-  const scoreBig = document.getElementById('rating-score-display');
-  const countDisplay = document.getElementById('rating-count-display');
-  const starsDisplay = document.getElementById('rating-stars-display');
   const headerRating = document.getElementById('prod-header-rating');
   const headerStars = document.getElementById('prod-header-stars');
+  const headerOpinionsCount = document.getElementById('header-opinions-count');
+  const btnBackSummary = document.getElementById('btn-header-back-summary');
 
-  const emptyState = document.getElementById('reviews-empty-state');
-  const listContainer = document.getElementById('reviews-list');
+  const viewEmpty = document.getElementById('view-reviews-empty');
+  const viewSummary = document.getElementById('view-reviews-summary');
+  const viewFull = document.getElementById('view-reviews-full');
 
-  // Si no hay reviews (estado inicial por defecto)
+  // Si no hay reviews (Estado inicial por requerimiento del usuario - Imagen 1)
   if (totalCount === 0) {
-    if (scoreBig) scoreBig.textContent = '0,0';
-    if (countDisplay) countDisplay.textContent = '0 valoraciones';
-    if (headerRating) headerRating.textContent = '0,0 · 0 opiniones';
-    
-    // Estrellas vacías en gris
-    const emptyStarsHtml = '<span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>';
-    if (starsDisplay) {
-      starsDisplay.className = 'flex text-stone-300 text-lg my-1.5 tracking-tighter';
-      starsDisplay.innerHTML = emptyStarsHtml;
-    }
+    if (headerRating) headerRating.textContent = 'Aún sin valoraciones · 0 opiniones';
     if (headerStars) {
       headerStars.className = 'flex text-stone-300 text-sm tracking-tighter';
-      headerStars.innerHTML = emptyStarsHtml;
+      headerStars.innerHTML = '<span>☆</span><span>☆</span><span>☆</span><span>☆</span><span>☆</span>';
     }
-
-    // Barras en 0%
-    for (let s = 1; s <= 5; s++) {
-      const bar = document.getElementById(`bar-${s}-star`);
-      const pct = document.getElementById(`pct-${s}-star`);
-      if (bar) bar.style.width = '0%';
-      if (pct) pct.textContent = '0%';
+    if (headerOpinionsCount) {
+      headerOpinionsCount.textContent = '0 opiniones';
+      headerOpinionsCount.classList.remove('hidden');
     }
+    if (btnBackSummary) btnBackSummary.classList.add('hidden');
 
-    if (emptyState) emptyState.classList.remove('hidden');
-    if (listContainer) listContainer.innerHTML = '';
+    if (viewEmpty) viewEmpty.classList.remove('hidden');
+    if (viewSummary) viewSummary.classList.add('hidden');
+    if (viewFull) viewFull.classList.add('hidden');
+
+    const demoBtn = document.getElementById('btn-toggle-demo-reviews');
+    if (demoBtn) demoBtn.textContent = 'Probar con opiniones de muestra';
     return;
   }
 
-  // Si existen reviews agregadas por el usuario:
+  // Si existen reviews (Imagen 3 o Imagen 2)
   const sum = reviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
-  const avg = (sum / totalCount).toFixed(1).replace('.', ',');
+  const avgNumeric = Number((sum / totalCount).toFixed(1));
+  const avgStr = avgNumeric.toFixed(1).replace('.', ',');
 
-  if (scoreBig) scoreBig.textContent = avg;
-  if (countDisplay) countDisplay.textContent = `${totalCount} ${totalCount === 1 ? 'valoración' : 'valoraciones'}`;
-  if (headerRating) headerRating.textContent = `${avg} · ${totalCount} ${totalCount === 1 ? 'opinión' : 'opiniones'}`;
+  // Actualizar cabecera del producto
+  if (headerRating) {
+    headerRating.textContent = `${avgStr} · ${totalCount} opiniones`;
+  }
+  if (headerStars) {
+    headerStars.className = 'flex text-amber-500 text-sm tracking-tighter';
+    headerStars.innerHTML = generateStarsHtml(avgNumeric);
+  }
 
-  // Desglose por estrellas
+  const demoBtn = document.getElementById('btn-toggle-demo-reviews');
+  if (demoBtn) demoBtn.textContent = 'Restablecer a 0 valoraciones';
+
+  // Desglose de estrellas (1 a 5)
   const counts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   reviews.forEach(r => {
     const star = Math.min(5, Math.max(1, Math.round(Number(r.rating) || 5)));
     counts[star] = (counts[star] || 0) + 1;
   });
 
-  for (let s = 1; s <= 5; s++) {
-    const p = Math.round((counts[s] / totalCount) * 100);
-    const bar = document.getElementById(`bar-${s}-star`);
-    const pct = document.getElementById(`pct-${s}-star`);
-    if (bar) bar.style.width = `${p}%`;
-    if (pct) pct.textContent = `${p}%`;
-  }
+  // Ocultar vista vacía
+  if (viewEmpty) viewEmpty.classList.add('hidden');
 
-  // Estrellas doradas proporcionales
-  const numericAvg = parseFloat((sum / totalCount).toFixed(1));
-  const fullStars = Math.floor(numericAvg);
-  let starsHtml = '';
-  for (let i = 1; i <= 5; i++) {
-    starsHtml += `<span class="${i <= fullStars ? 'text-amber-400' : 'text-stone-300'}">★</span>`;
-  }
-  if (starsDisplay) starsDisplay.innerHTML = starsHtml;
-  if (headerStars) headerStars.innerHTML = starsHtml;
+  if (currentReviewsView === 'summary') {
+    // -------------------------------------------------------------------------
+    // VISTA 2: Resumen (Imagen 3)
+    // -------------------------------------------------------------------------
+    if (viewSummary) viewSummary.classList.remove('hidden');
+    if (viewFull) viewFull.classList.add('hidden');
 
-  // Renderizar la lista de comentarios
-  if (emptyState) emptyState.classList.add('hidden');
-  if (listContainer) {
-    listContainer.innerHTML = reviews.map(r => `
-      <div class="bg-stone-50/70 p-4 rounded-xl border border-stone-200/80">
-        <div class="flex items-center justify-between mb-1.5">
+    if (headerOpinionsCount) {
+      headerOpinionsCount.innerHTML = `
+        <div class="relative inline-block text-left">
+          <button class="inline-flex items-center gap-1.5 text-xs text-stone-600 border border-stone-200 bg-white rounded-lg px-2.5 py-1 hover:bg-stone-50">
+            <span>Más recientes</span>
+            <span class="text-[10px]">⌄</span>
+          </button>
+        </div>
+      `;
+      headerOpinionsCount.classList.remove('hidden');
+    }
+    if (btnBackSummary) btnBackSummary.classList.add('hidden');
+
+    // Tarjeta izquierda resumen
+    const scoreNum = document.getElementById('summary-score-num');
+    if (scoreNum) scoreNum.textContent = avgStr;
+
+    const scoreStars = document.getElementById('summary-score-stars');
+    if (scoreStars) scoreStars.innerHTML = generateStarsHtml(avgNumeric);
+
+    const buyersLabel = document.getElementById('summary-score-buyers');
+    if (buyersLabel) buyersLabel.textContent = `${totalCount} opiniones de compradores`;
+
+    // Barras de distribución
+    const barsContainer = document.getElementById('summary-rating-bars');
+    if (barsContainer) {
+      barsContainer.innerHTML = [5, 4, 3, 2, 1].map(star => {
+        const c = counts[star] || 0;
+        const pct = totalCount > 0 ? Math.round((c / totalCount) * 100) : 0;
+        return `
           <div class="flex items-center gap-2">
-            <span class="font-bold text-stone-900 text-xs">${escapeHtml(r.name)}</span>
-            ${r.neighborhood ? `<span class="text-[10px] text-stone-400">• ${escapeHtml(r.neighborhood)}</span>` : ''}
+            <span class="w-6 text-[11px] text-stone-500 font-medium">${star} ★</span>
+            <div class="flex-1 h-2 bg-stone-200 rounded-full overflow-hidden">
+              <div class="h-full bg-amber-500 rounded-full transition-all duration-500" style="width: ${pct}%;"></div>
+            </div>
+            <span class="w-6 text-right text-[11px] text-stone-400">${c}</span>
           </div>
-          <span class="text-[10px] text-stone-400">${r.date || 'Reciente'}</span>
-        </div>
-        <div class="flex text-amber-400 text-xs mb-2">
-          ${'★'.repeat(Math.min(5, Math.max(1, r.rating)))}${'☆'.repeat(5 - Math.min(5, Math.max(1, r.rating)))}
-        </div>
-        <p class="text-xs text-stone-600 leading-relaxed">${escapeHtml(r.comment)}</p>
-      </div>
-    `).join('');
-  }
-}
+        `;
+      }).join('');
+    }
 
-function toggleReviewForm() {
-  const formCard = document.getElementById('review-form-card');
-  const toggleBtnText = document.getElementById('btn-toggle-review-text');
-  if (!formCard) return;
+    // Top 2 opiniones en tarjeta derecha
+    const top2 = reviews.slice(0, 2);
+    const topContainer = document.getElementById('summary-top-reviews-list');
+    if (topContainer) {
+      topContainer.innerHTML = top2.map((rev, idx) => renderSingleReviewHtml(rev, idx < top2.length - 1)).join('');
+    }
 
-  if (formCard.classList.contains('hidden')) {
-    formCard.classList.remove('hidden');
-    if (toggleBtnText) toggleBtnText.textContent = 'Cerrar formulario';
-    document.getElementById('review-name')?.focus();
+    const showingCount = document.getElementById('summary-showing-count');
+    if (showingCount) {
+      showingCount.textContent = `Mostrando ${Math.min(2, totalCount)} de ${totalCount} opiniones`;
+    }
+
   } else {
-    formCard.classList.add('hidden');
-    if (toggleBtnText) toggleBtnText.textContent = 'Escribir opinión';
+    // -------------------------------------------------------------------------
+    // VISTA 3: Expandida "Ver todas las opiniones" (Imagen 2)
+    // -------------------------------------------------------------------------
+    if (viewSummary) viewSummary.classList.add('hidden');
+    if (viewFull) viewFull.classList.remove('hidden');
+
+    if (headerOpinionsCount) headerOpinionsCount.classList.add('hidden');
+    if (btnBackSummary) btnBackSummary.classList.remove('hidden');
+
+    // Tarjeta izquierda expandida
+    const fullScoreNum = document.getElementById('full-score-num');
+    if (fullScoreNum) fullScoreNum.textContent = avgStr;
+
+    const fullScoreStars = document.getElementById('full-score-stars');
+    if (fullScoreStars) fullScoreStars.innerHTML = generateStarsHtml(avgNumeric);
+
+    const fullBuyersLabel = document.getElementById('full-score-buyers');
+    if (fullBuyersLabel) fullBuyersLabel.textContent = `${totalCount} opiniones de compradores`;
+
+    const fullBarsContainer = document.getElementById('full-rating-bars');
+    if (fullBarsContainer) {
+      fullBarsContainer.innerHTML = [5, 4, 3, 2, 1].map(star => {
+        const c = counts[star] || 0;
+        const pct = totalCount > 0 ? Math.round((c / totalCount) * 100) : 0;
+        return `
+          <div class="flex items-center gap-2">
+            <span class="w-6 text-[11px] text-stone-500 font-medium">${star} ★</span>
+            <div class="flex-1 h-2 bg-stone-200 rounded-full overflow-hidden">
+              <div class="h-full bg-amber-500 rounded-full" style="width: ${pct}%;"></div>
+            </div>
+            <span class="w-6 text-right text-[11px] text-stone-400">${c}</span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Título de la lista derecha
+    const headerTitle = document.getElementById('full-opinions-header-title');
+    if (headerTitle) {
+      headerTitle.textContent = `Todas las opiniones (${totalCount})`;
+    }
+
+    // Filtros por estrellas (Pills)
+    const pillsContainer = document.getElementById('full-filter-pills');
+    if (pillsContainer) {
+      const pills = [
+        { key: 'all', label: `Todas (${totalCount})` },
+        { key: '5', label: `5 ★ (${counts[5] || 0})` },
+        { key: '4', label: `4 ★ (${counts[4] || 0})` },
+        { key: '3', label: `3 ★ (${counts[3] || 0})` },
+        { key: '2', label: `2 ★ (${counts[2] || 0})` },
+        { key: '1', label: `1 ★ (${counts[1] || 0})` }
+      ];
+
+      pillsContainer.innerHTML = pills.map(p => {
+        const isActive = currentFilterStar === p.key;
+        return `
+          <button 
+            onclick="setReviewStarFilter('${p.key}')" 
+            class="px-3 py-1 rounded-full font-medium transition text-xs ${
+              isActive 
+                ? 'bg-[#1a3d2f] text-white shadow-xs' 
+                : 'bg-white border border-stone-200 text-stone-600 hover:border-stone-400'
+            }"
+          >
+            ${p.label}
+          </button>
+        `;
+      }).join('');
+    }
+
+    // Filtrar opiniones
+    let filtered = reviews;
+    if (currentFilterStar !== 'all') {
+      const targetStar = Number(currentFilterStar);
+      filtered = reviews.filter(r => Math.round(Number(r.rating) || 5) === targetStar);
+    }
+
+    // Paginación
+    const totalPages = Math.max(1, Math.ceil(filtered.length / REVIEWS_PER_PAGE));
+    if (currentFullPage > totalPages) currentFullPage = 1;
+
+    const startIdx = (currentFullPage - 1) * REVIEWS_PER_PAGE;
+    const endIdx = startIdx + REVIEWS_PER_PAGE;
+    const paginatedReviews = filtered.slice(startIdx, endIdx);
+
+    const listContainer = document.getElementById('full-reviews-list-container');
+    if (listContainer) {
+      if (paginatedReviews.length === 0) {
+        listContainer.innerHTML = `
+          <div class="text-center py-8 text-stone-400 text-xs">
+            No hay opiniones registradas con esta calificación.
+          </div>
+        `;
+      } else {
+        listContainer.innerHTML = paginatedReviews.map((rev, idx) => 
+          renderSingleReviewHtml(rev, idx < paginatedReviews.length - 1)
+        ).join('');
+      }
+    }
+
+    // Texto de paginación
+    const paginationText = document.getElementById('full-pagination-text');
+    if (paginationText) {
+      const from = filtered.length > 0 ? startIdx + 1 : 0;
+      const to = Math.min(endIdx, filtered.length);
+      paginationText.textContent = `Mostrando ${from}-${to} de ${filtered.length} opiniones`;
+    }
+
+    // Controles de paginación
+    const paginationNav = document.getElementById('full-pagination-nav');
+    if (paginationNav) {
+      let navHtml = '';
+      
+      // Botón Anterior
+      navHtml += `
+        <button 
+          onclick="changeFullPage(${currentFullPage - 1})" 
+          class="px-2.5 py-1 rounded-lg border border-stone-200 text-xs ${currentFullPage === 1 ? 'opacity-40 pointer-events-none' : 'hover:bg-stone-50'}"
+        >
+          ← Anterior
+        </button>
+      `;
+
+      // Botones numéricos
+      for (let p = 1; p <= totalPages; p++) {
+        if (totalPages > 6 && p > 3 && p < totalPages) {
+          if (p === 4) navHtml += `<span class="px-1 text-stone-400">...</span>`;
+          continue;
+        }
+        navHtml += `
+          <button 
+            onclick="changeFullPage(${p})" 
+            class="w-7 h-7 rounded-lg text-xs font-semibold ${
+              p === currentFullPage 
+                ? 'bg-[#1a3d2f] text-white' 
+                : 'border border-stone-200 hover:bg-stone-50 text-stone-700'
+            }"
+          >
+            ${p}
+          </button>
+        `;
+      }
+
+      // Botón Siguiente
+      navHtml += `
+        <button 
+          onclick="changeFullPage(${currentFullPage + 1})" 
+          class="px-2.5 py-1 rounded-lg border border-stone-200 text-xs ${currentFullPage === totalPages || totalPages === 0 ? 'opacity-40 pointer-events-none' : 'hover:bg-stone-50'}"
+        >
+          Siguiente →
+        </button>
+      `;
+
+      paginationNav.innerHTML = navHtml;
+    }
   }
 }
 
-function setFormStars(num) {
-  formSelectedStars = num;
-  const buttons = document.querySelectorAll('#star-picker .star-btn');
-  buttons.forEach((btn, idx) => {
-    btn.className = `star-btn text-2xl transition ${idx < num ? 'text-amber-400' : 'text-stone-300'}`;
-  });
+/**
+ * Renderiza el HTML de una opinión individual con el diseño de referencia
+ */
+function renderSingleReviewHtml(rev, withDivider = true) {
+  const initials = getInitials(rev.name || 'Vecino');
+  const starNum = Math.min(5, Math.max(1, Math.round(Number(rev.rating) || 5)));
+  const stars = '★'.repeat(starNum) + '☆'.repeat(5 - starNum);
 
-  const label = document.getElementById('star-picker-label');
-  const labels = ['', 'Muy regular', 'Aceptable', 'Bueno', 'Muy bueno', '¡Excelente cosecha!'];
-  if (label) label.textContent = labels[num] || `${num} estrellas`;
+  return `
+    <div class="review-item">
+      <!-- Fila superior: Avatar, Nombre, Compra verificada y Fecha -->
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-full bg-stone-100 border border-stone-200 text-stone-700 text-xs font-bold flex items-center justify-center shrink-0 uppercase">
+            ${escapeHtml(initials)}
+          </div>
+          <div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-xs font-bold text-stone-900">${escapeHtml(rev.name || 'Vecino')}</span>
+              <span class="text-[10px] text-emerald-700 font-semibold bg-emerald-50 border border-emerald-100/60 px-1.5 py-0.5 rounded flex items-center gap-1">
+                <svg class="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                <span>Compra verificada</span>
+              </span>
+            </div>
+          </div>
+        </div>
+        <span class="text-[11px] text-stone-400">${escapeHtml(rev.date || 'Reciente')}</span>
+      </div>
+
+      <!-- Estrellas doradas -->
+      <div class="flex text-amber-500 text-xs my-1.5 tracking-tighter">
+        ${stars}
+      </div>
+
+      <!-- Título de la opinión (si tiene) -->
+      ${rev.title ? `<h4 class="text-xs font-bold text-stone-900 mb-1">${escapeHtml(rev.title)}</h4>` : ''}
+
+      <!-- Contenido del comentario -->
+      <p class="text-xs text-stone-600 leading-relaxed">
+        ${escapeHtml(rev.comment || '')}
+      </p>
+
+      ${withDivider ? '<div class="border-t border-stone-100 my-4"></div>' : ''}
+    </div>
+  `;
 }
 
-function prefillReviewAuthor() {
+function switchReviewsView(viewMode) {
+  currentReviewsView = viewMode;
+  currentFullPage = 1;
+  currentFilterStar = 'all';
+  renderReviewsSection();
+}
+
+function setReviewStarFilter(starKey) {
+  currentFilterStar = starKey;
+  currentFullPage = 1;
+  renderReviewsSection();
+}
+
+function changeFullPage(page) {
+  currentFullPage = page;
+  renderReviewsSection();
+}
+
+// =============================================================================
+// 8. Formulario de Opinión Interactivo ("¿Cómo estuvo tu cosecha, Camila?")
+// =============================================================================
+function initCommentForm() {
+  let userName = 'Camila Rojas';
+  let firstName = 'Camila';
+
   try {
-    const rawUser = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user') || sessionStorage.getItem('currentUser') || localStorage.getItem('currentUser');
+    const rawUser = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
     if (rawUser) {
       const user = JSON.parse(rawUser);
-      const nameInput = document.getElementById('review-name');
-      const neighborhoodInput = document.getElementById('review-neighborhood');
-      if (nameInput && (user.name || user.full_name)) nameInput.value = user.name || user.full_name;
-      if (neighborhoodInput && (user.location || user.location_address)) neighborhoodInput.value = user.location || user.location_address;
+      if (user.name || user.full_name) {
+        userName = user.name || user.full_name;
+        firstName = userName.split(' ')[0];
+      }
     }
   } catch (e) {}
+
+  const greetingEl = document.getElementById('form-user-greeting');
+  if (greetingEl) {
+    greetingEl.textContent = `¿Cómo estuvo tu cosecha, ${firstName}?`;
+  }
+
+  const authorNoteEl = document.getElementById('form-author-note');
+  if (authorNoteEl) {
+    authorNoteEl.textContent = `Publicarás como ${userName} · Comparte una opinión respetuosa.`;
+  }
+
+  setInteractiveStars(5);
 }
 
-function submitReview(e) {
-  e.preventDefault();
-  const nameInput = document.getElementById('review-name');
-  const neighborhoodInput = document.getElementById('review-neighborhood');
-  const commentInput = document.getElementById('review-comment');
+function setInteractiveStars(num) {
+  formSelectedStars = num;
+  const picker = document.getElementById('form-star-picker');
+  if (!picker) return;
 
-  const name = nameInput ? nameInput.value.trim() : 'Vecino';
-  const neighborhood = neighborhoodInput ? neighborhoodInput.value.trim() : '';
-  const comment = commentInput ? commentInput.value.trim() : '';
+  const buttons = picker.querySelectorAll('button');
+  buttons.forEach((btn, idx) => {
+    if (idx < num) {
+      btn.className = 'text-amber-500 hover:text-amber-500 transition px-0.5';
+      btn.textContent = '★';
+    } else {
+      btn.className = 'text-stone-300 hover:text-amber-500 transition px-0.5';
+      btn.textContent = '☆';
+    }
+  });
+}
 
-  if (!comment) return;
+function handlePublishReview() {
+  const commentInput = document.getElementById('form-comment-text');
+  const commentText = commentInput ? commentInput.value.trim() : '';
+
+  if (!commentText) {
+    showToast('Por favor escribe tu comentario antes de publicar.');
+    commentInput?.focus();
+    return;
+  }
+
+  let userName = 'Camila Rojas';
+  try {
+    const rawUser = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
+    if (rawUser) {
+      const user = JSON.parse(rawUser);
+      if (user.name || user.full_name) userName = user.name || user.full_name;
+    }
+  } catch (e) {}
 
   const now = new Date();
-  const dateStr = `${now.getDate()} de ${['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][now.getMonth()]}`;
+  const months = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
+  const dateStr = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+
+  // Extraer primera frase como título si es posible
+  let title = 'Excelente cosecha';
+  if (commentText.length > 30) {
+    const firstSentence = commentText.split('.')[0];
+    if (firstSentence && firstSentence.length <= 40) {
+      title = firstSentence;
+    }
+  }
 
   const newReview = {
     id: Date.now().toString(),
-    name,
-    neighborhood,
+    name: userName,
     rating: formSelectedStars,
-    comment,
-    date: dateStr
+    title: title,
+    comment: commentText,
+    date: dateStr,
+    verified: true
   };
 
   const reviews = getProductReviews();
   reviews.unshift(newReview);
   saveProductReviews(reviews);
 
-  // Limpiar y ocultar formulario
+  // Limpiar campo de texto
   if (commentInput) commentInput.value = '';
-  toggleReviewForm();
 
-  // Actualizar estadísticas de opiniones
-  renderProductReviews();
-  showToast('¡Gracias! Tu opinión ha sido publicada con éxito.');
+  // Cambiar vista a resumen para mostrar la opinión publicada
+  currentReviewsView = 'summary';
+  renderReviewsSection();
+  showToast('¡Gracias! Tu opinión ha sido publicada y valorada.');
 }
 
 // =============================================================================
-// 7. Utilidades de Navegación y Notificación
+// 9. Simulación / Toggle de Muestra (86 Opiniones de Imagen 2 y 3)
 // =============================================================================
-function closeProductPage() {
-  if (window.history.length > 1 && document.referrer.includes(window.location.host)) {
-    window.history.back();
+function toggleDemoMockupReviews() {
+  const reviews = getProductReviews();
+  if (reviews.length > 0) {
+    // Si ya tiene reviews, restablecer a 0
+    saveProductReviews([]);
+    currentReviewsView = 'summary';
+    renderReviewsSection();
+    showToast('Producto restablecido a 0 valoraciones (Imagen 1)');
   } else {
-    window.location.href = 'mercado.html';
+    // Cargar las 86 opiniones exactas de la muestra de referencia
+    const sampleReviews = generateMockupReviews();
+    saveProductReviews(sampleReviews);
+    currentReviewsView = 'summary';
+    renderReviewsSection();
+    showToast('Cargadas 86 opiniones de muestra (Imágenes 2 y 3)');
   }
+}
+
+function generateMockupReviews() {
+  const result = [
+    {
+      id: 'mock-1',
+      name: 'Maria Gómez',
+      rating: 5,
+      title: 'Sabor de tomate de verdad',
+      comment: 'Llegaron frescos y en su punto. Los usamos en ensalada y tienen un sabor increíble. La recogida en el nodo fue muy fácil.',
+      date: '2 nov. 2026',
+      verified: true
+    },
+    {
+      id: 'mock-2',
+      name: 'Andrés López',
+      rating: 5,
+      title: 'Muy buenos para cocinar',
+      comment: 'Jugosos y con mucho sabor. Algunos venían más maduros que otros; aproveché esos para una salsa casera. Volvería a pedirlos.',
+      date: '30 oct. 2026',
+      verified: true
+    },
+    {
+      id: 'mock-3',
+      name: 'Lucía Martínez',
+      rating: 5,
+      title: 'Frescos y llenos de sabor',
+      comment: 'Se nota la diferencia con los del supermercado. Los preparamos con un poco de sal y aceite de oliva y quedaron deliciosos. Muy buena selección.',
+      date: '28 oct. 2026',
+      verified: true
+    },
+    {
+      id: 'mock-4',
+      name: 'Jorge Ramírez',
+      rating: 5,
+      title: 'Una cosecha para compartir',
+      comment: 'Pedimos para el almuerzo familiar y nos encantaron. Llegaron firmes, con buen aroma y sin golpes. Qué gusto saber de dónde viene lo que comemos.',
+      date: '25 oct. 2026',
+      verified: true
+    },
+    {
+      id: 'mock-5',
+      name: 'Diana Torres',
+      rating: 5,
+      title: 'Perfectos para las ensaladas de la semana',
+      comment: 'Tienen una pulpa jugosa y un sabor muy natural. Los conservé en un lugar fresco como recomiendan y se mantuvieron muy bien durante la semana.',
+      date: '23 oct. 2026',
+      verified: true
+    },
+    {
+      id: 'mock-6',
+      name: 'Felipe Castro',
+      rating: 5,
+      title: 'Volveré a pedir a esta finca',
+      comment: 'La recogida fue puntual y el tomate estaba en su punto. Hicimos una salsa casera y quedó con un sabor excelente. Gracias por esta cosecha.',
+      date: '18 oct. 2026',
+      verified: true
+    }
+  ];
+
+  // Completar hasta 86 opiniones con la distribución exacta: 78 de 5★, 5 de 4★, 3 de 3★
+  const names = ['Camila Soler', 'Mateo Vargas', 'Valentina Ruiz', 'Daniel Morales', 'Sofía Herrera', 'Juan Pablo Rueda', 'Carolina Cárdenas', 'Gabriel Ospina', 'Paula Silva', 'Esteban Duarte'];
+  
+  // Agregar más 5 estrellas hasta tener 78
+  for (let i = 7; i <= 78; i++) {
+    const name = names[i % names.length];
+    result.push({
+      id: `mock-${i}`,
+      name: name,
+      rating: 5,
+      title: 'Cosecha fresca y auténtica',
+      comment: 'Excelente producto campesino, directo de la finca al barrio sin intermediarios. La calidad se nota en cada comida.',
+      date: `${Math.max(1, 28 - (i % 25))} oct. 2026`,
+      verified: true
+    });
+  }
+
+  // 5 opiniones de 4 estrellas
+  for (let i = 79; i <= 83; i++) {
+    result.push({
+      id: `mock-${i}`,
+      name: names[i % names.length],
+      rating: 4,
+      title: 'Muy buena calidad',
+      comment: 'Muy buen sabor y frescura. Uno de los tomates venía un poco más pequeño pero con excelente consistencia y aroma.',
+      date: `${Math.max(1, 20 - (i % 15))} oct. 2026`,
+      verified: true
+    });
+  }
+
+  // 3 opiniones de 3 estrellas
+  for (let i = 84; i <= 86; i++) {
+    result.push({
+      id: `mock-${i}`,
+      name: names[i % names.length],
+      rating: 3,
+      title: 'Aceptable para guisos',
+      comment: 'El sabor estuvo bien, aunque llegaron algo maduros para ensalada. Ideales para salsa de tomate casera.',
+      date: `${Math.max(1, 15 - (i % 10))} oct. 2026`,
+      verified: true
+    });
+  }
+
+  return result;
+}
+
+// =============================================================================
+// 10. Utilidades Auxiliares
+// =============================================================================
+function generateStarsHtml(avgNumeric) {
+  const fullStars = Math.floor(avgNumeric);
+  let html = '';
+  for (let i = 1; i <= 5; i++) {
+    html += `<span>${i <= fullStars ? '★' : '☆'}</span>`;
+  }
+  return html;
+}
+
+function getInitials(name) {
+  if (!name) return 'V';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return parts[0].slice(0, 2).toUpperCase();
 }
 
 function formatCOP(num) {
