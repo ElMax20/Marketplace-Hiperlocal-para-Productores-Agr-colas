@@ -15,7 +15,7 @@ let producerProducts = [
     title: 'Zanahoria de tierra',
     category: 'Verduras & Raíces',
     unit: 'Kilogramo (kg)',
-    price: 40,
+    price: 0.40,
     stock: 60,
     unitLabel: 'kg',
     status: 'publicado',
@@ -33,7 +33,7 @@ let producerProducts = [
     title: 'Canasta Agroecológica',
     category: 'Canastas Familiares',
     unit: 'Canasta',
-    price: 360,
+    price: 0.70,
     stock: 8,
     unitLabel: 'canasta',
     status: 'borrador',
@@ -51,7 +51,7 @@ let producerProducts = [
     title: 'Acelga de la huerta',
     category: 'Verduras & Raíces',
     unit: 'Manojo',
-    price: 35,
+    price: 0.35,
     stock: 0,
     unitLabel: 'manojo',
     status: 'agotado',
@@ -510,8 +510,8 @@ async function publishNewProduct() {
 
   const title = nameInput ? nameInput.value.trim() : 'Rábanos de temporada';
   const desc = descInput ? descInput.value.trim() : 'Rábanos frescos y crujientes de nuestra huerta.';
-  const rawPrice = priceInput ? priceInput.value.replace(/[^0-9]/g, '') : '28';
-  const price = Number(rawPrice) || 28;
+  const cleanPrice = priceInput ? priceInput.value.replace(/[^0-9.]/g, '') : '0.28';
+  const price = parseFloat(cleanPrice) || 0.28;
   const rawStock = stockInput ? stockInput.value.replace(/[^0-9]/g, '') : '30';
   const stock = Number(rawStock) || 30;
   const unit = unitSelect ? unitSelect.value.split('·')[0].trim() : 'Manojo';
@@ -638,9 +638,9 @@ function setupPreviewListeners() {
   if (newPrice) {
     newPrice.addEventListener('input', (e) => {
       const prev = document.getElementById('new-preview-price');
-      const val = e.target.value.replace(/[^0-9]/g, '');
+      const val = e.target.value.replace(/[^0-9.]/g, '');
       const unit = newUnit ? newUnit.value.split('·')[0].trim().toLowerCase() : 'manojo';
-      if (prev) prev.textContent = `$${val ? formatCOP(Number(val)) : '28,00'} / ${unit}`;
+      if (prev) prev.textContent = `$${val ? formatCOP(Number(val)) : '0,28'} / ${unit}`;
     });
   }
 
@@ -659,9 +659,9 @@ function setupPreviewListeners() {
   if (editPrice) {
     editPrice.addEventListener('input', (e) => {
       const prev = document.getElementById('edit-preview-price');
-      const val = e.target.value.replace(/[^0-9]/g, '');
+      const val = e.target.value.replace(/[^0-9.]/g, '');
       const unit = editUnit ? editUnit.value.replace(/[^a-zA-Z]/g, '').toLowerCase() : 'kg';
-      if (prev) prev.textContent = `$${val ? formatCOP(Number(val)) : '40,00'} / ${unit}`;
+      if (prev) prev.textContent = `$${val ? formatCOP(Number(val)) : '0,40'} / ${unit}`;
     });
   }
 }

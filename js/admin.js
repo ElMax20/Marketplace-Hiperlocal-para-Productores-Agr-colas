@@ -139,8 +139,8 @@ async function publishProductToSupabase() {
   const originInput = document.getElementById('form-product-origin');
 
   const title = nameInput ? nameInput.value.trim() : 'Rábanos de temporada';
-  let rawPrice = priceInput ? priceInput.value.replace(/[^0-9]/g, '') : '28';
-  const price = Number(rawPrice) || 28;
+  let cleanVal = priceInput ? priceInput.value.replace(/[^0-9.]/g, '') : '0.28';
+  const price = parseFloat(cleanVal) || 0.28;
   const unit = unitSelect ? unitSelect.value.split('·')[0].trim() : 'Manojo';
   const description = originInput ? originInput.value.trim() : 'Huerta El Renacer · Subachoque';
 

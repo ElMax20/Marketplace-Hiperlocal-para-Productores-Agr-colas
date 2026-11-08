@@ -212,7 +212,7 @@ function updateCartUI() {
   // Si no hay productos en el carrito, envío y total son $0
   let shippingCost = 0;
   if (subtotal > 0 && selectedDelivery === 'home') {
-    shippingCost = subtotal >= 400 ? 0 : 65;
+    shippingCost = subtotal >= 4 ? 0 : 0.35;
   }
 
   const total = subtotal > 0 ? (subtotal + shippingCost) : 0;
@@ -239,10 +239,10 @@ function updateCartUI() {
   if (freeShippingHint) {
     if (subtotal === 0) {
       freeShippingHint.innerHTML = '🌱 Tu canasta está vacía. Selecciona productos frescos de nuestros agricultores.';
-    } else if (subtotal >= 400) {
+    } else if (subtotal >= 4) {
       freeShippingHint.innerHTML = '✨ ¡Felicidades! Tienes <strong>envío gratis</strong> garantizado.';
     } else {
-      const rest = 400 - subtotal;
+      const rest = 4 - subtotal;
       freeShippingHint.innerHTML = `🌱 Agrega <strong>$${formatCOP(rest)}</strong> más para entrega a domicilio gratis.`;
     }
   }
