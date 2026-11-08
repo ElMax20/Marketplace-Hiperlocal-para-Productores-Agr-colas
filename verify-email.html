@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificación de Correo Electrónico | Raíz & Barrio</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts: Playfair Display & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .font-serif {
+      font-family: 'Playfair Display', serif;
+    }
+  </style>
+</head>
+<body class="bg-[#f7f5f0] min-h-screen text-stone-800 antialiased flex flex-col justify-between selection:bg-[#1a3d2f] selection:text-white">
+
+  <!-- ========================================================================= -->
+  <!-- 1. Encabezado de Navegación                                               -->
+  <!-- ========================================================================= -->
+  <header class="bg-white border-b border-stone-200/80 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Logo -->
+        <a href="mercado.html" class="flex items-center gap-2.5 group">
+          <div class="w-9 h-9 rounded-xl bg-[#1a3d2f] text-emerald-100 flex items-center justify-center font-bold text-lg shadow-2xs group-hover:bg-[#143025] transition">
+            🌱
+          </div>
+          <div>
+            <h1 class="font-serif text-lg font-bold text-stone-900 leading-tight">raíz & barrio</h1>
+            <p class="text-[9px] uppercase tracking-wider text-[#c85a32] font-semibold">Mercado de Cercanía</p>
+          </div>
+        </a>
+
+        <!-- Enlaces rápidos -->
+        <div class="flex items-center gap-4 text-xs font-semibold">
+          <a href="mercado.html" class="text-stone-600 hover:text-stone-900 transition flex items-center gap-1">
+            <span>←</span>
+            <span>Volver al mercado</span>
+          </a>
+          <a href="perfil.html" class="px-3.5 py-1.5 rounded-xl border border-stone-300 text-stone-700 hover:bg-stone-50 transition">
+            Mi cuenta
+          </a>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- 2. Contenido Principal: Tarjeta de Verificación                          -->
+  <!-- ========================================================================= -->
+  <main class="flex-1 flex items-center justify-center px-4 py-12">
+    <div class="max-w-md w-full">
+
+      <!-- Contenedor dinámico de estados -->
+      <div class="bg-white rounded-3xl border border-stone-200 p-8 shadow-xs text-center transition-all">
+
+        <!-- =================================================================== -->
+        <!-- Estado A: Cargando / Verificando                                   -->
+        <!-- =================================================================== -->
+        <div id="state-loading" class="space-y-4">
+          <div class="w-16 h-16 mx-auto rounded-full bg-emerald-50 text-[#1a3d2f] flex items-center justify-center text-2xl animate-spin">
+            ⏳
+          </div>
+          <h2 class="font-serif text-xl font-bold text-stone-900">
+            Verificando enlace...
+          </h2>
+          <p class="text-xs text-stone-500 max-w-sm mx-auto leading-relaxed">
+            Estamos validando el token de seguridad con la base de datos de Supabase. Esto tomará sólo un instante.
+          </p>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- Estado B: Éxito                                                    -->
+        <!-- =================================================================== -->
+        <div id="state-success" class="hidden space-y-5">
+          <div class="w-16 h-16 mx-auto rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-3xl shadow-2xs">
+            ✓
+          </div>
+          <div>
+            <span class="inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 mb-2">
+              Verificación exitosa
+            </span>
+            <h2 class="font-serif text-2xl font-bold text-stone-900">
+              ¡Correo actualizado!
+            </h2>
+          </div>
+
+          <div class="bg-stone-50 rounded-2xl border border-stone-200/80 p-4 text-xs text-stone-700 space-y-1">
+            <p class="text-stone-500">Tu nueva dirección verificada es:</p>
+            <p id="success-email-text" class="font-bold text-sm text-[#1a3d2f] break-all"></p>
+          </div>
+
+          <!-- Mensaje exacto requerido por especificación -->
+          <p id="success-message-text" class="text-xs text-stone-600 leading-relaxed font-medium">
+            Tu correo electrónico ha sido actualizado correctamente. Ya puedes iniciar sesión con tu nueva dirección.
+          </p>
+
+          <div class="pt-2 flex flex-col sm:flex-row gap-3">
+            <a 
+              href="perfil.html" 
+              class="flex-1 py-3 px-4 bg-[#1a3d2f] hover:bg-[#143025] text-white text-xs font-bold rounded-xl transition shadow-2xs text-center"
+            >
+              Ir a mi perfil
+            </a>
+            <a 
+              href="mercado.html" 
+              class="flex-1 py-3 px-4 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold rounded-xl transition text-center"
+            >
+              Ir al mercado
+            </a>
+          </div>
+        </div>
+
+        <!-- =================================================================== -->
+        <!-- Estado C: Error / Expirado                                         -->
+        <!-- =================================================================== -->
+        <div id="state-error" class="hidden space-y-5">
+          <div class="w-16 h-16 mx-auto rounded-full bg-red-100 text-red-700 flex items-center justify-center text-3xl shadow-2xs">
+            ✕
+          </div>
+          <div>
+            <span class="inline-flex items-center gap-1 text-[10px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 mb-2">
+              Solicitud no válida
+            </span>
+            <h2 id="error-title" class="font-serif text-xl font-bold text-stone-900">
+              No pudimos verificar tu correo
+            </h2>
+          </div>
+
+          <!-- Mensaje exacto de error -->
+          <div class="bg-red-50/70 rounded-2xl border border-red-200 p-4 text-xs text-red-800 leading-relaxed">
+            <p id="error-message-text" class="font-medium"></p>
+          </div>
+
+          <div class="pt-2 flex flex-col gap-2.5">
+            <a 
+              href="perfil.html" 
+              class="w-full py-3 px-4 bg-[#1a3d2f] hover:bg-[#143025] text-white text-xs font-bold rounded-xl transition shadow-2xs text-center"
+            >
+              Solicitar un nuevo enlace
+            </a>
+            <a 
+              href="mercado.html" 
+              class="w-full py-2.5 px-4 bg-transparent hover:bg-stone-100 text-stone-600 text-xs font-semibold rounded-xl transition text-center"
+            >
+              Volver al mercado
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Pie informativo -->
+      <p class="text-center text-[11px] text-stone-400 mt-6">
+        © 2026 Raíz & Barrio · Plataforma hiperlocal de comercio agrícola directo.
+      </p>
+
+    </div>
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- 3. Lógica y Controlador de Verificación de Correo (Supabase)              -->
+  <!-- ========================================================================= -->
+  <script src="js/supabase.js"></script>
+  <script>
+    /**
+     * Controlador de la ruta /verify-email
+     * Extrae el token, consulta la tabla email_change_requests en Supabase,
+     * valida vigencia (< 15 min), actualiza el perfil del usuario e invalida la solicitud.
+     */
+    document.addEventListener('DOMContentLoaded', async () => {
+      await processEmailVerification();
+    });
+
+    async function processEmailVerification() {
+      const stateLoading = document.getElementById('state-loading');
+      const stateSuccess = document.getElementById('state-success');
+      const stateError = document.getElementById('state-error');
+      const errorMsgEl = document.getElementById('error-message-text');
+      const successEmailEl = document.getElementById('success-email-text');
+
+      // 1. Extraer parámetro 'token' de la URL (?token=...)
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token') || urlParams.get('verify_email_token');
+
+      // 2. Si el parámetro token no existe:
+      if (!token || token.trim() === '') {
+        showErrorUI('Enlace de verificación inválido o ausente.');
+        return;
+      }
+
+      const cleanToken = token.trim();
+
+      // 3. Consultar la tabla email_change_requests en Supabase
+      try {
+        if (!window.supabase || typeof window.supabase.fetchApi !== 'function') {
+          showErrorUI('No se pudo establecer conexión con el servicio de base de datos.');
+          return;
+        }
+
+        // Consulta filtrando por token y vigencia (expires_at > now())
+        const endpoint = `email_change_requests?verification_token=eq.${encodeURIComponent(cleanToken)}&expires_at=gt.now()&select=*`;
+        const requests = await window.supabase.fetchApi(endpoint);
+
+        // 4. Si no hay coincidencias o ya expiró:
+        if (!requests || requests.length === 0) {
+          showErrorUI('El enlace ha caducado o no es válido. Por favor solicita uno nuevo.');
+          return;
+        }
+
+        const match = requests[0];
+        const newEmail = match.new_email;
+        const userId = match.user_id;
+
+        // Doble validación en cliente de fecha de expiración
+        if (match.expires_at) {
+          const expiresDate = new Date(match.expires_at);
+          if (expiresDate.getTime() < Date.now()) {
+            showErrorUI('El enlace ha caducado o no es válido. Por favor solicita uno nuevo.');
+            return;
+          }
+        }
+
+        // 5. La solicitud es válida:
+        // Paso 5.1: Actualizar la columna 'email' en la tabla 'profiles' para ese user_id
+        await window.supabase.fetchApi(`profiles?id=eq.${userId}`, {
+          method: 'PATCH',
+          body: { email: newEmail }
+        });
+
+        // Paso 5.2: Eliminar la fila de email_change_requests para invalidar el token
+        try {
+          await window.supabase.fetchApi(`email_change_requests?id=eq.${match.id}`, {
+            method: 'DELETE'
+          });
+        } catch (delErr) {
+          console.warn('Aviso al limpiar solicitud procesada:', delErr);
+        }
+
+        // Paso 5.3: Sincronizar la sesión local si el usuario activo corresponde a este cambio
+        try {
+          const rawLocal = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
+          if (rawLocal) {
+            const activeUser = JSON.parse(rawLocal);
+            if (activeUser.id === userId || activeUser.email === match.current_email) {
+              activeUser.email = newEmail;
+              activeUser.email_verified = true;
+              localStorage.setItem('rb_current_user', JSON.stringify(activeUser));
+              localStorage.setItem('raiz_user', JSON.stringify(activeUser));
+            }
+          }
+          // Limpiar cualquier borrador de solicitud pendiente en localStorage
+          localStorage.removeItem('rb_pending_email_change');
+        } catch (syncErr) {
+          console.warn('Error sincronizando sesión local:', syncErr);
+        }
+
+        // Paso 5.4: Mostrar pantalla de éxito
+        stateLoading.classList.add('hidden');
+        if (successEmailEl) successEmailEl.textContent = newEmail;
+        stateSuccess.classList.remove('hidden');
+
+      } catch (err) {
+        console.error('Error durante la verificación de correo:', err);
+        showErrorUI('Ocurrió un error al procesar la verificación. Por favor intenta de nuevo.');
+      }
+
+      function showErrorUI(message) {
+        stateLoading.classList.add('hidden');
+        stateSuccess.classList.add('hidden');
+        if (errorMsgEl) errorMsgEl.textContent = message;
+        stateError.classList.remove('hidden');
+      }
+    }
+  </script>
+</body>
+</html>

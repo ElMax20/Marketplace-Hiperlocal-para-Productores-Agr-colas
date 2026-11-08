@@ -117,3 +117,34 @@ ALTER TABLE public.assets ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Permitir todo anon assets" ON public.assets;
 CREATE POLICY "Permitir todo anon assets" ON public.assets 
 FOR ALL TO public USING (true) WITH CHECK (true);
+
+-- =============================================================================
+-- 9. Tabla de Solicitudes de Cambio de Correo ('public.email_change_requests')
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.email_change_requests (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL,
+    current_email text NOT NULL,
+    new_email text NOT NULL,
+    verification_token text NOT NULL,
+    expires_at timestamptz NOT NULL DEFAULT (now() + interval '15 minutes'),
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_email_change_requests_token 
+ON public.email_change_requests (verification_token);
+
+ALTER TABLE public.email_change_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir select email_change_requests" ON public.email_change_requests;
+CREATE POLICY "Permitir select email_change_requests" ON public.email_change_requests FOR SELECT TO public USING (true);
+
+DROP POLICY IF EXISTS "Permitir insert email_change_requests" ON public.email_change_requests;
+CREATE POLICY "Permitir insert email_change_requests" ON public.email_change_requests FOR INSERT TO public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir update email_change_requests" ON public.email_change_requests;
+CREATE POLICY "Permitir update email_change_requests" ON public.email_change_requests FOR UPDATE TO public USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir delete email_change_requests" ON public.email_change_requests;
+CREATE POLICY "Permitir delete email_change_requests" ON public.email_change_requests FOR DELETE TO public USING (true);
+

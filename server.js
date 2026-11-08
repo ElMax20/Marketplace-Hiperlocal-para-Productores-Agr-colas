@@ -23,6 +23,8 @@ const server = http.createServer((req, res) => {
   let reqPath = decodeURI(req.url.split('?')[0]);
   if (reqPath === '/' || reqPath === '') {
     reqPath = '/index.html';
+  } else if (reqPath === '/verify-email' || reqPath === '/verify-email/') {
+    reqPath = '/verify-email.html';
   }
 
   const filePath = path.join(__dirname, reqPath);
