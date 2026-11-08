@@ -15,7 +15,7 @@ let producerProducts = [
     title: 'Zanahoria de tierra',
     category: 'Verduras & Raíces',
     unit: 'Kilogramo (kg)',
-    price: 4000,
+    price: 40,
     stock: 60,
     unitLabel: 'kg',
     status: 'publicado',
@@ -33,7 +33,7 @@ let producerProducts = [
     title: 'Canasta Agroecológica',
     category: 'Canastas Familiares',
     unit: 'Canasta',
-    price: 36000,
+    price: 360,
     stock: 8,
     unitLabel: 'canasta',
     status: 'borrador',
@@ -51,7 +51,7 @@ let producerProducts = [
     title: 'Acelga de la huerta',
     category: 'Verduras & Raíces',
     unit: 'Manojo',
-    price: 3500,
+    price: 35,
     stock: 0,
     unitLabel: 'manojo',
     status: 'agotado',
@@ -510,8 +510,8 @@ async function publishNewProduct() {
 
   const title = nameInput ? nameInput.value.trim() : 'Rábanos de temporada';
   const desc = descInput ? descInput.value.trim() : 'Rábanos frescos y crujientes de nuestra huerta.';
-  const rawPrice = priceInput ? priceInput.value.replace(/[^0-9]/g, '') : '2800';
-  const price = Number(rawPrice) || 2800;
+  const rawPrice = priceInput ? priceInput.value.replace(/[^0-9]/g, '') : '28';
+  const price = Number(rawPrice) || 28;
   const rawStock = stockInput ? stockInput.value.replace(/[^0-9]/g, '') : '30';
   const stock = Number(rawStock) || 30;
   const unit = unitSelect ? unitSelect.value.split('·')[0].trim() : 'Manojo';
@@ -640,7 +640,7 @@ function setupPreviewListeners() {
       const prev = document.getElementById('new-preview-price');
       const val = e.target.value.replace(/[^0-9]/g, '');
       const unit = newUnit ? newUnit.value.split('·')[0].trim().toLowerCase() : 'manojo';
-      if (prev) prev.textContent = `$${val ? formatCOP(Number(val)) : '2.800,00'} / ${unit}`;
+      if (prev) prev.textContent = `$${val ? formatCOP(Number(val)) : '28,00'} / ${unit}`;
     });
   }
 
@@ -661,7 +661,7 @@ function setupPreviewListeners() {
       const prev = document.getElementById('edit-preview-price');
       const val = e.target.value.replace(/[^0-9]/g, '');
       const unit = editUnit ? editUnit.value.replace(/[^a-zA-Z]/g, '').toLowerCase() : 'kg';
-      if (prev) prev.textContent = `$${val ? formatCOP(Number(val)) : '4.000,00'} / ${unit}`;
+      if (prev) prev.textContent = `$${val ? formatCOP(Number(val)) : '40,00'} / ${unit}`;
     });
   }
 }
