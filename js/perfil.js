@@ -623,6 +623,7 @@ async function confirmEmailVerification(token, explicitEmail) {
     if (currentUser) {
       currentUser.email = targetEmail;
       currentUser.email_verified = true;
+      if (originalUserData) originalUserData.email = targetEmail;
       localStorage.setItem('rb_current_user', JSON.stringify(currentUser));
       localStorage.setItem('raiz_user', JSON.stringify(currentUser));
     }
