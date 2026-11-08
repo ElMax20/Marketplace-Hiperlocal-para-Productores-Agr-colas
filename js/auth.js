@@ -399,15 +399,6 @@ function updateAuthUI() {
           </div>
         </button>
 
-        <!-- Botón Tuerca de Configuración Directa -->
-        <a 
-          href="perfil.html" 
-          class="w-8 h-8 rounded-full border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-600 flex items-center justify-center text-sm transition shadow-2xs shrink-0"
-          title="Configuración de usuario"
-        >
-          ⚙
-        </a>
-
         <!-- Dropdown flotante al pulsar el avatar -->
         <div id="auth-user-dropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-stone-100 py-1.5 z-50 text-xs text-stone-700">
           <div class="px-4 py-2 border-b border-stone-100">
