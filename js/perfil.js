@@ -47,6 +47,7 @@ async function initProfilePage() {
   // 3. RENDERIZAR INMEDIATAMENTE (0 milisegundos de espera, sin flash de otro usuario)
   renderProfileUI(currentUser);
   updateCartBadge();
+  initPaymentMethods();
 
   // 4. Verificar si viene de un enlace de confirmación por correo desde GitHub
   const urlParams = new URLSearchParams(window.location.search);
@@ -1216,3 +1217,827 @@ function showToast(msg) {
     toast.classList.add('opacity-0', 'pointer-events-none');
   }, 4000);
 }
+
+// =============================================================================
+// MÓDULO INTERACTIVO DE MÉTODOS DE PAGO (PCI-DSS Y SUPABASE)
+// =============================================================================
+
+let cachedPaymentMethods = [];
+
+/**
+ * Algoritmo de Luhn para validación matemática de números de tarjeta
+ */
+function isValidLuhn(numberStr) {
+  const digits = String(numberStr).replace(/\D/g, '');
+  if (digits.length < 13 || digits.length > 19) return false;
+  let sum = 0;
+  let shouldDouble = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let digit = parseInt(digits.charAt(i), 10);
+    if (shouldDouble) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+  return sum % 10 === 0;
+}
+
+/**
+ * Detección de franquicia/marca de tarjeta en tiempo real
+ */
+function detectCardBrand(numberStr) {
+  const clean = String(numberStr).replace(/\D/g, '');
+  if (/^4/.test(clean)) {
+    return { brand: 'VISA', label: 'VISA', badgeClass: 'bg-[#1a1f71] text-white', icon: '💳' };
+  }
+  if (/^(5[1-5]|222[1-9]|22[3-9]|2[3-6]|27[01]|2720)/.test(clean)) {
+    return { brand: 'MASTERCARD', label: 'Mastercard', badgeClass: 'bg-[#eb001b] text-white', icon: '🔴' };
+  }
+  if (/^3[47]/.test(clean)) {
+    return { brand: 'AMEX', label: 'American Express', badgeClass: 'bg-[#2e77bc] text-white', icon: '🔷' };
+  }
+  if (/^6(011|5|4[4-9]|22)/.test(clean)) {
+    return { brand: 'DISCOVER', label: 'Discover', badgeClass: 'bg-[#ff6000] text-white', icon: '🟧' };
+  }
+  if (/^(30[0-5]|36|38)/.test(clean)) {
+    return { brand: 'DINERS', label: 'Diners Club', badgeClass: 'bg-[#004a97] text-white', icon: '🔘' };
+  }
+  return { brand: 'TARJETA', label: 'Tarjeta', badgeClass: 'bg-stone-800 text-white', icon: '💳' };
+}
+
+/**
+ * Validador estricto de fecha de vencimiento (MM/AA)
+ */
+function validateExpirationDate(expiryStr) {
+  const clean = String(expiryStr).replace(/\D/g, '');
+  if (clean.length < 4) {
+    return { valid: false, message: 'Ingresa mes y año de vencimiento en formato MM/AA.' };
+  }
+  const month = parseInt(clean.substring(0, 2), 10);
+  const year2Digits = parseInt(clean.substring(2, 4), 10);
+
+  if (month < 1 || month > 12) {
+    return { valid: false, message: 'El mes de vencimiento debe estar entre 01 y 12.' };
+  }
+
+  const fullYear = 2000 + year2Digits;
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1-12
+
+  if (fullYear < currentYear || (fullYear === currentYear && month < currentMonth)) {
+    return { valid: false, message: 'La tarjeta ingresada se encuentra vencida.' };
+  }
+  if (fullYear > currentYear + 20) {
+    return { valid: false, message: 'El año de vencimiento no es válido o supera el límite.' };
+  }
+
+  return { valid: true, month, year: fullYear };
+}
+
+/**
+ * Inicialización de escuchadores de eventos para formateo e interactividad en modales
+ */
+function initPaymentMethods() {
+  const numInput = document.getElementById('add-card-number');
+  const holderInput = document.getElementById('add-card-holder');
+  const expiryInput = document.getElementById('add-card-expiry');
+  const cvvInput = document.getElementById('add-card-cvv');
+  const editExpiryInput = document.getElementById('edit-card-expiry');
+
+  // Input Masking y Detección de Marca en Número de Tarjeta
+  if (numInput) {
+    numInput.addEventListener('input', (e) => {
+      const raw = e.target.value.replace(/\D/g, '').slice(0, 19);
+      const brandInfo = detectCardBrand(raw);
+
+      // Agrupación visual en bloques
+      let formatted = '';
+      if (brandInfo.brand === 'AMEX') {
+        // Formato AMEX 4-6-5
+        const p1 = raw.slice(0, 4);
+        const p2 = raw.slice(4, 10);
+        const p3 = raw.slice(10, 15);
+        formatted = [p1, p2, p3].filter(Boolean).join(' ');
+      } else {
+        // Estándar 4-4-4-4
+        const parts = [];
+        for (let i = 0; i < raw.length; i += 4) {
+          parts.push(raw.slice(i, i + 4));
+        }
+        formatted = parts.join(' ');
+      }
+      e.target.value = formatted;
+
+      // Actualizar etiqueta de franquicia en el input
+      const brandTag = document.getElementById('add-card-brand-tag');
+      if (brandTag) {
+        brandTag.textContent = brandInfo.label;
+        brandTag.className = `text-[10px] font-bold px-2 py-0.5 rounded transition ${brandInfo.badgeClass}`;
+      }
+
+      // Actualizar Live Preview visual
+      const previewBadge = document.getElementById('card-preview-brand-badge');
+      if (previewBadge) {
+        previewBadge.textContent = brandInfo.label;
+      }
+      const previewNumber = document.getElementById('card-preview-number');
+      if (previewNumber) {
+        if (raw.length === 0) {
+          previewNumber.textContent = '•••• •••• •••• ••••';
+        } else {
+          let masked = formatted;
+          const targetLength = brandInfo.brand === 'AMEX' ? 17 : 19;
+          while (masked.length < targetLength) {
+            if ((masked.length + 1) % 5 === 0 && brandInfo.brand !== 'AMEX') {
+              masked += ' ';
+            } else {
+              masked += '•';
+            }
+          }
+          previewNumber.textContent = masked;
+        }
+      }
+
+      // Indicador de validación de Luhn en tiempo real
+      const luhnIndicator = document.getElementById('add-card-luhn-indicator');
+      if (luhnIndicator) {
+        if (raw.length >= 13) {
+          if (isValidLuhn(raw)) {
+            luhnIndicator.innerHTML = '<span class="text-emerald-700 font-bold flex items-center gap-0.5">✓ Válida</span>';
+          } else {
+            luhnIndicator.innerHTML = '<span class="text-amber-600 font-medium">Número no válido</span>';
+          }
+        } else {
+          luhnIndicator.innerHTML = '';
+        }
+      }
+    });
+  }
+
+  // Nombre en la tarjeta -> Live Preview
+  if (holderInput) {
+    holderInput.addEventListener('input', (e) => {
+      const val = e.target.value.trim().toUpperCase();
+      const previewHolder = document.getElementById('card-preview-holder');
+      if (previewHolder) {
+        previewHolder.textContent = val || (currentUser?.name || 'NOMBRE APELLIDO').toUpperCase();
+      }
+    });
+  }
+
+  // Fecha de Expiración -> Input Masking MM/AA y Live Preview
+  if (expiryInput) {
+    expiryInput.addEventListener('input', (e) => {
+      let val = e.target.value.replace(/\D/g, '').slice(0, 4);
+      if (val.length >= 3) {
+        val = val.slice(0, 2) + '/' + val.slice(2);
+      }
+      e.target.value = val;
+      const previewExpiry = document.getElementById('card-preview-expiry');
+      if (previewExpiry) {
+        previewExpiry.textContent = val || 'MM/AA';
+      }
+    });
+  }
+
+  // Input Masking para el modal de edición
+  if (editExpiryInput) {
+    editExpiryInput.addEventListener('input', (e) => {
+      let val = e.target.value.replace(/\D/g, '').slice(0, 4);
+      if (val.length >= 3) {
+        val = val.slice(0, 2) + '/' + val.slice(2);
+      }
+      e.target.value = val;
+    });
+  }
+
+  // Formato de CVV
+  if (cvvInput) {
+    cvvInput.addEventListener('input', (e) => {
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+    });
+  }
+
+  // Carga reactiva de tarjetas desde Supabase
+  loadPaymentMethods();
+}
+
+/**
+ * Carga y renderiza los métodos de pago guardados en Supabase
+ */
+async function loadPaymentMethods() {
+  const container = document.getElementById('payment-methods-container');
+  if (!container) return;
+
+  let userId = currentUser?.id;
+  if (!userId || userId === '00000000-0000-0000-0000-000000000001') {
+    // Si Max tiene id de perfil en Supabase
+    if (window.supabase && typeof window.supabase.fetchApi === 'function' && currentUser?.username) {
+      try {
+        const profs = await window.supabase.fetchApi(`profiles?username=eq.${encodeURIComponent(currentUser.username)}&select=id`);
+        if (profs && profs.length > 0 && profs[0].id) {
+          userId = profs[0].id;
+          currentUser.id = userId;
+        }
+      } catch (_) {}
+    }
+  }
+
+  if (!userId) {
+    userId = '00000000-0000-0000-0000-000000000001';
+  }
+
+  let cards = [];
+  if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+    try {
+      const endpoint = `payment_methods?user_id=eq.${userId}&order=is_default.desc,created_at.desc&select=*`;
+      const res = await window.supabase.fetchApi(endpoint);
+      if (Array.isArray(res)) {
+        cards = res;
+      }
+    } catch (err) {
+      console.warn('Advertencia al consultar payment_methods en Supabase:', err);
+    }
+  }
+
+  cachedPaymentMethods = cards;
+
+  // Renderizar métodos alternativos (PSE / Nequi)
+  const altPref = localStorage.getItem('rb_preferred_alt_payment');
+  renderAlternativeMethods(altPref, cards.some(c => c.is_default));
+
+  // Renderizar tarjetas
+  if (cards.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-6 px-4 border-2 border-dashed border-stone-200 rounded-2xl bg-stone-50/50">
+        <span class="text-2xl mb-1 block">💳</span>
+        <p class="text-xs font-bold text-stone-700">No tienes tarjetas guardadas</p>
+        <p class="text-[11px] text-stone-400 mt-0.5">Añade una tarjeta para pagar con mayor agilidad en tus pedidos.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = cards.map(card => {
+    const isDef = card.is_default === true && !altPref;
+    const expM = String(card.exp_month || 1).padStart(2, '0');
+    const expY = String(card.exp_year || 28).slice(-2);
+    const brandUpper = (card.brand || 'VISA').toUpperCase();
+
+    return `
+      <div class="bg-[#faf8f4] border ${isDef ? 'border-emerald-300 ring-1 ring-emerald-200/60' : 'border-stone-200/80'} rounded-xl p-4 shadow-2xs transition">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center gap-2">
+            <span class="font-bold text-sm tracking-wider text-stone-900">${brandUpper}</span>
+          </div>
+          ${isDef ? `
+            <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+              <span>✓</span>
+              <span>Método preferido</span>
+            </span>
+          ` : `
+            <button 
+              type="button" 
+              onclick="setDefaultPaymentMethod('${card.id}')" 
+              class="text-[11px] text-stone-500 hover:text-stone-900 font-semibold hover:underline cursor-pointer"
+            >
+              Hacer preferido
+            </button>
+          `}
+        </div>
+        <p class="font-mono text-base tracking-widest text-stone-800 my-2 font-bold">
+          ••••  ••••  ••••  ${card.last4}
+        </p>
+        <div class="flex items-center justify-between text-[10px] text-stone-400 pt-1">
+          <div>
+            <span class="block text-[9px] uppercase tracking-wider">TITULAR</span>
+            <span class="font-semibold text-stone-700 text-xs uppercase">${escapeHtml(card.cardholder_name || 'TITULAR')}</span>
+          </div>
+          <div class="text-right">
+            <span class="block text-[9px] uppercase tracking-wider">CADUCA</span>
+            <span class="font-semibold text-stone-700 text-xs font-mono">${expM}/${expY}</span>
+          </div>
+        </div>
+        
+        <div class="mt-3 pt-2.5 border-t border-stone-200/60 flex items-center gap-4 text-xs font-semibold">
+          <button 
+            type="button" 
+            onclick="openEditCardModal('${card.id}')" 
+            class="text-stone-700 hover:underline cursor-pointer flex items-center gap-1"
+          >
+            <span>✏️</span>
+            <span>Editar</span>
+          </button>
+          <button 
+            type="button" 
+            onclick="openDeleteCardModal('${card.id}', '${brandUpper}', '${card.last4}')" 
+            class="text-red-600 hover:underline cursor-pointer flex items-center gap-1"
+          >
+            <span>🗑️</span>
+            <span>Eliminar</span>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/**
+ * Renderiza el estado de las opciones alternativas (PSE / Nequi)
+ */
+function renderAlternativeMethods(preferredAlt, anyCardPreferred) {
+  const pseAction = document.getElementById('method-action-pse');
+  const nequiAction = document.getElementById('method-action-nequi');
+  const pseRow = document.getElementById('method-row-pse');
+  const nequiRow = document.getElementById('method-row-nequi');
+
+  if (pseAction && pseRow) {
+    if (preferredAlt === 'PSE') {
+      pseAction.innerHTML = `
+        <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+          <span>✓</span>
+          <span>Método preferido</span>
+        </span>
+      `;
+      pseRow.classList.add('bg-emerald-50/40', 'border-emerald-200/50');
+    } else {
+      pseAction.innerHTML = `
+        <button type="button" onclick="setAlternativePreferredMethod('PSE')" class="text-[11px] text-stone-500 hover:text-stone-900 underline cursor-pointer">
+          Hacer preferido
+        </button>
+      `;
+      pseRow.classList.remove('bg-emerald-50/40', 'border-emerald-200/50');
+    }
+  }
+
+  if (nequiAction && nequiRow) {
+    if (preferredAlt === 'Nequi') {
+      nequiAction.innerHTML = `
+        <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+          <span>✓</span>
+          <span>Método preferido</span>
+        </span>
+      `;
+      nequiRow.classList.add('bg-emerald-50/40', 'border-emerald-200/50');
+    } else {
+      nequiAction.innerHTML = `
+        <button type="button" onclick="setAlternativePreferredMethod('Nequi')" class="text-[11px] text-stone-500 hover:text-stone-900 underline cursor-pointer">
+          Hacer preferido
+        </button>
+      `;
+      nequiRow.classList.remove('bg-emerald-50/40', 'border-emerald-200/50');
+    }
+  }
+}
+
+/**
+ * Abre el modal para añadir una nueva tarjeta
+ */
+function openAddCardModal() {
+  const modal = document.getElementById('modal-add-card');
+  const holderInput = document.getElementById('add-card-holder');
+  const numInput = document.getElementById('add-card-number');
+  const expiryInput = document.getElementById('add-card-expiry');
+  const cvvInput = document.getElementById('add-card-cvv');
+  const defaultCheckbox = document.getElementById('add-card-default');
+  const errorMsg = document.getElementById('add-card-error');
+
+  // Limpiar campos
+  if (holderInput) holderInput.value = (currentUser?.name || '').toUpperCase();
+  if (numInput) numInput.value = '';
+  if (expiryInput) expiryInput.value = '';
+  if (cvvInput) cvvInput.value = '';
+  if (defaultCheckbox) defaultCheckbox.checked = cachedPaymentMethods.length === 0 || !cachedPaymentMethods.some(c => c.is_default);
+
+  // Limpiar indicador de Luhn y tag
+  const luhn = document.getElementById('add-card-luhn-indicator');
+  if (luhn) luhn.innerHTML = '';
+  const brandTag = document.getElementById('add-card-brand-tag');
+  if (brandTag) {
+    brandTag.textContent = 'AUTO';
+    brandTag.className = 'text-[10px] font-bold px-2 py-0.5 rounded bg-stone-200 text-stone-600';
+  }
+
+  // Reiniciar Live Preview
+  const previewBadge = document.getElementById('card-preview-brand-badge');
+  if (previewBadge) previewBadge.textContent = 'TARJETA';
+  const previewNumber = document.getElementById('card-preview-number');
+  if (previewNumber) previewNumber.textContent = '•••• •••• •••• ••••';
+  const previewHolder = document.getElementById('card-preview-holder');
+  if (previewHolder) previewHolder.textContent = (currentUser?.name || 'NOMBRE APELLIDO').toUpperCase();
+  const previewExpiry = document.getElementById('card-preview-expiry');
+  if (previewExpiry) previewExpiry.textContent = 'MM/AA';
+
+  if (errorMsg) {
+    errorMsg.textContent = '';
+    errorMsg.classList.add('hidden');
+  }
+
+  if (modal) modal.classList.remove('hidden');
+  setTimeout(() => {
+    numInput?.focus();
+  }, 100);
+}
+
+/**
+ * Cierra el modal de añadir tarjeta
+ */
+function closeAddCardModal() {
+  const modal = document.getElementById('modal-add-card');
+  if (modal) modal.classList.add('hidden');
+}
+
+/**
+ * Procesa la inserción tokenizada de una nueva tarjeta en Supabase
+ */
+async function submitAddPaymentMethod() {
+  const holderInput = document.getElementById('add-card-holder');
+  const numInput = document.getElementById('add-card-number');
+  const expiryInput = document.getElementById('add-card-expiry');
+  const cvvInput = document.getElementById('add-card-cvv');
+  const defaultCheckbox = document.getElementById('add-card-default');
+  const errorMsg = document.getElementById('add-card-error');
+  const btn = document.getElementById('btn-save-card');
+  const btnText = document.getElementById('btn-save-card-text');
+
+  const holder = holderInput ? holderInput.value.trim() : '';
+  const cleanNumber = numInput ? numInput.value.replace(/\D/g, '') : '';
+  const expiry = expiryInput ? expiryInput.value.trim() : '';
+  const cvv = cvvInput ? cvvInput.value.trim() : '';
+  const isDefaultChecked = defaultCheckbox ? defaultCheckbox.checked : false;
+
+  const showError = (msg) => {
+    if (errorMsg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.remove('hidden');
+    }
+  };
+
+  if (errorMsg) errorMsg.classList.add('hidden');
+
+  // 1. Validaciones estrictas
+  if (!holder || holder.length < 3) {
+    showError('Por favor ingresa el nombre completo del titular de la tarjeta.');
+    holderInput?.focus();
+    return;
+  }
+
+  if (!cleanNumber || cleanNumber.length < 13 || cleanNumber.length > 19) {
+    showError('El número de tarjeta debe contener entre 13 y 19 dígitos.');
+    numInput?.focus();
+    return;
+  }
+
+  // Validación de Luhn matemática
+  if (!isValidLuhn(cleanNumber)) {
+    showError('El número de tarjeta no es válido (falla en el algoritmo de validación de Luhn). Por favor verifica los dígitos ingresados.');
+    numInput?.focus();
+    return;
+  }
+
+  // Validación de fecha de vencimiento
+  const expCheck = validateExpirationDate(expiry);
+  if (!expCheck.valid) {
+    showError(expCheck.message);
+    expiryInput?.focus();
+    return;
+  }
+
+  // Validación de CVV
+  if (!cvv || cvv.length < 3 || cvv.length > 4) {
+    showError('Por favor ingresa un código de seguridad (CVV) válido de 3 o 4 dígitos.');
+    cvvInput?.focus();
+    return;
+  }
+
+  // 2. Extraer datos conforme a PCI-DSS (NUNCA almacenar el número completo ni CVV)
+  const last4 = cleanNumber.slice(-4);
+  const brandInfo = detectCardBrand(cleanNumber);
+  const brand = brandInfo.brand;
+  const expMonth = expCheck.month;
+  const expYear = expCheck.year;
+  const isDefault = isDefaultChecked || cachedPaymentMethods.length === 0;
+
+  const userId = currentUser?.id || '00000000-0000-0000-0000-000000000001';
+
+  // Estado de carga en botón
+  if (btn) btn.disabled = true;
+  if (btnText) btnText.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Guardando...';
+
+  try {
+    if (!window.supabase || typeof window.supabase.fetchApi !== 'function') {
+      throw new Error('Servicio de base de datos no disponible.');
+    }
+
+    // 3. Si se marcó como preferido, desmarcar las demás tarjetas del usuario
+    if (isDefault) {
+      try {
+        await window.supabase.fetchApi(`payment_methods?user_id=eq.${userId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ is_default: false })
+        });
+        localStorage.removeItem('rb_preferred_alt_payment');
+      } catch (cleanErr) {
+        console.warn('Aviso al desmarcar tarjetas preferidas:', cleanErr);
+      }
+    }
+
+    // 4. Insertar nuevo registro en Supabase
+    const payload = {
+      user_id: userId,
+      brand: brand,
+      last4: last4,
+      cardholder_name: holder,
+      exp_month: expMonth,
+      exp_year: expYear,
+      is_default: isDefault
+    };
+
+    await window.supabase.fetchApi('payment_methods', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    closeAddCardModal();
+    showToast('✨ ¡Método de pago añadido exitosamente!');
+
+    // Recarga reactiva inmediata
+    await loadPaymentMethods();
+
+  } catch (err) {
+    console.error('Error al guardar método de pago en Supabase:', err);
+    showError('No se pudo guardar la tarjeta: ' + (err.message || 'Error de conexión con la base de datos.'));
+  } finally {
+    if (btn) btn.disabled = false;
+    if (btnText) btnText.textContent = 'Guardar tarjeta';
+  }
+}
+
+/**
+ * Abre el modal de edición de titular y vencimiento
+ */
+function openEditCardModal(cardId) {
+  const card = cachedPaymentMethods.find(c => c.id === cardId);
+  if (!card) return;
+
+  const modal = document.getElementById('modal-edit-card');
+  const idInput = document.getElementById('edit-card-id');
+  const brandBadge = document.getElementById('edit-card-brand-badge');
+  const maskedDisplay = document.getElementById('edit-card-masked-display');
+  const holderInput = document.getElementById('edit-card-holder');
+  const expiryInput = document.getElementById('edit-card-expiry');
+  const errorMsg = document.getElementById('edit-card-error');
+
+  if (idInput) idInput.value = card.id;
+  if (brandBadge) brandBadge.textContent = (card.brand || 'VISA').toUpperCase();
+  if (maskedDisplay) maskedDisplay.textContent = `•••• ${card.last4}`;
+  if (holderInput) holderInput.value = card.cardholder_name || '';
+
+  const expM = String(card.exp_month || 1).padStart(2, '0');
+  const expY = String(card.exp_year || 28).slice(-2);
+  if (expiryInput) expiryInput.value = `${expM}/${expY}`;
+
+  if (errorMsg) {
+    errorMsg.textContent = '';
+    errorMsg.classList.add('hidden');
+  }
+
+  if (modal) modal.classList.remove('hidden');
+  setTimeout(() => {
+    holderInput?.focus();
+  }, 100);
+}
+
+/**
+ * Cierra el modal de edición
+ */
+function closeEditCardModal() {
+  const modal = document.getElementById('modal-edit-card');
+  if (modal) modal.classList.add('hidden');
+}
+
+/**
+ * Guarda los cambios de titular y fecha de vencimiento en Supabase
+ */
+async function submitEditPaymentMethod() {
+  const idInput = document.getElementById('edit-card-id');
+  const holderInput = document.getElementById('edit-card-holder');
+  const expiryInput = document.getElementById('edit-card-expiry');
+  const errorMsg = document.getElementById('edit-card-error');
+  const btn = document.getElementById('btn-update-card');
+  const btnText = document.getElementById('btn-update-card-text');
+
+  const cardId = idInput ? idInput.value : '';
+  const holder = holderInput ? holderInput.value.trim() : '';
+  const expiry = expiryInput ? expiryInput.value.trim() : '';
+
+  const showError = (msg) => {
+    if (errorMsg) {
+      errorMsg.textContent = msg;
+      errorMsg.classList.remove('hidden');
+    }
+  };
+
+  if (errorMsg) errorMsg.classList.add('hidden');
+
+  if (!cardId) {
+    showError('Identificador de tarjeta no válido.');
+    return;
+  }
+
+  if (!holder || holder.length < 3) {
+    showError('Por favor ingresa el nombre del titular.');
+    holderInput?.focus();
+    return;
+  }
+
+  const expCheck = validateExpirationDate(expiry);
+  if (!expCheck.valid) {
+    showError(expCheck.message);
+    expiryInput?.focus();
+    return;
+  }
+
+  if (btn) btn.disabled = true;
+  if (btnText) btnText.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Guardando...';
+
+  try {
+    if (!window.supabase || typeof window.supabase.fetchApi !== 'function') {
+      throw new Error('Servicio de base de datos no disponible.');
+    }
+
+    await window.supabase.fetchApi(`payment_methods?id=eq.${cardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        cardholder_name: holder,
+        exp_month: expCheck.month,
+        exp_year: expCheck.year
+      })
+    });
+
+    closeEditCardModal();
+    showToast('✨ Tarjeta actualizada con éxito.');
+    await loadPaymentMethods();
+
+  } catch (err) {
+    console.error('Error al editar tarjeta en Supabase:', err);
+    showError('No se pudo actualizar la tarjeta: ' + (err.message || 'Error de red.'));
+  } finally {
+    if (btn) btn.disabled = false;
+    if (btnText) btnText.textContent = 'Guardar cambios';
+  }
+}
+
+/**
+ * Abre el modal de confirmación de eliminación
+ */
+function openDeleteCardModal(cardId, brand, last4) {
+  const modal = document.getElementById('modal-delete-card');
+  const idInput = document.getElementById('delete-card-id');
+  const infoEl = document.getElementById('delete-card-info');
+
+  if (idInput) idInput.value = cardId;
+  if (infoEl) infoEl.textContent = `${brand} terminada en ${last4}`;
+
+  if (modal) modal.classList.remove('hidden');
+}
+
+/**
+ * Cierra el modal de confirmación de eliminación
+ */
+function closeDeleteCardModal() {
+  const modal = document.getElementById('modal-delete-card');
+  if (modal) modal.classList.add('hidden');
+}
+
+/**
+ * Elimina la tarjeta en Supabase y reasigna automáticamente el método preferido si correspondía
+ */
+async function submitDeletePaymentMethod() {
+  const idInput = document.getElementById('delete-card-id');
+  const cardId = idInput ? idInput.value : '';
+  const btn = document.getElementById('btn-confirm-delete-card');
+  const btnText = document.getElementById('btn-confirm-delete-text');
+
+  if (!cardId) return;
+
+  const targetCard = cachedPaymentMethods.find(c => c.id === cardId);
+  const wasDefault = targetCard ? targetCard.is_default : false;
+  const userId = currentUser?.id || '00000000-0000-0000-0000-000000000001';
+
+  if (btn) btn.disabled = true;
+  if (btnText) btnText.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Eliminando...';
+
+  try {
+    if (!window.supabase || typeof window.supabase.fetchApi !== 'function') {
+      throw new Error('Servicio de base de datos no disponible.');
+    }
+
+    // 1. Eliminar la tarjeta en Supabase
+    await window.supabase.fetchApi(`payment_methods?id=eq.${cardId}`, {
+      method: 'DELETE'
+    });
+
+    // 2. Si la tarjeta era la preferida y el usuario aún tiene tarjetas guardadas, asignar is_default = true a la más reciente
+    if (wasDefault) {
+      const remaining = cachedPaymentMethods.filter(c => c.id !== cardId);
+      if (remaining.length > 0) {
+        try {
+          await window.supabase.fetchApi(`payment_methods?id=eq.${remaining[0].id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ is_default: true })
+          });
+        } catch (prefErr) {
+          console.warn('Aviso al reasignar método preferido:', prefErr);
+        }
+      }
+    }
+
+    closeDeleteCardModal();
+    showToast('🗑️ Tarjeta eliminada con éxito.');
+    await loadPaymentMethods();
+
+  } catch (err) {
+    console.error('Error al eliminar tarjeta en Supabase:', err);
+    showToast('Ocurrió un error al eliminar la tarjeta: ' + (err.message || 'Error de red.'));
+  } finally {
+    if (btn) btn.disabled = false;
+    if (btnText) btnText.textContent = 'Confirmar eliminación';
+  }
+}
+
+/**
+ * Establece una tarjeta guardada como método de pago preferido
+ */
+async function setDefaultPaymentMethod(cardId) {
+  const userId = currentUser?.id || '00000000-0000-0000-0000-000000000001';
+
+  try {
+    if (!window.supabase || typeof window.supabase.fetchApi !== 'function') {
+      throw new Error('Servicio de base de datos no disponible.');
+    }
+
+    // 1. Poner is_default = false en todas las tarjetas de este usuario
+    await window.supabase.fetchApi(`payment_methods?user_id=eq.${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_default: false })
+    });
+
+    // 2. Poner is_default = true en la tarjeta seleccionada
+    await window.supabase.fetchApi(`payment_methods?id=eq.${cardId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ is_default: true })
+    });
+
+    // Quitar preferencia alternativa
+    localStorage.removeItem('rb_preferred_alt_payment');
+
+    showToast('✨ Tarjeta establecida como método preferido.');
+    await loadPaymentMethods();
+
+  } catch (err) {
+    console.error('Error al cambiar método de pago preferido:', err);
+    showToast('No se pudo actualizar el método preferido: ' + (err.message || 'Error de red.'));
+  }
+}
+
+/**
+ * Establece un método de pago alternativo (PSE / Nequi) como preferido
+ */
+async function setAlternativePreferredMethod(methodName) {
+  const userId = currentUser?.id || '00000000-0000-0000-0000-000000000001';
+
+  try {
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      // Poner is_default = false en las tarjetas
+      await window.supabase.fetchApi(`payment_methods?user_id=eq.${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_default: false })
+      });
+    }
+
+    localStorage.setItem('rb_preferred_alt_payment', methodName);
+    showToast(`✨ ${methodName} establecido como método preferido.`);
+    await loadPaymentMethods();
+
+  } catch (err) {
+    console.error('Error al establecer método preferido:', err);
+    showToast('Error al actualizar método preferido.');
+  }
+}
+
+/**
+ * Función auxiliar para escapar texto HTML
+ */
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+

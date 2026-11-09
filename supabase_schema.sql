@@ -187,4 +187,42 @@ CREATE POLICY "Permitir delete password_change_requests" ON public.password_chan
 
 GRANT ALL ON TABLE public.password_change_requests TO anon, authenticated, service_role;
 
+-- =============================================================================
+-- 11. Tabla de Métodos de Pago Tokenizados ('public.payment_methods')
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.payment_methods (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+    brand text NOT NULL,
+    last4 varchar(4) NOT NULL,
+    cardholder_name text NOT NULL,
+    exp_month int NOT NULL CHECK (exp_month BETWEEN 1 AND 12),
+    exp_year int NOT NULL,
+    is_default boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_payment_methods_user_id 
+ON public.payment_methods (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_payment_methods_user_default 
+ON public.payment_methods (user_id, is_default);
+
+ALTER TABLE public.payment_methods ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir select payment_methods" ON public.payment_methods;
+CREATE POLICY "Permitir select payment_methods" ON public.payment_methods FOR SELECT TO public USING (true);
+
+DROP POLICY IF EXISTS "Permitir insert payment_methods" ON public.payment_methods;
+CREATE POLICY "Permitir insert payment_methods" ON public.payment_methods FOR INSERT TO public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir update payment_methods" ON public.payment_methods;
+CREATE POLICY "Permitir update payment_methods" ON public.payment_methods FOR UPDATE TO public USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir delete payment_methods" ON public.payment_methods;
+CREATE POLICY "Permitir delete payment_methods" ON public.payment_methods FOR DELETE TO public USING (true);
+
+GRANT ALL ON TABLE public.payment_methods TO anon, authenticated, service_role;
+
+
 

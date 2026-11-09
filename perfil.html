@@ -495,78 +495,79 @@
           <!-- Card 3: Tarjetas y opciones de pago                               -->
           <!-- ================================================================= -->
           <div class="bg-white rounded-2xl border border-stone-200 p-6 shadow-xs">
-            <h2 class="font-bold text-sm text-stone-900">Tarjetas y opciones de pago</h2>
-            <p class="text-xs text-stone-400 mt-0.5 mb-4">Elige cómo quieres pagar tus compras en el mercado.</p>
+            <div class="flex items-center justify-between mb-1">
+              <h2 class="font-bold text-sm text-stone-900">Tarjetas y opciones de pago</h2>
+              <span class="text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/60 px-2.5 py-0.5 rounded-full flex items-center gap-1 shadow-2xs">
+                <span>🛡️</span>
+                <span>PCI-DSS Cifrado</span>
+              </span>
+            </div>
+            <p class="text-xs text-stone-400 mb-4">Elige cómo quieres pagar tus compras en el mercado.</p>
 
-            <!-- Tarjeta VISA Preferida -->
-            <div class="bg-[#faf8f4] border border-stone-200/80 rounded-xl p-4 shadow-2xs">
-              <div class="flex items-center justify-between mb-2">
-                <span class="font-bold text-sm tracking-wider text-stone-900">VISA</span>
-                <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                  <span>✓</span>
-                  <span>Método preferido</span>
-                </span>
-              </div>
-              <p class="font-mono text-base tracking-widest text-stone-800 my-2 font-bold">
-                ••••  ••••  ••••  4821
-              </p>
-              <div class="flex items-center justify-between text-[10px] text-stone-400 pt-1">
-                <div>
-                  <span class="block text-[9px] uppercase tracking-wider">TITULAR</span>
-                  <span id="card-holder-name-display" class="font-semibold text-stone-700 text-xs">Max</span>
+            <!-- Contenedor dinámico de tarjetas guardadas en Supabase -->
+            <div id="payment-methods-container" class="space-y-3">
+              <!-- Skeleton loader inicial mientras consulta Supabase -->
+              <div class="bg-[#faf8f4] border border-stone-200/80 rounded-xl p-4 shadow-2xs animate-pulse">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="h-4 w-16 bg-stone-200 rounded"></div>
+                  <div class="h-4 w-24 bg-stone-200 rounded-full"></div>
                 </div>
-                <div class="text-right">
-                  <span class="block text-[9px] uppercase tracking-wider">CADUCA</span>
-                  <span class="font-semibold text-stone-700 text-xs">08/28</span>
+                <div class="h-5 w-48 bg-stone-200 rounded my-2"></div>
+                <div class="flex justify-between pt-1">
+                  <div class="h-3 w-20 bg-stone-200 rounded"></div>
+                  <div class="h-3 w-12 bg-stone-200 rounded"></div>
                 </div>
-              </div>
-              
-              <div class="mt-3 pt-2.5 border-t border-stone-200/60 flex items-center gap-3 text-xs font-semibold">
-                <button type="button" onclick="showToast('Opciones de edición de tarjeta activadas.')" class="text-stone-700 hover:underline cursor-pointer">
-                  Editar
-                </button>
-                <button type="button" onclick="showToast('Tarjeta de pago retirada.')" class="text-red-600 hover:underline cursor-pointer">
-                  Eliminar
-                </button>
               </div>
             </div>
 
+            <!-- Botón Añadir método de pago -->
             <button 
               type="button" 
-              onclick="showToast('Añadir método de pago: PSE, Tarjeta o billetera digital.')" 
-              class="mt-3.5 inline-flex items-center gap-1.5 px-4 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 hover:bg-stone-50 transition shadow-2xs cursor-pointer"
+              id="btn-add-payment-method"
+              onclick="openAddCardModal()" 
+              class="mt-3.5 inline-flex items-center gap-1.5 px-4 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 hover:bg-stone-50 transition shadow-2xs cursor-pointer active:scale-95"
             >
-              + Añadir método de pago
+              <span class="text-sm font-bold text-[#1a3d2f]">+</span>
+              <span>Añadir método de pago</span>
             </button>
 
-            <!-- Otros métodos -->
+            <!-- Otros métodos alternativos (PSE / Nequi) -->
             <div class="mt-4 pt-3.5 border-t border-stone-100 text-xs">
               <p class="font-semibold text-stone-700 mb-2">También puedes pagar con</p>
               <div class="space-y-2">
-                <div class="flex items-center justify-between text-stone-700">
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm">🏛</span>
-                    <span>PSE · Débito desde tu banco</span>
+                
+                <!-- Fila PSE -->
+                <div id="method-row-pse" class="flex items-center justify-between text-stone-700 p-2.5 rounded-xl border border-transparent hover:border-stone-200 transition">
+                  <div class="flex items-center gap-2.5">
+                    <span class="text-base">🏛</span>
+                    <span class="font-medium">PSE · Débito desde tu banco</span>
                   </div>
-                  <button type="button" onclick="showToast('PSE establecido como método preferido.')" class="text-[11px] text-stone-500 hover:text-stone-900 underline cursor-pointer">
-                    Hacer preferido
-                  </button>
-                </div>
-                <div class="flex items-center justify-between text-stone-700">
-                  <div class="flex items-center gap-2">
-                    <span class="text-sm">📱</span>
-                    <span>Nequi · Billetera digital</span>
+                  <div id="method-action-pse">
+                    <button type="button" onclick="setAlternativePreferredMethod('PSE')" class="text-[11px] text-stone-500 hover:text-stone-900 underline cursor-pointer">
+                      Hacer preferido
+                    </button>
                   </div>
-                  <button type="button" onclick="showToast('Nequi establecido como método preferido.')" class="text-[11px] text-stone-500 hover:text-stone-900 underline cursor-pointer">
-                    Hacer preferido
-                  </button>
                 </div>
+
+                <!-- Fila Nequi -->
+                <div id="method-row-nequi" class="flex items-center justify-between text-stone-700 p-2.5 rounded-xl border border-transparent hover:border-stone-200 transition">
+                  <div class="flex items-center gap-2.5">
+                    <span class="text-base">📱</span>
+                    <span class="font-medium">Nequi · Billetera digital</span>
+                  </div>
+                  <div id="method-action-nequi">
+                    <button type="button" onclick="setAlternativePreferredMethod('Nequi')" class="text-[11px] text-stone-500 hover:text-stone-900 underline cursor-pointer">
+                      Hacer preferido
+                    </button>
+                  </div>
+                </div>
+
               </div>
             </div>
 
             <p class="text-[10px] text-stone-400 mt-3 flex items-start gap-1 leading-tight">
               <span>🔒</span>
-              <span>Tus datos de pago están protegidos. Nunca mostramos el número completo ni el código de seguridad.</span>
+              <span>Tus datos de pago están protegidos. Por normativa PCI-DSS, nunca almacenamos números completos ni códigos de seguridad.</span>
             </p>
           </div>
 
@@ -848,6 +849,297 @@
       <div class="bg-stone-50 border-t border-stone-200 px-5 py-3 flex items-center justify-between text-[11px] text-stone-500">
         <span>⏱ Expira en 10 minutos</span>
         <span>Máximo 3 intentos</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 7. Modal: Añadir Método de Pago (Con Validación Luhn y Detección de Marca)-->
+  <!-- ========================================================================= -->
+  <div id="modal-add-card" class="hidden fixed inset-0 z-[85] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs select-none">
+    <div class="bg-white rounded-3xl max-w-sm sm:max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Cabecera del modal -->
+      <div class="bg-stone-50 border-b border-stone-200 px-5 py-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-sm font-bold shadow-2xs">💳</span>
+          <div>
+            <h3 class="font-serif font-bold text-stone-900 text-base">Añadir método de pago</h3>
+            <p class="text-[11px] text-stone-500">Cifrado seguro conforme a PCI-DSS</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeAddCardModal()" class="w-8 h-8 rounded-full bg-white hover:bg-stone-200 text-stone-500 flex items-center justify-center text-sm font-bold transition shadow-xs cursor-pointer" title="Cerrar">
+          ✕
+        </button>
+      </div>
+
+      <!-- Contenido y Formulario interactivo -->
+      <form onsubmit="event.preventDefault(); submitAddPaymentMethod();" class="p-5 sm:p-6 space-y-4">
+        
+        <!-- Live Preview visual de la tarjeta -->
+        <div class="rounded-2xl p-4 bg-gradient-to-br from-stone-900 via-stone-800 to-[#1a3d2f] text-white shadow-md relative overflow-hidden transition-all duration-300">
+          <div class="absolute -right-6 -bottom-6 w-28 h-28 bg-emerald-500/10 rounded-full blur-xl pointer-events-none"></div>
+          <div class="flex items-center justify-between mb-3">
+            <span class="text-xs font-semibold text-stone-300 tracking-wider">MERCADO RAÍZ & BARRIO</span>
+            <span id="card-preview-brand-badge" class="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-white/20 text-white backdrop-blur-xs">
+              TARJETA
+            </span>
+          </div>
+          <p id="card-preview-number" class="font-mono text-base sm:text-lg tracking-[0.18em] my-2 font-medium text-stone-100">
+            •••• •••• •••• ••••
+          </p>
+          <div class="flex items-center justify-between text-[10px] text-stone-300 pt-1">
+            <div>
+              <span class="block text-[8px] uppercase tracking-wider text-stone-400">TITULAR</span>
+              <span id="card-preview-holder" class="font-semibold text-white uppercase truncate max-w-[170px] block">NOMBRE APELLIDO</span>
+            </div>
+            <div class="text-right">
+              <span class="block text-[8px] uppercase tracking-wider text-stone-400">EXPIRA</span>
+              <span id="card-preview-expiry" class="font-semibold font-mono text-white">MM/AA</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Campos del formulario -->
+        <div class="space-y-3">
+          
+          <!-- Nombre en la tarjeta -->
+          <div>
+            <label for="add-card-holder" class="block text-xs font-bold text-stone-700 mb-1">Nombre en la tarjeta *</label>
+            <input 
+              type="text" 
+              id="add-card-holder" 
+              required
+              autocomplete="cc-name"
+              placeholder="Ej. Max"
+              class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition uppercase"
+            >
+          </div>
+
+          <!-- Número de tarjeta con detección de marca y validación Luhn -->
+          <div>
+            <div class="flex items-center justify-between mb-1">
+              <label for="add-card-number" class="text-xs font-bold text-stone-700">Número de tarjeta (13-19 dígitos) *</label>
+              <span id="add-card-luhn-indicator" class="text-[10px] font-medium text-stone-400 flex items-center gap-1"></span>
+            </div>
+            <div class="relative">
+              <input 
+                type="text" 
+                id="add-card-number" 
+                required
+                inputmode="numeric"
+                autocomplete="cc-number"
+                placeholder="4000 1234 5678 9010"
+                maxlength="23"
+                class="w-full text-xs p-3 pr-24 font-mono rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition font-bold"
+              >
+              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                <span id="add-card-brand-tag" class="text-[10px] font-bold px-2 py-0.5 rounded bg-stone-200 text-stone-600">
+                  AUTO
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Grid: Vencimiento y CVV -->
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="add-card-expiry" class="block text-xs font-bold text-stone-700 mb-1">Vencimiento (MM/AA) *</label>
+              <input 
+                type="text" 
+                id="add-card-expiry" 
+                required
+                inputmode="numeric"
+                autocomplete="cc-exp"
+                placeholder="MM/AA"
+                maxlength="5"
+                class="w-full text-xs p-3 font-mono rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition text-center font-bold"
+              >
+            </div>
+            <div>
+              <label for="add-card-cvv" class="block text-xs font-bold text-stone-700 mb-1 flex items-center justify-between">
+                <span>CVV / CVC *</span>
+                <span class="text-[9px] text-stone-400 font-normal">3-4 dígitos</span>
+              </label>
+              <input 
+                type="password" 
+                id="add-card-cvv" 
+                required
+                inputmode="numeric"
+                autocomplete="cc-csc"
+                placeholder="•••"
+                maxlength="4"
+                class="w-full text-xs p-3 font-mono rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition text-center font-bold"
+              >
+            </div>
+          </div>
+
+          <!-- Checkbox Método Preferido -->
+          <div class="pt-1">
+            <label class="flex items-center gap-2 cursor-pointer select-none text-xs text-stone-700">
+              <input 
+                type="checkbox" 
+                id="add-card-default" 
+                class="w-4 h-4 rounded text-[#1a3d2f] accent-[#1a3d2f] focus:ring-[#1a3d2f] cursor-pointer"
+                checked
+              >
+              <span class="font-medium">Marcar como método de pago preferido</span>
+            </label>
+          </div>
+
+          <!-- Contenedor de Error -->
+          <p id="add-card-error" class="text-xs text-red-600 font-medium hidden bg-red-50 p-2.5 rounded-xl border border-red-200"></p>
+
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="pt-2 flex items-center justify-end gap-3 border-t border-stone-100">
+          <button 
+            type="button" 
+            onclick="closeAddCardModal()" 
+            class="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 rounded-xl transition cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            id="btn-save-card" 
+            class="px-5 py-2.5 bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span id="btn-save-card-text">Guardar tarjeta</span>
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 8. Modal: Editar Método de Pago (Titular y Fecha de Expiración)           -->
+  <!-- ========================================================================= -->
+  <div id="modal-edit-card" class="hidden fixed inset-0 z-[85] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs select-none">
+    <div class="bg-white rounded-3xl max-w-sm sm:max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Cabecera -->
+      <div class="bg-stone-50 border-b border-stone-200 px-5 py-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-full bg-stone-100 text-stone-800 flex items-center justify-center text-sm font-bold shadow-2xs">✏️</span>
+          <div>
+            <h3 class="font-serif font-bold text-stone-900 text-base">Editar método de pago</h3>
+            <p class="text-[11px] text-stone-500">Actualiza el titular o la fecha de vencimiento</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeEditCardModal()" class="w-8 h-8 rounded-full bg-white hover:bg-stone-200 text-stone-500 flex items-center justify-center text-sm font-bold transition shadow-xs cursor-pointer" title="Cerrar">
+          ✕
+        </button>
+      </div>
+
+      <!-- Formulario de Edición -->
+      <form onsubmit="event.preventDefault(); submitEditPaymentMethod();" class="p-5 sm:p-6 space-y-4">
+        
+        <!-- Tarjeta solo lectura -->
+        <div class="bg-stone-50 border border-stone-200 rounded-xl p-3 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span id="edit-card-brand-badge" class="font-bold text-xs tracking-wider text-stone-900">VISA</span>
+            <span id="edit-card-masked-display" class="font-mono text-xs text-stone-600 font-bold">•••• 4821</span>
+          </div>
+          <span class="text-[10px] text-stone-400 font-medium">Número protegido</span>
+        </div>
+
+        <input type="hidden" id="edit-card-id" value="">
+
+        <div>
+          <label for="edit-card-holder" class="block text-xs font-bold text-stone-700 mb-1">Nombre del titular *</label>
+          <input 
+            type="text" 
+            id="edit-card-holder" 
+            required
+            class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition uppercase"
+          >
+        </div>
+
+        <div>
+          <label for="edit-card-expiry" class="block text-xs font-bold text-stone-700 mb-1">Nueva fecha de vencimiento (MM/AA) *</label>
+          <input 
+            type="text" 
+            id="edit-card-expiry" 
+            required
+            inputmode="numeric"
+            placeholder="MM/AA"
+            maxlength="5"
+            class="w-full text-xs p-3 font-mono rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition text-center font-bold"
+          >
+        </div>
+
+        <p class="text-[10px] text-stone-400 leading-tight">
+          💡 Por seguridad y regulaciones bancarias, el número de tarjeta no se puede modificar. Si cambió tu plástico, añade una tarjeta nueva.
+        </p>
+
+        <!-- Contenedor de Error -->
+        <p id="edit-card-error" class="text-xs text-red-600 font-medium hidden bg-red-50 p-2.5 rounded-xl border border-red-200"></p>
+
+        <!-- Botones de Acción -->
+        <div class="pt-2 flex items-center justify-end gap-3 border-t border-stone-100">
+          <button 
+            type="button" 
+            onclick="closeEditCardModal()" 
+            class="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 rounded-xl transition cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            id="btn-update-card" 
+            class="px-5 py-2.5 bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            <span id="btn-update-card-text">Guardar cambios</span>
+          </button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 9. Modal: Confirmación de Eliminación de Método de Pago                  -->
+  <!-- ========================================================================= -->
+  <div id="modal-delete-card" class="hidden fixed inset-0 z-[85] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs select-none">
+    <div class="bg-white rounded-3xl max-w-sm w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="p-6 text-center space-y-3">
+        <div class="w-12 h-12 rounded-full bg-red-50 text-red-600 mx-auto flex items-center justify-center text-xl font-bold shadow-2xs">
+          🗑️
+        </div>
+        <h3 class="font-serif font-bold text-stone-900 text-base">¿Eliminar método de pago?</h3>
+        <p class="text-xs text-stone-500 leading-relaxed">
+          ¿Estás seguro de que deseas eliminar la tarjeta <strong id="delete-card-info" class="text-stone-900">VISA terminada en 4821</strong>?
+        </p>
+        <p class="text-[11px] text-stone-400">
+          Esta acción retirará la tarjeta de tus métodos de pago guardados.
+        </p>
+      </div>
+
+      <input type="hidden" id="delete-card-id" value="">
+
+      <div class="bg-stone-50 border-t border-stone-200 px-5 py-3.5 flex items-center justify-end gap-3">
+        <button 
+          type="button" 
+          onclick="closeDeleteCardModal()" 
+          class="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 rounded-xl transition cursor-pointer"
+        >
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          id="btn-confirm-delete-card" 
+          onclick="submitDeletePaymentMethod()" 
+          class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+        >
+          <span id="btn-confirm-delete-text">Confirmar eliminación</span>
+        </button>
       </div>
 
     </div>
