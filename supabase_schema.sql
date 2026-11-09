@@ -224,5 +224,75 @@ CREATE POLICY "Permitir delete payment_methods" ON public.payment_methods FOR DE
 
 GRANT ALL ON TABLE public.payment_methods TO anon, authenticated, service_role;
 
+-- =============================================================================
+-- 12. Tabla de Nodos de Recogida Física ('public.pickup_nodes')
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.pickup_nodes (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    name text NOT NULL,
+    address text NOT NULL,
+    city text NOT NULL DEFAULT 'Bogotá',
+    pickup_schedule text NOT NULL DEFAULT 'Sáb. 7 nov. · 8:00 a. m. – 12:00 p. m.',
+    is_active boolean NOT NULL DEFAULT true,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.pickup_nodes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir select pickup_nodes" ON public.pickup_nodes;
+CREATE POLICY "Permitir select pickup_nodes" ON public.pickup_nodes FOR SELECT TO public USING (true);
+
+DROP POLICY IF EXISTS "Permitir insert pickup_nodes" ON public.pickup_nodes;
+CREATE POLICY "Permitir insert pickup_nodes" ON public.pickup_nodes FOR INSERT TO public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir update pickup_nodes" ON public.pickup_nodes;
+CREATE POLICY "Permitir update pickup_nodes" ON public.pickup_nodes FOR UPDATE TO public USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir delete pickup_nodes" ON public.pickup_nodes;
+CREATE POLICY "Permitir delete pickup_nodes" ON public.pickup_nodes FOR DELETE TO public USING (true);
+
+GRANT ALL ON TABLE public.pickup_nodes TO anon, authenticated, service_role;
+
+-- =============================================================================
+-- 13. Tabla de Direcciones de Domicilio ('public.delivery_addresses')
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.delivery_addresses (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+    label text NOT NULL DEFAULT 'Casa',
+    street_address text NOT NULL,
+    neighborhood text NOT NULL,
+    city text NOT NULL DEFAULT 'Bogotá, D. C.',
+    delivery_instructions text,
+    delivery_fee numeric NOT NULL DEFAULT 8000,
+    delivery_schedule text NOT NULL DEFAULT 'Sáb. 7 nov. · 2:00 – 6:00 p. m.',
+    is_preferred boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_delivery_addresses_user_id 
+ON public.delivery_addresses (user_id);
+
+ALTER TABLE public.delivery_addresses ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir select delivery_addresses" ON public.delivery_addresses;
+CREATE POLICY "Permitir select delivery_addresses" ON public.delivery_addresses FOR SELECT TO public USING (true);
+
+DROP POLICY IF EXISTS "Permitir insert delivery_addresses" ON public.delivery_addresses;
+CREATE POLICY "Permitir insert delivery_addresses" ON public.delivery_addresses FOR INSERT TO public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir update delivery_addresses" ON public.delivery_addresses;
+CREATE POLICY "Permitir update delivery_addresses" ON public.delivery_addresses FOR UPDATE TO public USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir delete delivery_addresses" ON public.delivery_addresses;
+CREATE POLICY "Permitir delete delivery_addresses" ON public.delivery_addresses FOR DELETE TO public USING (true);
+
+GRANT ALL ON TABLE public.delivery_addresses TO anon, authenticated, service_role;
+
+-- Columnas de preferencia añadidas a public.profiles:
+-- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS preferred_pickup_node_id uuid REFERENCES public.pickup_nodes(id) ON DELETE SET NULL;
+-- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS active_delivery_mode text DEFAULT 'node';
+
+
 
 

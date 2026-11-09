@@ -48,6 +48,7 @@ async function initProfilePage() {
   renderProfileUI(currentUser);
   updateCartBadge();
   initPaymentMethods();
+  initDeliverySection();
 
   // 4. Verificar si viene de un enlace de confirmación por correo desde GitHub
   const urlParams = new URLSearchParams(window.location.search);
@@ -1162,37 +1163,703 @@ window.restorePendingEmailVerificationUI = function() {};
 
 
 // =============================================================================
-// Modales de Nodo y Dirección
+// SECCIÓN 4: UBICACIÓN Y PREFERENCIA DE ENTREGA (100% INTERACTIVA CON SUPABASE)
 // =============================================================================
-function openNodeSelectorModal() {
-  const nodes = [
-    'Nodo Central · La Perseverancia',
-    'Nodo Chapinero Alto · Café del Bosque',
-    'Nodo Teusaquillo · Casa Campesina',
-    'Nodo Usaquén · Plaza de Artesanos',
-    'Nodo Suba · Huerto Comunitario'
-  ];
 
-  const choice = prompt(`Selecciona tu nuevo nodo preferido:\n\n1. ${nodes[0]}\n2. ${nodes[1]}\n3. ${nodes[2]}\n4. ${nodes[3]}\n5. ${nodes[4]}\n\nIngresa el número (1 a 5):`, "1");
-  if (!choice) return;
+// Estado global de entrega
+let cachedPickupNodes = [];
+let cachedDeliveryAddresses = [];
+let activeDeliveryMode = 'node'; // 'node' | 'home'
+let selectedPickupNodeId = null;
+let selectedTempNodeId = null;
 
-  const idx = parseInt(choice) - 1;
-  if (nodes[idx]) {
-    currentUser.preferredNode = nodes[idx];
-    document.getElementById('delivery-node-title').textContent = nodes[idx];
-    document.getElementById('nav-user-node').textContent = nodes[idx].split('·')[0].trim();
-    saveSettingsChanges();
+/**
+ * Inicializa la sección de ubicación y preferencia de entrega
+ */
+async function initDeliverySection() {
+  await loadDeliveryPreferences();
+}
+
+/**
+ * Carga desde Supabase nodos de recogida, domicilios guardados y preferencias del perfil
+ */
+async function loadDeliveryPreferences() {
+  const userId = currentUser?.id || '00000000-0000-0000-0000-000000000001';
+
+  try {
+    // 1. Cargar datos de perfil (preferencias activas)
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      try {
+        const profiles = await window.supabase.fetchApi(`profiles?id=eq.${userId}&select=*`);
+        if (profiles && profiles.length > 0) {
+          const prof = profiles[0];
+          if (prof.active_delivery_mode) {
+            activeDeliveryMode = prof.active_delivery_mode;
+          }
+          if (prof.preferred_pickup_node_id) {
+            selectedPickupNodeId = prof.preferred_pickup_node_id;
+          }
+        }
+      } catch (errP) {
+        console.warn('Error al consultar perfil para entrega:', errP);
+      }
+
+      // 2. Cargar nodos de recogida activos
+      try {
+        const nodes = await window.supabase.fetchApi('pickup_nodes?is_active=eq.true&order=created_at.asc');
+        if (nodes && nodes.length > 0) {
+          cachedPickupNodes = nodes;
+        }
+      } catch (errN) {
+        console.warn('Error al cargar pickup_nodes:', errN);
+      }
+
+      // 3. Cargar direcciones a domicilio del usuario
+      try {
+        const addrs = await window.supabase.fetchApi(`delivery_addresses?user_id=eq.${userId}&order=created_at.desc`);
+        if (addrs) {
+          cachedDeliveryAddresses = addrs;
+        }
+      } catch (errA) {
+        console.warn('Error al cargar delivery_addresses:', errA);
+      }
+    }
+  } catch (globalErr) {
+    console.error('Error general cargando preferencias de entrega:', globalErr);
+  }
+
+  // Fallbacks si la BD no tenía datos
+  if (cachedPickupNodes.length === 0) {
+    cachedPickupNodes = [
+      {
+        id: '11111111-1111-1111-1111-111111111101',
+        name: 'Nodo Central · La Perseverancia',
+        address: 'Carrera 5 n.º 30A-10',
+        city: 'Bogotá',
+        pickup_schedule: 'Sáb. 7 nov. · 8:00 a. m. – 12:00 p. m.',
+        is_active: true
+      },
+      {
+        id: '11111111-1111-1111-1111-111111111102',
+        name: 'Nodo Chapinero Alto · Café del Bosque',
+        address: 'Calle 57 n.º 4-22',
+        city: 'Bogotá',
+        pickup_schedule: 'Sáb. 7 nov. · 9:00 a. m. – 1:00 p. m.',
+        is_active: true
+      },
+      {
+        id: '11111111-1111-1111-1111-111111111103',
+        name: 'Nodo Teusaquillo · Casa Campesina',
+        address: 'Transversal 19A n.º 39-40',
+        city: 'Bogotá',
+        pickup_schedule: 'Sáb. 7 nov. · 8:30 a. m. – 12:30 p. m.',
+        is_active: true
+      },
+      {
+        id: '11111111-1111-1111-1111-111111111104',
+        name: 'Nodo Usaquén · Plaza de Artesanos',
+        address: 'Carrera 6A n.º 119-18',
+        city: 'Bogotá',
+        pickup_schedule: 'Sáb. 7 nov. · 9:00 a. m. – 2:00 p. m.',
+        is_active: true
+      },
+      {
+        id: '11111111-1111-1111-1111-111111111105',
+        name: 'Nodo Suba · Huerto Comunitario',
+        address: 'Calle 146C n.º 90-11',
+        city: 'Bogotá',
+        pickup_schedule: 'Sáb. 7 nov. · 8:00 a. m. – 11:30 a. m.',
+        is_active: true
+      }
+    ];
+  }
+
+  // Si no hay nodo seleccionado o no existe en la lista, elegir el primero
+  if (!selectedPickupNodeId && cachedPickupNodes.length > 0) {
+    selectedPickupNodeId = cachedPickupNodes[0].id;
+  }
+
+  renderDeliveryPreferences();
+}
+
+/**
+ * Renderiza reactivamente las tarjetas de Nodo y Domicilios según la preferencia activa
+ */
+function renderDeliveryPreferences() {
+  // 1. Obtener nodo activo
+  let activeNode = cachedPickupNodes.find(n => n.id === selectedPickupNodeId) || cachedPickupNodes[0];
+
+  const nodeCard = document.getElementById('card-delivery-node');
+  const nodeTitle = document.getElementById('delivery-node-title');
+  const nodeAddress = document.getElementById('delivery-node-address');
+  const nodeSchedule = document.getElementById('delivery-node-schedule');
+  const nodeRadioIcon = document.getElementById('node-radio-icon');
+  const nodeBadgeContainer = document.getElementById('node-badge-container');
+
+  if (activeNode) {
+    if (nodeTitle) nodeTitle.textContent = activeNode.name;
+    if (nodeAddress) nodeAddress.textContent = `${activeNode.address} · ${activeNode.city || 'Bogotá'}`;
+    if (nodeSchedule) nodeSchedule.textContent = activeNode.pickup_schedule;
+
+    // Actualizar nombre en navbar
+    const navNode = document.getElementById('nav-user-node');
+    if (navNode) navNode.textContent = activeNode.name.split('·')[0].trim();
+  }
+
+  // Estilos de la tarjeta de Nodo
+  const isNodePreferred = activeDeliveryMode === 'node';
+
+  if (nodeCard) {
+    if (isNodePreferred) {
+      nodeCard.className = 'bg-[#f0f6f2] border-2 border-[#1a3d2f] rounded-xl p-3.5 shadow-2xs transition-all';
+    } else {
+      nodeCard.className = 'bg-white border border-stone-200 rounded-xl p-3.5 shadow-2xs transition-all';
+    }
+  }
+
+  if (nodeRadioIcon) {
+    if (isNodePreferred) {
+      nodeRadioIcon.className = 'w-3.5 h-3.5 rounded-full border-2 border-[#1a3d2f] flex items-center justify-center';
+      nodeRadioIcon.innerHTML = '<span class="w-1.5 h-1.5 rounded-full bg-[#1a3d2f]"></span>';
+    } else {
+      nodeRadioIcon.className = 'w-3.5 h-3.5 rounded-full border border-stone-300';
+      nodeRadioIcon.innerHTML = '';
+    }
+  }
+
+  if (nodeBadgeContainer) {
+    if (isNodePreferred) {
+      nodeBadgeContainer.innerHTML = `
+        <span class="text-[10px] font-bold text-emerald-800 bg-white border border-emerald-200 px-2 py-0.5 rounded-full shadow-2xs">
+          Preferida
+        </span>
+      `;
+    } else {
+      nodeBadgeContainer.innerHTML = `
+        <button type="button" onclick="setPreferredDeliveryMode('node')" class="font-semibold text-stone-600 hover:text-stone-900 underline text-[11px] cursor-pointer">
+          Hacer preferida
+        </button>
+      `;
+    }
+  }
+
+  // 2. Renderizar contenedor de domicilios
+  const addrsContainer = document.getElementById('delivery-addresses-container');
+  if (!addrsContainer) return;
+
+  if (cachedDeliveryAddresses.length === 0) {
+    addrsContainer.innerHTML = `
+      <div class="p-3 bg-stone-50 border border-dashed border-stone-200 rounded-xl text-center text-xs text-stone-400">
+        No tienes direcciones a domicilio registradas. Agrega una para recibir pedidos en casa.
+      </div>
+    `;
+    return;
+  }
+
+  // Renderizar cada dirección
+  addrsContainer.innerHTML = cachedDeliveryAddresses.map(addr => {
+    const isThisAddrPreferred = (activeDeliveryMode === 'home') && !!addr.is_preferred;
+    const feeFormatted = Number(addr.delivery_fee || 8000).toLocaleString('es-CO');
+
+    return `
+      <div class="${isThisAddrPreferred ? 'bg-[#f0f6f2] border-2 border-[#1a3d2f]' : 'bg-white border border-stone-200'} rounded-xl p-3.5 shadow-2xs transition-all">
+        <div class="flex items-center justify-between text-xs mb-1.5">
+          <button type="button" onclick="setPreferredAddress('${addr.id}')" class="flex items-center gap-1.5 font-bold ${isThisAddrPreferred ? 'text-stone-900' : 'text-stone-700'} text-left cursor-pointer group">
+            <span class="w-3.5 h-3.5 rounded-full ${isThisAddrPreferred ? 'border-2 border-[#1a3d2f] flex items-center justify-center' : 'border border-stone-300'}">
+              ${isThisAddrPreferred ? '<span class="w-1.5 h-1.5 rounded-full bg-[#1a3d2f]"></span>' : ''}
+            </span>
+            <span class="group-hover:text-[#1a3d2f] transition-colors">A domicilio · ${escapeHtml(addr.label || 'Domicilio')}</span>
+          </button>
+          ${isThisAddrPreferred ? `
+            <span class="text-[10px] font-bold text-emerald-800 bg-white border border-emerald-200 px-2 py-0.5 rounded-full shadow-2xs">
+              Preferida
+            </span>
+          ` : `
+            <button type="button" onclick="setPreferredAddress('${addr.id}')" class="font-semibold text-stone-600 hover:text-stone-900 underline text-[11px] cursor-pointer">
+              Hacer preferida
+            </button>
+          `}
+        </div>
+
+        <p class="text-[11px] text-stone-700 font-medium">${escapeHtml(addr.street_address)}</p>
+        <p class="text-[11px] text-stone-500">${escapeHtml(addr.neighborhood ? addr.neighborhood + ' · ' : '')}${escapeHtml(addr.city || 'Bogotá, D. C.')}</p>
+        <p class="text-[11px] text-stone-500">${escapeHtml(addr.delivery_schedule || 'Sáb. 7 nov. · 2:00 – 6:00 p. m.')} · $${feeFormatted} por pedido</p>
+        ${addr.delivery_instructions ? `<p class="text-[10px] text-stone-500 italic mt-1 bg-stone-50/80 p-1.5 rounded-lg border border-stone-100">📝 "${escapeHtml(addr.delivery_instructions)}"</p>` : ''}
+
+        <div class="flex items-center justify-between pt-2 border-t border-stone-100 mt-2 text-xs">
+          <div class="flex items-center gap-3 font-semibold text-stone-600">
+            <button type="button" onclick="openAddressModal('${addr.id}')" class="hover:underline hover:text-stone-900 cursor-pointer">
+              Modificar
+            </button>
+            <button type="button" onclick="openDeleteAddressModal('${addr.id}', '${escapeHtml(addr.street_address).replace(/'/g, "\\'")}')" class="text-red-600 hover:underline cursor-pointer">
+              Eliminar
+            </button>
+          </div>
+          ${isThisAddrPreferred ? '<span class="text-[11px] text-[#1a3d2f] font-semibold">✓ Opción activa</span>' : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/**
+ * Establece el modo de entrega global a 'node' (Recogida en nodo)
+ */
+async function setPreferredDeliveryMode(mode) {
+  if (mode !== 'node') return;
+  const userId = currentUser?.id || '00000000-0000-0000-0000-000000000001';
+
+  activeDeliveryMode = 'node';
+  renderDeliveryPreferences();
+
+  try {
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      await window.supabase.fetchApi(`profiles?id=eq.${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ active_delivery_mode: 'node' })
+      });
+    }
+    showToast('✨ Recogida en nodo establecida como preferida.');
+  } catch (err) {
+    console.error('Error al guardar preferencia en Supabase:', err);
+    showToast('Aviso: Preferencia actualizada localmente.');
   }
 }
 
-function editAddressModal() {
-  const current = currentUser.address || 'Carrera 7 n.º 32-16, apto. 402';
-  const newAddr = prompt('Ingresa tu nueva dirección de entrega a domicilio en Bogotá:', current);
-  if (newAddr && newAddr.trim() !== '') {
-    currentUser.address = newAddr.trim();
-    document.getElementById('delivery-home-address').textContent = newAddr.trim();
-    saveSettingsChanges();
+/**
+ * Establece una dirección de domicilio guardada como la preferida activa
+ */
+async function setPreferredAddress(addressId) {
+  const userId = currentUser?.id || '00000000-0000-0000-0000-000000000001';
+
+  activeDeliveryMode = 'home';
+  cachedDeliveryAddresses.forEach(a => {
+    a.is_preferred = (a.id === addressId);
+  });
+  renderDeliveryPreferences();
+
+  try {
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      // 1. Desmarcar is_preferred en todas las direcciones del usuario
+      await window.supabase.fetchApi(`delivery_addresses?user_id=eq.${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_preferred: false })
+      });
+
+      // 2. Marcar is_preferred = true en la dirección seleccionada
+      await window.supabase.fetchApi(`delivery_addresses?id=eq.${addressId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ is_preferred: true })
+      });
+
+      // 3. Actualizar modo activo en profiles
+      await window.supabase.fetchApi(`profiles?id=eq.${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ active_delivery_mode: 'home' })
+      });
+    }
+    showToast('✨ Domicilio establecido como preferencia.');
+  } catch (err) {
+    console.error('Error al establecer domicilio preferido:', err);
+    showToast('Aviso: Domicilio preferido actualizado localmente.');
   }
+}
+
+/**
+ * Abre el modal de dirección en modo Registro o Edición
+ */
+function openAddressModal(addressId = null) {
+  const modal = document.getElementById('modal-address');
+  const title = document.getElementById('modal-address-title');
+  const submitBtnText = document.getElementById('btn-submit-address-text');
+  const errEl = document.getElementById('address-form-error');
+
+  const idInput = document.getElementById('address-id');
+  const labelInput = document.getElementById('address-label');
+  const streetInput = document.getElementById('address-street');
+  const neighInput = document.getElementById('address-neighborhood');
+  const cityInput = document.getElementById('address-city');
+  const schedInput = document.getElementById('address-schedule');
+  const feeInput = document.getElementById('address-fee');
+  const instrInput = document.getElementById('address-instructions');
+  const prefCheckbox = document.getElementById('address-is-preferred');
+
+  if (errEl) errEl.classList.add('hidden');
+
+  if (addressId) {
+    // MODO EDICIÓN
+    const target = cachedDeliveryAddresses.find(a => a.id === addressId);
+    if (!target) return;
+
+    if (title) title.textContent = 'Modificar dirección de entrega';
+    if (submitBtnText) submitBtnText.textContent = 'Guardar cambios';
+
+    if (idInput) idInput.value = target.id;
+    if (labelInput) labelInput.value = target.label || 'Casa';
+    if (streetInput) streetInput.value = target.street_address || '';
+    if (neighInput) neighInput.value = target.neighborhood || '';
+    if (cityInput) cityInput.value = target.city || 'Bogotá, D. C.';
+    if (schedInput) schedInput.value = target.delivery_schedule || 'Sáb. 7 nov. · 2:00 – 6:00 p. m.';
+    if (feeInput) feeInput.value = target.delivery_fee || 8000;
+    if (instrInput) instrInput.value = target.delivery_instructions || '';
+    if (prefCheckbox) prefCheckbox.checked = !!target.is_preferred;
+
+    highlightAddressLabelChip(target.label || 'Casa');
+  } else {
+    // MODO AGREGAR
+    if (title) title.textContent = 'Agregar dirección de entrega';
+    if (submitBtnText) submitBtnText.textContent = 'Guardar dirección';
+
+    if (idInput) idInput.value = '';
+    if (labelInput) labelInput.value = 'Casa';
+    if (streetInput) streetInput.value = '';
+    if (neighInput) neighInput.value = '';
+    if (cityInput) cityInput.value = 'Bogotá, D. C.';
+    if (schedInput) schedInput.value = 'Sáb. 7 nov. · 2:00 – 6:00 p. m.';
+    if (feeInput) feeInput.value = 8000;
+    if (instrInput) instrInput.value = '';
+    if (prefCheckbox) prefCheckbox.checked = (cachedDeliveryAddresses.length === 0);
+
+    highlightAddressLabelChip('Casa');
+  }
+
+  if (modal) modal.classList.remove('hidden');
+}
+
+/**
+ * Cierra el modal de dirección
+ */
+function closeAddressModal() {
+  const modal = document.getElementById('modal-address');
+  if (modal) modal.classList.add('hidden');
+}
+
+/**
+ * Selección rápida de etiqueta mediante chips (Casa, Oficina, etc.)
+ */
+function selectAddressLabel(val) {
+  const input = document.getElementById('address-label');
+  if (input) input.value = val;
+  highlightAddressLabelChip(val);
+}
+
+function highlightAddressLabelChip(val) {
+  const chips = document.querySelectorAll('.btn-addr-label');
+  chips.forEach(chip => {
+    if (chip.getAttribute('data-val') === val) {
+      chip.className = 'btn-addr-label px-3 py-1.5 rounded-xl border-2 border-[#1a3d2f] bg-[#1a3d2f]/10 text-[#1a3d2f] text-xs font-bold transition cursor-pointer shadow-2xs';
+    } else {
+      chip.className = 'btn-addr-label px-3 py-1.5 rounded-xl border border-stone-200 text-xs font-semibold hover:border-[#1a3d2f] transition cursor-pointer';
+    }
+  });
+}
+
+/**
+ * Guarda o actualiza la dirección en Supabase
+ */
+async function submitAddressForm() {
+  const idInput = document.getElementById('address-id');
+  const addressId = idInput ? idInput.value.trim() : '';
+
+  const label = (document.getElementById('address-label')?.value || '').trim();
+  const street = (document.getElementById('address-street')?.value || '').trim();
+  const neighborhood = (document.getElementById('address-neighborhood')?.value || '').trim();
+  const city = (document.getElementById('address-city')?.value || '').trim();
+  const schedule = (document.getElementById('address-schedule')?.value || '').trim();
+  const fee = Number(document.getElementById('address-fee')?.value || 8000);
+  const instructions = (document.getElementById('address-instructions')?.value || '').trim();
+  const isPreferred = !!document.getElementById('address-is-preferred')?.checked;
+
+  const errEl = document.getElementById('address-form-error');
+  const submitBtn = document.getElementById('btn-submit-address');
+  const submitBtnText = document.getElementById('btn-submit-address-text');
+
+  if (!label || !street || !neighborhood || !city) {
+    if (errEl) {
+      errEl.textContent = 'Por favor completa todos los campos obligatorios (*).';
+      errEl.classList.remove('hidden');
+    }
+    return;
+  }
+
+  const userId = currentUser?.id || '00000000-0000-0000-0000-000000000001';
+
+  if (submitBtn) submitBtn.disabled = true;
+  if (submitBtnText) submitBtnText.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Guardando...';
+
+  try {
+    const payload = {
+      label,
+      street_address: street,
+      neighborhood,
+      city,
+      delivery_schedule: schedule || 'Sáb. 7 nov. · 2:00 – 6:00 p. m.',
+      delivery_fee: fee,
+      delivery_instructions: instructions,
+      is_preferred: isPreferred
+    };
+
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      if (addressId) {
+        // ACTUALIZACIÓN (PATCH)
+        await window.supabase.fetchApi(`delivery_addresses?id=eq.${addressId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload)
+        });
+
+        if (isPreferred) {
+          // Desmarcar las demás
+          await window.supabase.fetchApi(`delivery_addresses?user_id=eq.${userId}&id=neq.${addressId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ is_preferred: false })
+          });
+          await window.supabase.fetchApi(`profiles?id=eq.${userId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ active_delivery_mode: 'home' })
+          });
+          activeDeliveryMode = 'home';
+        }
+
+        showToast('✨ Dirección actualizada con éxito.');
+      } else {
+        // INSERCIÓN (POST)
+        payload.user_id = userId;
+
+        if (isPreferred) {
+          // Desmarcar anteriores
+          await window.supabase.fetchApi(`delivery_addresses?user_id=eq.${userId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ is_preferred: false })
+          });
+          await window.supabase.fetchApi(`profiles?id=eq.${userId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ active_delivery_mode: 'home' })
+          });
+          activeDeliveryMode = 'home';
+        }
+
+        await window.supabase.fetchApi('delivery_addresses', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+
+        showToast('✨ Dirección agregada exitosamente.');
+      }
+    }
+
+    closeAddressModal();
+    await loadDeliveryPreferences();
+
+  } catch (err) {
+    console.error('Error al guardar dirección en Supabase:', err);
+    if (errEl) {
+      errEl.textContent = 'Error al comunicarse con la base de datos: ' + (err.message || 'Intenta de nuevo.');
+      errEl.classList.remove('hidden');
+    }
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+    if (submitBtnText) submitBtnText.textContent = addressId ? 'Guardar cambios' : 'Guardar dirección';
+  }
+}
+
+/**
+ * Abre el modal de confirmación de eliminación de dirección
+ */
+function openDeleteAddressModal(addressId, street) {
+  const modal = document.getElementById('modal-delete-address');
+  const idInput = document.getElementById('delete-address-id');
+  const display = document.getElementById('delete-address-street-display');
+
+  if (idInput) idInput.value = addressId;
+  if (display) display.textContent = street;
+  if (modal) modal.classList.remove('hidden');
+}
+
+/**
+ * Cierra el modal de confirmación de eliminación de dirección
+ */
+function closeDeleteAddressModal() {
+  const modal = document.getElementById('modal-delete-address');
+  if (modal) modal.classList.add('hidden');
+}
+
+/**
+ * Elimina la dirección de Supabase y reasigna la preferencia si correspondía
+ */
+async function submitDeleteAddress() {
+  const idInput = document.getElementById('delete-address-id');
+  const addressId = idInput ? idInput.value.trim() : '';
+  const btn = document.getElementById('btn-confirm-delete-address');
+  const btnText = document.getElementById('btn-confirm-delete-address-text');
+  const userId = currentUser?.id || '00000000-0000-0000-0000-000000000001';
+
+  if (!addressId) return;
+
+  const targetAddr = cachedDeliveryAddresses.find(a => a.id === addressId);
+  const wasPreferred = targetAddr ? !!targetAddr.is_preferred : false;
+
+  if (btn) btn.disabled = true;
+  if (btnText) btnText.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Eliminando...';
+
+  try {
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      // 1. Eliminar dirección
+      await window.supabase.fetchApi(`delivery_addresses?id=eq.${addressId}`, {
+        method: 'DELETE'
+      });
+
+      // 2. Si era preferida, reasignar a la última restante o pasar a 'node'
+      if (wasPreferred) {
+        const remaining = cachedDeliveryAddresses.filter(a => a.id !== addressId);
+        if (remaining.length > 0) {
+          await window.supabase.fetchApi(`delivery_addresses?id=eq.${remaining[0].id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ is_preferred: true })
+          });
+        } else {
+          await window.supabase.fetchApi(`profiles?id=eq.${userId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ active_delivery_mode: 'node' })
+          });
+          activeDeliveryMode = 'node';
+        }
+      }
+    }
+
+    closeDeleteAddressModal();
+    showToast('🗑️ Dirección eliminada.');
+    await loadDeliveryPreferences();
+
+  } catch (err) {
+    console.error('Error al eliminar dirección:', err);
+    showToast('No se pudo eliminar la dirección: ' + (err.message || 'Error de red.'));
+  } finally {
+    if (btn) btn.disabled = false;
+    if (btnText) btnText.textContent = 'Confirmar eliminación';
+  }
+}
+
+/**
+ * Abre el modal selector de Nodos de recogida física
+ */
+function openNodeSelectorModal() {
+  const modal = document.getElementById('modal-node-selector');
+  const list = document.getElementById('node-selector-list');
+  selectedTempNodeId = selectedPickupNodeId || (cachedPickupNodes[0] ? cachedPickupNodes[0].id : null);
+
+  renderNodeSelectorList();
+  if (modal) modal.classList.remove('hidden');
+}
+
+/**
+ * Cierra el modal selector de Nodos
+ */
+function closeNodeSelectorModal() {
+  const modal = document.getElementById('modal-node-selector');
+  if (modal) modal.classList.add('hidden');
+}
+
+/**
+ * Renderiza la lista de nodos con radio buttons en el modal selector
+ */
+function renderNodeSelectorList() {
+  const list = document.getElementById('node-selector-list');
+  if (!list) return;
+
+  if (cachedPickupNodes.length === 0) {
+    list.innerHTML = '<div class="text-center py-6 text-stone-400 text-xs">No hay nodos disponibles en este momento.</div>';
+    return;
+  }
+
+  list.innerHTML = cachedPickupNodes.map(node => {
+    const isSelected = (node.id === selectedTempNodeId);
+    return `
+      <div 
+        onclick="selectTempNode('${node.id}')" 
+        class="p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
+          isSelected 
+            ? 'border-[#1a3d2f] bg-[#f0f6f2] shadow-xs' 
+            : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50/50'
+        }"
+      >
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex items-start gap-2.5">
+            <span class="w-4 h-4 rounded-full mt-0.5 ${
+              isSelected 
+                ? 'border-2 border-[#1a3d2f] flex items-center justify-center' 
+                : 'border border-stone-300'
+            }">
+              ${isSelected ? '<span class="w-2 h-2 rounded-full bg-[#1a3d2f]"></span>' : ''}
+            </span>
+            <div>
+              <h4 class="font-bold text-xs text-stone-900">${escapeHtml(node.name)}</h4>
+              <p class="text-[11px] text-stone-600 mt-0.5">${escapeHtml(node.address)} · ${escapeHtml(node.city || 'Bogotá')}</p>
+              <p class="text-[11px] text-stone-500">${escapeHtml(node.pickup_schedule)}</p>
+            </div>
+          </div>
+          <span class="text-[10px] font-bold text-emerald-800 bg-white border border-emerald-200 px-2 py-0.5 rounded-full shrink-0 shadow-2xs">
+            Recogida gratis
+          </span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+/**
+ * Selecciona temporalmente un nodo dentro del modal
+ */
+function selectTempNode(nodeId) {
+  selectedTempNodeId = nodeId;
+  renderNodeSelectorList();
+}
+
+/**
+ * Confirma el cambio de nodo y lo persiste en Supabase
+ */
+async function submitNodeChange() {
+  if (!selectedTempNodeId) return;
+
+  const targetNode = cachedPickupNodes.find(n => n.id === selectedTempNodeId);
+  if (!targetNode) return;
+
+  const btn = document.getElementById('btn-confirm-node');
+  const btnText = document.getElementById('btn-confirm-node-text');
+  const userId = currentUser?.id || '00000000-0000-0000-0000-000000000001';
+
+  if (btn) btn.disabled = true;
+  if (btnText) btnText.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Guardando...';
+
+  try {
+    selectedPickupNodeId = targetNode.id;
+    currentUser.preferredNode = targetNode.name;
+
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      await window.supabase.fetchApi(`profiles?id=eq.${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          preferred_pickup_node_id: targetNode.id,
+          farm_name: targetNode.name
+        })
+      });
+    }
+
+    closeNodeSelectorModal();
+    renderDeliveryPreferences();
+    showToast(`✨ Nodo cambiado a "${targetNode.name}".`);
+
+  } catch (err) {
+    console.error('Error al actualizar nodo preferido:', err);
+    showToast('Aviso: Nodo actualizado localmente.');
+  } finally {
+    if (btn) btn.disabled = false;
+    if (btnText) btnText.textContent = 'Confirmar nodo';
+  }
+}
+
+// Compatibilidad con invocaciones previas
+function editAddressModal() {
+  openAddressModal();
 }
 
 function handleLogout() {

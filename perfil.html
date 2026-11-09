@@ -544,26 +544,28 @@
             <h2 class="font-bold text-sm text-stone-900">Ubicación y preferencia de entrega</h2>
             <p class="text-xs text-stone-400 mt-0.5 mb-4">Tu mercado se adapta al lugar donde quieres recibirlo.</p>
 
-            <!-- Opción 1: Recogida en nodo (Preferida) -->
-            <div class="bg-[#f0f6f2] border-2 border-[#1a3d2f] rounded-xl p-3.5 shadow-2xs">
+            <!-- Opción 1: Recogida en nodo (Dinámico) -->
+            <div id="card-delivery-node" class="bg-[#f0f6f2] border-2 border-[#1a3d2f] rounded-xl p-3.5 shadow-2xs transition-all">
               <div class="flex items-center justify-between text-xs mb-1.5">
-                <div class="flex items-center gap-1.5 font-bold text-stone-900">
-                  <span class="w-3.5 h-3.5 rounded-full border-2 border-[#1a3d2f] flex items-center justify-center">
+                <button type="button" onclick="setPreferredDeliveryMode('node')" class="flex items-center gap-1.5 font-bold text-stone-900 text-left cursor-pointer group">
+                  <span id="node-radio-icon" class="w-3.5 h-3.5 rounded-full border-2 border-[#1a3d2f] flex items-center justify-center">
                     <span class="w-1.5 h-1.5 rounded-full bg-[#1a3d2f]"></span>
                   </span>
-                  <span>Recogida en nodo</span>
+                  <span class="group-hover:text-[#1a3d2f] transition-colors">Recogida en nodo</span>
+                </button>
+                <div id="node-badge-container">
+                  <span class="text-[10px] font-bold text-emerald-800 bg-white border border-emerald-200 px-2 py-0.5 rounded-full">
+                    Preferida
+                  </span>
                 </div>
-                <span class="text-[10px] font-bold text-emerald-800 bg-white border border-emerald-200 px-2 py-0.5 rounded-full">
-                  Preferida
-                </span>
               </div>
               <h3 id="delivery-node-title" class="font-bold text-xs text-stone-900">
                 Nodo Central · La Perseverancia
               </h3>
-              <p class="text-[11px] text-stone-500 mt-0.5">Carrera 5 n.º 30A-10 · Bogotá</p>
-              <p class="text-[11px] text-stone-500">Sáb. 7 nov. · 8:00 a. m. – 12:00 p. m.</p>
+              <p id="delivery-node-address" class="text-[11px] text-stone-500 mt-0.5">Carrera 5 n.º 30A-10 · Bogotá</p>
+              <p id="delivery-node-schedule" class="text-[11px] text-stone-500">Sáb. 7 nov. · 8:00 a. m. – 12:00 p. m.</p>
               
-              <div class="flex items-center justify-between pt-2 border-t border-emerald-100/80 mt-2 text-xs">
+              <div class="flex items-center justify-between pt-2 border-t border-stone-200/60 mt-2 text-xs">
                 <span class="font-semibold text-stone-700">Recogida gratis</span>
                 <button type="button" onclick="openNodeSelectorModal()" class="font-bold text-[#1a3d2f] hover:underline flex items-center gap-0.5 cursor-pointer">
                   <span>Cambiar nodo</span>
@@ -572,39 +574,24 @@
               </div>
             </div>
 
-            <!-- Opción 2: A domicilio · Casa -->
-            <div class="bg-white border border-stone-200 rounded-xl p-3.5 mt-3 shadow-2xs">
-              <div class="flex items-center justify-between text-xs mb-1.5">
-                <div class="flex items-center gap-1.5 font-bold text-stone-700">
-                  <span class="w-3.5 h-3.5 rounded-full border border-stone-300"></span>
-                  <span>A domicilio · Casa</span>
-                </div>
-              </div>
-              <p id="delivery-home-address" class="text-[11px] text-stone-700 font-medium">Carrera 7 n.º 32-16, apto. 402</p>
-              <p class="text-[11px] text-stone-500">La Merced · Bogotá, D. C.</p>
-              <p class="text-[11px] text-stone-500">Sáb. 7 nov. · 2:00 – 6:00 p. m. · $8.000 por pedido</p>
-              
-              <div class="flex items-center justify-between pt-2 border-t border-stone-100 mt-2 text-xs">
-                <div class="flex items-center gap-2.5 font-semibold text-stone-600">
-                  <button type="button" onclick="editAddressModal()" class="hover:underline cursor-pointer">Modificar</button>
-                  <button type="button" onclick="showToast('Dirección eliminada.')" class="text-red-600 hover:underline cursor-pointer">Eliminar</button>
-                </div>
-                <button type="button" onclick="showToast('Domicilio establecido como preferencia.')" class="font-semibold text-stone-600 hover:text-stone-900 underline text-[11px] cursor-pointer">
-                  Hacer preferida
-                </button>
+            <!-- Opción 2: Contenedor dinámico de direcciones a domicilio -->
+            <div id="delivery-addresses-container" class="space-y-3 mt-3">
+              <!-- Renderizado dinámicamente desde Supabase (delivery_addresses) -->
+              <div class="p-3 bg-stone-50 border border-dashed border-stone-200 rounded-xl text-center text-xs text-stone-400">
+                Cargando direcciones...
               </div>
             </div>
 
             <button 
               type="button" 
-              onclick="editAddressModal()" 
+              onclick="openAddressModal()" 
               class="mt-3.5 inline-flex items-center gap-1.5 px-4 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 hover:bg-stone-50 transition shadow-2xs cursor-pointer"
             >
               + Agregar dirección
             </button>
 
             <p class="text-[10px] text-stone-400 mt-3 leading-tight">
-              Usaremos tu nodo preferido en el mercado. Puedes elegir otra opción antes de confirmar cada pedido.
+              Usaremos tu nodo o dirección preferida en el mercado. Puedes elegir otra opción antes de confirmar cada pedido.
             </p>
           </div>
 
@@ -1106,6 +1093,250 @@
         >
           <span id="btn-confirm-delete-text">Confirmar eliminación</span>
         </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 10. Modal: Registrar / Modificar Dirección de Entrega                     -->
+  <!-- ========================================================================= -->
+  <div id="modal-address" class="hidden fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs select-none">
+    <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Encabezado del Modal -->
+      <div class="px-5 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50/50">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-full bg-[#1a3d2f]/10 text-[#1a3d2f] flex items-center justify-center text-sm font-bold">📍</span>
+          <div>
+            <h3 id="modal-address-title" class="font-serif font-bold text-stone-900 text-sm sm:text-base">Agregar dirección de entrega</h3>
+            <p class="text-[11px] text-stone-500">Recibe tu mercado fresco directamente en tu puerta.</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeAddressModal()" class="w-8 h-8 rounded-full bg-white hover:bg-stone-200 text-stone-500 flex items-center justify-center text-sm font-bold transition shadow-xs cursor-pointer" title="Cerrar">
+          ✕
+        </button>
+      </div>
+
+      <!-- Formulario de Dirección -->
+      <form id="form-address" onsubmit="event.preventDefault(); submitAddressForm();" class="p-5 sm:p-6 overflow-y-auto space-y-4">
+        <input type="hidden" id="address-id" value="">
+
+        <!-- Tipo / Etiqueta -->
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1.5">Tipo de lugar *</label>
+          <div class="flex flex-wrap items-center gap-2 mb-2">
+            <button type="button" onclick="selectAddressLabel('Casa')" class="btn-addr-label px-3 py-1.5 rounded-xl border border-stone-200 text-xs font-semibold hover:border-[#1a3d2f] transition cursor-pointer" data-val="Casa">🏠 Casa</button>
+            <button type="button" onclick="selectAddressLabel('Oficina')" class="btn-addr-label px-3 py-1.5 rounded-xl border border-stone-200 text-xs font-semibold hover:border-[#1a3d2f] transition cursor-pointer" data-val="Oficina">🏢 Oficina</button>
+            <button type="button" onclick="selectAddressLabel('Apartamento')" class="btn-addr-label px-3 py-1.5 rounded-xl border border-stone-200 text-xs font-semibold hover:border-[#1a3d2f] transition cursor-pointer" data-val="Apartamento">🏬 Apartamento</button>
+            <button type="button" onclick="selectAddressLabel('Otro')" class="btn-addr-label px-3 py-1.5 rounded-xl border border-stone-200 text-xs font-semibold hover:border-[#1a3d2f] transition cursor-pointer" data-val="Otro">✨ Otro</button>
+          </div>
+          <input 
+            type="text" 
+            id="address-label" 
+            required 
+            placeholder="Ej: Casa, Oficina de Max..." 
+            class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
+          >
+        </div>
+
+        <!-- Dirección exacta -->
+        <div>
+          <label for="address-street" class="block text-xs font-bold text-stone-700 mb-1">Dirección completa (calle, número, apto.) *</label>
+          <input 
+            type="text" 
+            id="address-street" 
+            required 
+            placeholder="Ej: Carrera 7 n.º 32-16, apto. 402" 
+            class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
+          >
+        </div>
+
+        <!-- Barrio y Ciudad -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="address-neighborhood" class="block text-xs font-bold text-stone-700 mb-1">Barrio o sector *</label>
+            <input 
+              type="text" 
+              id="address-neighborhood" 
+              required 
+              placeholder="Ej: La Merced, Chapinero..." 
+              class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
+            >
+          </div>
+          <div>
+            <label for="address-city" class="block text-xs font-bold text-stone-700 mb-1">Ciudad *</label>
+            <input 
+              type="text" 
+              id="address-city" 
+              required 
+              value="Bogotá, D. C." 
+              class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
+            >
+          </div>
+        </div>
+
+        <!-- Horario y Tarifa -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label for="address-schedule" class="block text-xs font-bold text-stone-700 mb-1">Horario estimado de entrega</label>
+            <input 
+              type="text" 
+              id="address-schedule" 
+              value="Sáb. 7 nov. · 2:00 – 6:00 p. m." 
+              class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
+            >
+          </div>
+          <div>
+            <label for="address-fee" class="block text-xs font-bold text-stone-700 mb-1">Costo de envío ($ COP)</label>
+            <input 
+              type="number" 
+              id="address-fee" 
+              value="8000" 
+              min="0" 
+              step="500" 
+              class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
+            >
+          </div>
+        </div>
+
+        <!-- Instrucciones adicionales -->
+        <div>
+          <label for="address-instructions" class="block text-xs font-bold text-stone-700 mb-1">Instrucciones para el repartidor (opcional)</label>
+          <textarea 
+            id="address-instructions" 
+            rows="2" 
+            placeholder="Ej: Dejar en portería a nombre de Max, o timbrar en el 402..." 
+            class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition resize-none"
+          ></textarea>
+        </div>
+
+        <!-- Checkbox: Marcar como preferida -->
+        <label class="flex items-start gap-2.5 cursor-pointer pt-1">
+          <input 
+            type="checkbox" 
+            id="address-is-preferred" 
+            class="mt-0.5 rounded text-[#1a3d2f] focus:ring-[#1a3d2f] cursor-pointer"
+          >
+          <div>
+            <span class="text-xs font-semibold text-stone-800">Establecer como dirección preferida</span>
+            <p class="text-[11px] text-stone-400">Tus pedidos se entregarán por defecto en este domicilio.</p>
+          </div>
+        </label>
+
+        <!-- Mensaje de error -->
+        <p id="address-form-error" class="text-xs text-red-600 font-medium hidden bg-red-50 p-2.5 rounded-xl border border-red-200"></p>
+
+        <!-- Botones de Acción -->
+        <div class="pt-3 flex items-center justify-end gap-3 border-t border-stone-100">
+          <button 
+            type="button" 
+            onclick="closeAddressModal()" 
+            class="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 rounded-xl transition cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            id="btn-submit-address" 
+            class="px-5 py-2.5 bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            <span id="btn-submit-address-text">Guardar dirección</span>
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 11. Modal: Confirmación de Eliminación de Dirección                       -->
+  <!-- ========================================================================= -->
+  <div id="modal-delete-address" class="hidden fixed inset-0 z-[85] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs select-none">
+    <div class="bg-white rounded-3xl max-w-sm w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      
+      <div class="p-6 text-center space-y-3">
+        <div class="w-12 h-12 rounded-full bg-red-50 text-red-600 mx-auto flex items-center justify-center text-xl font-bold shadow-2xs">
+          🗑️
+        </div>
+        <h3 class="font-serif font-bold text-stone-900 text-base">¿Deseas eliminar esta dirección?</h3>
+        <p class="text-xs text-stone-500 leading-relaxed">
+          ¿Estás seguro de que deseas eliminar la dirección <strong id="delete-address-street-display" class="text-stone-900">Carrera 7 n.º 32-16</strong>?
+        </p>
+        <p class="text-[11px] text-stone-400">
+          Esta acción quitará el domicilio de tus opciones registradas.
+        </p>
+      </div>
+
+      <input type="hidden" id="delete-address-id" value="">
+
+      <div class="bg-stone-50 border-t border-stone-200 px-5 py-3.5 flex items-center justify-end gap-3">
+        <button 
+          type="button" 
+          onclick="closeDeleteAddressModal()" 
+          class="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 rounded-xl transition cursor-pointer"
+        >
+          Cancelar
+        </button>
+        <button 
+          type="button" 
+          id="btn-confirm-delete-address" 
+          onclick="submitDeleteAddress()" 
+          class="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+        >
+          <span id="btn-confirm-delete-address-text">Confirmar eliminación</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 12. Modal: Selección de Punto de Recogida (Nodo)                          -->
+  <!-- ========================================================================= -->
+  <div id="modal-node-selector" class="hidden fixed inset-0 z-[85] flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-xs select-none">
+    <div class="bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Encabezado -->
+      <div class="px-5 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50/50">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-full bg-[#1a3d2f]/10 text-[#1a3d2f] flex items-center justify-center text-sm font-bold">🏪</span>
+          <div>
+            <h3 class="font-serif font-bold text-stone-900 text-sm sm:text-base">Seleccionar punto de recogida (Nodo)</h3>
+            <p class="text-[11px] text-stone-500">Recoge tu pedido sin costo de envío en tu punto comunitario.</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeNodeSelectorModal()" class="w-8 h-8 rounded-full bg-white hover:bg-stone-200 text-stone-500 flex items-center justify-center text-sm font-bold transition shadow-xs cursor-pointer" title="Cerrar">
+          ✕
+        </button>
+      </div>
+
+      <!-- Lista interactiva de Nodos -->
+      <div id="node-selector-list" class="p-5 overflow-y-auto space-y-3">
+        <!-- Renderizado dinámicamente desde Supabase (pickup_nodes) -->
+        <div class="text-center py-6 text-stone-400 text-xs">Cargando nodos disponibles...</div>
+      </div>
+
+      <!-- Pie del Modal -->
+      <div class="p-4 bg-stone-50 border-t border-stone-200 flex items-center justify-between">
+        <span class="text-[11px] text-stone-400 font-medium">Recogida siempre 100% gratis</span>
+        <div class="flex items-center gap-3">
+          <button 
+            type="button" 
+            onclick="closeNodeSelectorModal()" 
+            class="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 rounded-xl transition cursor-pointer"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="button" 
+            id="btn-confirm-node" 
+            onclick="submitNodeChange()" 
+            class="px-5 py-2.5 bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            <span id="btn-confirm-node-text">Confirmar nodo</span>
+          </button>
+        </div>
       </div>
 
     </div>
