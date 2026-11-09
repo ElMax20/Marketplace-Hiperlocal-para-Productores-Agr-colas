@@ -1465,10 +1465,6 @@ async function loadPaymentMethods() {
 
   cachedPaymentMethods = cards;
 
-  // Renderizar métodos alternativos (PSE / Nequi)
-  const altPref = localStorage.getItem('rb_preferred_alt_payment');
-  renderAlternativeMethods(altPref, cards.some(c => c.is_default));
-
   // Renderizar tarjetas
   if (cards.length === 0) {
     container.innerHTML = `
@@ -1482,7 +1478,7 @@ async function loadPaymentMethods() {
   }
 
   container.innerHTML = cards.map(card => {
-    const isDef = card.is_default === true && !altPref;
+    const isDef = card.is_default === true;
     const expM = String(card.exp_month || 1).padStart(2, '0');
     const expY = String(card.exp_year || 28).slice(-2);
     const brandUpper = (card.brand || 'VISA').toUpperCase();
@@ -1543,54 +1539,6 @@ async function loadPaymentMethods() {
       </div>
     `;
   }).join('');
-}
-
-/**
- * Renderiza el estado de las opciones alternativas (PSE / Nequi)
- */
-function renderAlternativeMethods(preferredAlt, anyCardPreferred) {
-  const pseAction = document.getElementById('method-action-pse');
-  const nequiAction = document.getElementById('method-action-nequi');
-  const pseRow = document.getElementById('method-row-pse');
-  const nequiRow = document.getElementById('method-row-nequi');
-
-  if (pseAction && pseRow) {
-    if (preferredAlt === 'PSE') {
-      pseAction.innerHTML = `
-        <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-          <span>✓</span>
-          <span>Método preferido</span>
-        </span>
-      `;
-      pseRow.classList.add('bg-emerald-50/40', 'border-emerald-200/50');
-    } else {
-      pseAction.innerHTML = `
-        <button type="button" onclick="setAlternativePreferredMethod('PSE')" class="text-[11px] text-stone-500 hover:text-stone-900 underline cursor-pointer">
-          Hacer preferido
-        </button>
-      `;
-      pseRow.classList.remove('bg-emerald-50/40', 'border-emerald-200/50');
-    }
-  }
-
-  if (nequiAction && nequiRow) {
-    if (preferredAlt === 'Nequi') {
-      nequiAction.innerHTML = `
-        <span class="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-          <span>✓</span>
-          <span>Método preferido</span>
-        </span>
-      `;
-      nequiRow.classList.add('bg-emerald-50/40', 'border-emerald-200/50');
-    } else {
-      nequiAction.innerHTML = `
-        <button type="button" onclick="setAlternativePreferredMethod('Nequi')" class="text-[11px] text-stone-500 hover:text-stone-900 underline cursor-pointer">
-          Hacer preferido
-        </button>
-      `;
-      nequiRow.classList.remove('bg-emerald-50/40', 'border-emerald-200/50');
-    }
-  }
 }
 
 /**
@@ -1739,7 +1687,6 @@ async function submitAddPaymentMethod() {
           method: 'PATCH',
           body: JSON.stringify({ is_default: false })
         });
-        localStorage.removeItem('rb_preferred_alt_payment');
       } catch (cleanErr) {
         console.warn('Aviso al desmarcar tarjetas preferidas:', cleanErr);
       }
@@ -1992,40 +1939,12 @@ async function setDefaultPaymentMethod(cardId) {
       body: JSON.stringify({ is_default: true })
     });
 
-    // Quitar preferencia alternativa
-    localStorage.removeItem('rb_preferred_alt_payment');
-
     showToast('✨ Tarjeta establecida como método preferido.');
     await loadPaymentMethods();
 
   } catch (err) {
     console.error('Error al cambiar método de pago preferido:', err);
     showToast('No se pudo actualizar el método preferido: ' + (err.message || 'Error de red.'));
-  }
-}
-
-/**
- * Establece un método de pago alternativo (PSE / Nequi) como preferido
- */
-async function setAlternativePreferredMethod(methodName) {
-  const userId = currentUser?.id || '00000000-0000-0000-0000-000000000001';
-
-  try {
-    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
-      // Poner is_default = false en las tarjetas
-      await window.supabase.fetchApi(`payment_methods?user_id=eq.${userId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ is_default: false })
-      });
-    }
-
-    localStorage.setItem('rb_preferred_alt_payment', methodName);
-    showToast(`✨ ${methodName} establecido como método preferido.`);
-    await loadPaymentMethods();
-
-  } catch (err) {
-    console.error('Error al establecer método preferido:', err);
-    showToast('Error al actualizar método preferido.');
   }
 }
 
