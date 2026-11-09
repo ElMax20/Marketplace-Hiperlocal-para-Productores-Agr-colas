@@ -587,16 +587,24 @@ async function confirmEmailVerification(token, explicitEmail) {
       userId = match.user_id;
 
       // 1. Actualizar en base de datos Supabase (public.profiles)
-      if (userId && userId !== '00000000-0000-0000-0000-000000000001') {
-        await window.supabase.fetchApi(`profiles?id=eq.${userId}`, {
-          method: 'PATCH',
-          body: { email: targetEmail }
-        });
-      } else if (currentUser?.username) {
-        await window.supabase.fetchApi(`profiles?username=eq.${encodeURIComponent(currentUser.username)}`, {
-          method: 'PATCH',
-          body: { email: targetEmail }
-        });
+      try {
+        if (userId) {
+          await window.supabase.fetchApi(`profiles?id=eq.${userId}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ email: targetEmail })
+          });
+        }
+      } catch (patchErr) {
+        console.warn('Aviso al actualizar perfil por id:', patchErr);
+      }
+
+      if (currentUser?.username) {
+        try {
+          await window.supabase.fetchApi(`profiles?username=eq.${encodeURIComponent(currentUser.username)}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ email: targetEmail })
+          });
+        } catch (_) {}
       }
 
       // 2. Eliminar fila de solicitud para invalidar el token
@@ -620,6 +628,17 @@ async function confirmEmailVerification(token, explicitEmail) {
       } catch (_) {}
     }
 
+    if (!currentUser && window.supabase && typeof window.supabase.fetchApi === 'function' && userId) {
+      try {
+        const profs = await window.supabase.fetchApi(`profiles?id=eq.${userId}&select=*`);
+        if (profs && profs.length > 0) {
+          currentUser = profs[0];
+          currentUser.name = profs[0].full_name || 'Max';
+          currentUser.avatar = profs[0].avatar_url || '';
+        }
+      } catch (_) {}
+    }
+
     if (currentUser) {
       currentUser.email = targetEmail;
       currentUser.email_verified = true;
@@ -633,6 +652,10 @@ async function confirmEmailVerification(token, explicitEmail) {
     if (inputCurr) inputCurr.value = targetEmail;
     const inputNew = document.getElementById('new_email') || document.getElementById('input-new-email');
     if (inputNew) inputNew.value = '';
+
+    if (typeof renderProfileUI === 'function' && currentUser) {
+      renderProfileUI(currentUser);
+    }
 
     // 5. Limpiar URL para que quede limpia sin parámetros
     try {

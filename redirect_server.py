@@ -49,3 +49,4 @@ if __name__ == '__main__':
     server = http.server.ThreadingHTTPServer(('0.0.0.0', 3000), LocalhostRedirectHandler)
     print("Servidor de rescate y redireccion a GitHub Pages activo en http://localhost:3000")
     server.serve_forever()
+

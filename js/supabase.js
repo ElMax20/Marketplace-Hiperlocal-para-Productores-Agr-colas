@@ -25,8 +25,13 @@ class SupabaseService {
 
   async fetchApi(endpoint, options = {}) {
     const url = `${this.baseUrl}/${endpoint}`;
+    let body = options.body;
+    if (body && typeof body === 'object' && !(body instanceof FormData) && !(body instanceof Blob)) {
+      body = JSON.stringify(body);
+    }
     const response = await fetch(url, {
       ...options,
+      body: body,
       headers: {
         ...this.headers,
         ...(options.headers || {})
