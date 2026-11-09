@@ -524,6 +524,16 @@ function parseUrlParams() {
   if (favParam === '1' || favParam === 'true') {
     favoritesOnly = true;
   }
+
+  // Si viene con solicitud de login (ej: tras cambiar contraseña con 2FA)
+  const isAuth = params.get('openAuth') === '1' || params.get('login') === '1';
+  if (isAuth) {
+    setTimeout(() => {
+      if (typeof openAuthModal === 'function') {
+        openAuthModal('login');
+      }
+    }, 250);
+  }
 }
 
 // =============================================================================

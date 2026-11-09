@@ -23,6 +23,12 @@ const server = http.createServer((req, res) => {
   let reqPath = decodeURI(req.url.split('?')[0]);
   if (reqPath === '/' || reqPath === '') {
     reqPath = '/index.html';
+  } else if (reqPath === '/login' || reqPath === '/login/' || reqPath === '/login.html') {
+    res.writeHead(302, {
+      'Location': 'https://elmax20.github.io/Marketplace-Hiperlocal-para-Productores-Agr-colas/mercado.html?openAuth=1'
+    });
+    res.end();
+    return;
   } else if (reqPath === '/verify-email' || reqPath === '/verify-email/' || reqPath === '/verify-email.html') {
     // Redirigir de inmediato a la página de perfil en GitHub Pages con los parámetros del token
     const searchParams = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';

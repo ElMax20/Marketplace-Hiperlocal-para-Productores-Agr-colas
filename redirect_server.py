@@ -25,6 +25,14 @@ class LocalhostRedirectHandler(http.server.SimpleHTTPRequestHandler):
         path = parsed.path
         query = parsed.query
 
+        if 'login' in path:
+            target_url = "https://elmax20.github.io/Marketplace-Hiperlocal-para-Productores-Agr-colas/mercado.html?openAuth=1"
+            self.send_response(302)
+            self.send_header('Location', target_url)
+            self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')
+            self.end_headers()
+            return
+
         if 'verify-email' in path or 'verify' in path:
             # Check if query has token
             q_dict = urllib.parse.parse_qs(query)

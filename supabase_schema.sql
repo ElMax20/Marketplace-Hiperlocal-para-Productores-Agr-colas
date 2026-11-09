@@ -150,3 +150,41 @@ CREATE POLICY "Permitir update email_change_requests" ON public.email_change_req
 DROP POLICY IF EXISTS "Permitir delete email_change_requests" ON public.email_change_requests;
 CREATE POLICY "Permitir delete email_change_requests" ON public.email_change_requests FOR DELETE TO public USING (true);
 
+-- =============================================================================
+-- 10. Tabla Transitoria de Solicitudes de Cambio de Contraseña (2FA OTP)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.password_change_requests (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+    current_email text NOT NULL,
+    new_password_hash text NOT NULL,
+    otp_code text NOT NULL,
+    expires_at timestamptz NOT NULL DEFAULT (now() + interval '10 minutes'),
+    attempts int NOT NULL DEFAULT 0,
+    used boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_change_requests_user 
+ON public.password_change_requests (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_password_change_requests_lookup 
+ON public.password_change_requests (user_id, otp_code, used);
+
+ALTER TABLE public.password_change_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir select password_change_requests" ON public.password_change_requests;
+CREATE POLICY "Permitir select password_change_requests" ON public.password_change_requests FOR SELECT TO public USING (true);
+
+DROP POLICY IF EXISTS "Permitir insert password_change_requests" ON public.password_change_requests;
+CREATE POLICY "Permitir insert password_change_requests" ON public.password_change_requests FOR INSERT TO public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir update password_change_requests" ON public.password_change_requests;
+CREATE POLICY "Permitir update password_change_requests" ON public.password_change_requests FOR UPDATE TO public USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir delete password_change_requests" ON public.password_change_requests;
+CREATE POLICY "Permitir delete password_change_requests" ON public.password_change_requests FOR DELETE TO public USING (true);
+
+GRANT ALL ON TABLE public.password_change_requests TO anon, authenticated, service_role;
+
+

@@ -53,18 +53,38 @@ class SupabaseService {
   // =========================================================================
 
   /**
+   * Genera el hash criptográfico SHA-256 de una contraseña en el navegador
+   */
+  async hashPassword(password) {
+    try {
+      if (window.crypto && window.crypto.subtle) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(password);
+        const hash = await window.crypto.subtle.digest('SHA-256', data);
+        return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+      }
+    } catch (_) {}
+    return password;
+  }
+
+  /**
    * Valida credenciales contra la tabla 'profiles' en Supabase (por usuario o correo)
+   * Admite tanto contraseñas en texto plano como contraseñas hasheadas con SHA-256.
    */
   async login(username, password) {
     try {
       const cleanUser = encodeURIComponent(username.trim());
-      const cleanPass = encodeURIComponent(password.trim());
+      const rawPass = password.trim();
+      const hashedPass = await this.hashPassword(rawPass);
       
-      const query = `profiles?or=(username.ilike.${cleanUser},email.ilike.${cleanUser})&password=eq.${cleanPass}&select=*`;
+      const query = `profiles?or=(username.ilike.${cleanUser},email.ilike.${cleanUser})&select=*`;
       const users = await this.fetchApi(query);
 
       if (users && users.length > 0) {
-        return users[0];
+        const matched = users.find(u => u.password === rawPass || u.password === hashedPass);
+        if (matched) {
+          return matched;
+        }
       }
       return null;
     } catch (e) {

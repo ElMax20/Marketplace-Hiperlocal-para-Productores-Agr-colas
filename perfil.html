@@ -408,8 +408,8 @@
                   <input 
                     type="password" 
                     id="input-pass-current" 
-                    value="••••••••••••" 
-                    placeholder="Contraseña actual"
+                    value="" 
+                    placeholder="Ingresa tu contraseña actual"
                     class="w-full text-xs p-3 pr-10 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
                   >
                   <button 
@@ -428,8 +428,8 @@
                   <input 
                     type="password" 
                     id="input-pass-new" 
-                    value="••••••••••••" 
-                    placeholder="Nueva contraseña segura"
+                    value="" 
+                    placeholder="Mínimo 12 caracteres (Mayús, minús, número, símbolo)"
                     class="w-full text-xs p-3 pr-10 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
                   >
                   <button 
@@ -448,7 +448,7 @@
                   <input 
                     type="password" 
                     id="input-pass-confirm" 
-                    value="••••••••••••" 
+                    value="" 
                     placeholder="Repite la nueva contraseña"
                     class="w-full text-xs p-3 pr-10 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
                   >
@@ -466,25 +466,27 @@
               <div class="bg-[#f0f6f2] border border-emerald-100 rounded-xl p-3 text-xs text-emerald-900 space-y-1">
                 <p class="font-bold flex items-center gap-1.5 text-emerald-800">
                   <span>✓</span>
-                  <span>Contraseña segura</span>
+                  <span>Requisitos de seguridad (2FA por código OTP)</span>
                 </p>
                 <ul class="text-[11px] text-stone-600 space-y-0.5 pl-3">
-                  <li>✓ Al menos 12 caracteres</li>
-                  <li>✓ Mayúsculas, minúsculas, números y símbolo</li>
+                  <li>✓ Mínimo 12 caracteres</li>
+                  <li>✓ Incluye mayúsculas, minúsculas, números y símbolo</li>
                   <li>✓ La confirmación coincide</li>
+                  <li>✓ Se enviará un código OTP de 6 dígitos a tu correo registrado</li>
                 </ul>
               </div>
 
               <p class="text-[10px] text-stone-400 flex items-start gap-1 leading-tight">
                 <span>🔒</span>
-                <span>Las contraseñas permanecen ocultas. Por seguridad, al actualizarla tendrás que volver a iniciar sesión.</span>
+                <span>Por tu seguridad, antes de aplicar el cambio validaremos tu identidad mediante un código de seguridad.</span>
               </p>
 
               <button 
                 type="submit" 
-                class="inline-flex items-center gap-1.5 px-4 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 hover:bg-stone-50 transition shadow-2xs cursor-pointer"
+                id="btn-update-password"
+                class="inline-flex items-center gap-1.5 px-4 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 hover:bg-stone-50 transition shadow-2xs cursor-pointer disabled:opacity-50"
               >
-                Actualizar contraseña
+                <span id="btn-update-password-text">Actualizar contraseña</span>
               </button>
             </form>
           </div>
@@ -761,6 +763,91 @@
           <span>✓</span>
           <span>Confirmar encuadre</span>
         </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- 6. Modal de Verificación 2FA OTP para Cambio de Contraseña               -->
+  <!-- ========================================================================= -->
+  <div id="modal-otp-password" class="hidden fixed inset-0 z-[85] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs select-none">
+    <div class="bg-white rounded-3xl max-w-sm sm:max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Encabezado del modal -->
+      <div class="bg-stone-50 border-b border-stone-200 px-5 py-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-sm font-bold shadow-2xs">🔐</span>
+          <div>
+            <h3 class="font-serif font-bold text-stone-900 text-base">Confirma tu identidad</h3>
+            <p class="text-[11px] text-stone-500">Verificación de seguridad temporal (OTP)</p>
+          </div>
+        </div>
+        <button type="button" onclick="closePasswordOtpModal()" class="w-8 h-8 rounded-full bg-white hover:bg-stone-200 text-stone-500 flex items-center justify-center text-sm font-bold transition shadow-xs cursor-pointer" title="Cerrar">
+          ✕
+        </button>
+      </div>
+
+      <!-- Contenido del modal -->
+      <div class="p-6 space-y-4">
+        <p class="text-xs text-stone-600 leading-relaxed text-center">
+          Hemos enviado un código de seguridad de 6 dígitos a tu correo registrado. Ingrésalo para autorizar el cambio.
+        </p>
+
+        <div class="flex justify-center">
+          <span id="otp-modal-target-email" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 text-[11px] font-semibold text-stone-700">
+            ✉ <span id="otp-user-email-text">correo@ejemplo.com</span>
+          </span>
+        </div>
+
+        <!-- Entrada del código OTP de 6 dígitos -->
+        <div class="space-y-2">
+          <label for="input-otp-code" class="block text-center text-xs font-bold text-stone-700 uppercase tracking-wider">Código de seguridad (6 dígitos)</label>
+          <input 
+            type="text" 
+            id="input-otp-code" 
+            maxlength="6" 
+            inputmode="numeric" 
+            pattern="[0-9]*" 
+            autocomplete="one-time-code" 
+            placeholder="000000" 
+            class="w-full text-center font-mono text-2xl tracking-[0.5em] font-bold py-3 px-4 rounded-2xl border-2 border-stone-300 focus:border-[#1a3d2f] focus:bg-white focus:outline-none bg-stone-50 transition shadow-inner"
+          >
+          <!-- Mensaje de error de intentos -->
+          <p id="otp-error-msg" class="text-xs text-red-600 font-semibold text-center hidden"></p>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="space-y-2.5 pt-2">
+          <button 
+            type="button" 
+            id="btn-verify-otp" 
+            onclick="submitPasswordOtpVerification()" 
+            class="w-full py-3 bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span id="btn-verify-otp-text">Confirmar cambio</span>
+          </button>
+
+          <!-- Reenviar código con cooldown de 60s -->
+          <div class="text-center">
+            <button 
+              type="button" 
+              id="btn-resend-otp" 
+              onclick="resendPasswordOtp()" 
+              disabled 
+              class="text-xs text-stone-500 font-semibold hover:text-[#1a3d2f] transition disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            >
+              Reenviar código <span id="otp-resend-countdown" class="font-mono text-stone-500">(60s)</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Pie del modal -->
+      <div class="bg-stone-50 border-t border-stone-200 px-5 py-3 flex items-center justify-between text-[11px] text-stone-500">
+        <span>⏱ Expira en 10 minutos</span>
+        <span>Máximo 3 intentos</span>
       </div>
 
     </div>
