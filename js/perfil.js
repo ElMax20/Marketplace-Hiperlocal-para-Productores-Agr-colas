@@ -1311,10 +1311,11 @@ function renderDeliveryPreferences() {
 
   if (nodeCard) {
     if (isNodePreferred) {
-      nodeCard.className = 'bg-[#f0f6f2] border-2 border-[#1a3d2f] rounded-xl p-3.5 shadow-2xs transition-all';
+      nodeCard.className = 'bg-[#f0f6f2] border-2 border-[#1a3d2f] rounded-xl p-3.5 shadow-2xs transition-all cursor-pointer';
     } else {
-      nodeCard.className = 'bg-white border border-stone-200 rounded-xl p-3.5 shadow-2xs transition-all';
+      nodeCard.className = 'bg-white border border-stone-200 hover:border-[#1a3d2f]/40 hover:bg-stone-50/50 rounded-xl p-3.5 shadow-2xs transition-all cursor-pointer';
     }
+    nodeCard.setAttribute('onclick', 'handleNodeCardClick(event)');
   }
 
   if (nodeRadioIcon) {
@@ -1336,7 +1337,7 @@ function renderDeliveryPreferences() {
       `;
     } else {
       nodeBadgeContainer.innerHTML = `
-        <button type="button" onclick="setPreferredDeliveryMode('node')" class="font-semibold text-stone-600 hover:text-stone-900 underline text-[11px] cursor-pointer">
+        <button type="button" onclick="event.stopPropagation(); setPreferredDeliveryMode('node')" class="font-semibold text-stone-600 hover:text-stone-900 underline text-[11px] cursor-pointer">
           Hacer preferida
         </button>
       `;
@@ -1361,21 +1362,25 @@ function renderDeliveryPreferences() {
     const isThisAddrPreferred = (activeDeliveryMode === 'home') && !!addr.is_preferred;
     const feeFormatted = Number(addr.delivery_fee || 8000).toLocaleString('es-CO');
 
+    const cardClasses = isThisAddrPreferred
+      ? 'bg-[#f0f6f2] border-2 border-[#1a3d2f] rounded-xl p-3.5 shadow-2xs transition-all cursor-pointer'
+      : 'bg-white border border-stone-200 hover:border-[#1a3d2f]/40 hover:bg-stone-50/50 rounded-xl p-3.5 shadow-2xs transition-all cursor-pointer';
+
     return `
-      <div class="${isThisAddrPreferred ? 'bg-[#f0f6f2] border-2 border-[#1a3d2f]' : 'bg-white border border-stone-200'} rounded-xl p-3.5 shadow-2xs transition-all">
+      <div onclick="handleAddressCardClick(event, '${addr.id}')" class="${cardClasses}">
         <div class="flex items-center justify-between text-xs mb-1.5">
-          <button type="button" onclick="setPreferredAddress('${addr.id}')" class="flex items-center gap-1.5 font-bold ${isThisAddrPreferred ? 'text-stone-900' : 'text-stone-700'} text-left cursor-pointer group">
+          <div class="flex items-center gap-1.5 font-bold ${isThisAddrPreferred ? 'text-stone-900' : 'text-stone-700'} text-left select-none">
             <span class="w-3.5 h-3.5 rounded-full ${isThisAddrPreferred ? 'border-2 border-[#1a3d2f] flex items-center justify-center' : 'border border-stone-300'}">
               ${isThisAddrPreferred ? '<span class="w-1.5 h-1.5 rounded-full bg-[#1a3d2f]"></span>' : ''}
             </span>
-            <span class="group-hover:text-[#1a3d2f] transition-colors">A domicilio · ${escapeHtml(addr.label || 'Domicilio')}</span>
-          </button>
+            <span class="transition-colors">A domicilio · ${escapeHtml(addr.label || 'Domicilio')}</span>
+          </div>
           ${isThisAddrPreferred ? `
             <span class="text-[10px] font-bold text-emerald-800 bg-white border border-emerald-200 px-2 py-0.5 rounded-full shadow-2xs">
               Preferida
             </span>
           ` : `
-            <button type="button" onclick="setPreferredAddress('${addr.id}')" class="font-semibold text-stone-600 hover:text-stone-900 underline text-[11px] cursor-pointer">
+            <button type="button" onclick="event.stopPropagation(); setPreferredAddress('${addr.id}')" class="font-semibold text-stone-600 hover:text-stone-900 underline text-[11px] cursor-pointer">
               Hacer preferida
             </button>
           `}
@@ -1388,18 +1393,41 @@ function renderDeliveryPreferences() {
 
         <div class="flex items-center justify-between pt-2 border-t border-stone-100 mt-2 text-xs">
           <div class="flex items-center gap-3 font-semibold text-stone-600">
-            <button type="button" onclick="openAddressModal('${addr.id}')" class="hover:underline hover:text-stone-900 cursor-pointer">
+            <button type="button" onclick="event.stopPropagation(); openAddressModal('${addr.id}')" class="no-select-addr hover:underline hover:text-stone-900 cursor-pointer">
               Modificar
             </button>
-            <button type="button" onclick="openDeleteAddressModal('${addr.id}', '${escapeHtml(addr.street_address).replace(/'/g, "\\'")}')" class="text-red-600 hover:underline cursor-pointer">
+            <button type="button" onclick="event.stopPropagation(); openDeleteAddressModal('${addr.id}', '${escapeHtml(addr.street_address).replace(/'/g, "\\'")}')" class="no-select-addr text-red-600 hover:underline cursor-pointer">
               Eliminar
             </button>
           </div>
-          ${isThisAddrPreferred ? '<span class="text-[11px] text-[#1a3d2f] font-semibold">✓ Opción activa</span>' : ''}
+          ${isThisAddrPreferred ? '<span class="text-[11px] text-[#1a3d2f] font-semibold select-none">✓ Opción activa</span>' : ''}
         </div>
       </div>
     `;
   }).join('');
+}
+
+/**
+ * Maneja el clic en cualquier lugar del bloque de dirección (excepto botones modificar y eliminar)
+ */
+function handleAddressCardClick(event, addressId) {
+  if (event.target.closest('.no-select-addr')) return;
+  const current = cachedDeliveryAddresses.find(a => a.id === addressId);
+  if (activeDeliveryMode === 'home' && current && current.is_preferred) {
+    return;
+  }
+  setPreferredAddress(addressId);
+}
+
+/**
+ * Maneja el clic en cualquier lugar del bloque de Recogida en nodo (excepto cambiar nodo)
+ */
+function handleNodeCardClick(event) {
+  if (event.target.closest('.no-select-node')) return;
+  if (activeDeliveryMode === 'node') {
+    return;
+  }
+  setPreferredDeliveryMode('node');
 }
 
 /**

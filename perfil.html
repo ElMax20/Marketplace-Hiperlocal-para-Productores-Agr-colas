@@ -545,9 +545,9 @@
             <p class="text-xs text-stone-400 mt-0.5 mb-4">Tu mercado se adapta al lugar donde quieres recibirlo.</p>
 
             <!-- Opción 1: Recogida en nodo (Dinámico) -->
-            <div id="card-delivery-node" class="bg-[#f0f6f2] border-2 border-[#1a3d2f] rounded-xl p-3.5 shadow-2xs transition-all">
+            <div id="card-delivery-node" onclick="handleNodeCardClick(event)" class="bg-[#f0f6f2] border-2 border-[#1a3d2f] rounded-xl p-3.5 shadow-2xs transition-all cursor-pointer">
               <div class="flex items-center justify-between text-xs mb-1.5">
-                <button type="button" onclick="setPreferredDeliveryMode('node')" class="flex items-center gap-1.5 font-bold text-stone-900 text-left cursor-pointer group">
+                <button type="button" onclick="event.stopPropagation(); setPreferredDeliveryMode('node')" class="flex items-center gap-1.5 font-bold text-stone-900 text-left cursor-pointer group">
                   <span id="node-radio-icon" class="w-3.5 h-3.5 rounded-full border-2 border-[#1a3d2f] flex items-center justify-center">
                     <span class="w-1.5 h-1.5 rounded-full bg-[#1a3d2f]"></span>
                   </span>
@@ -567,7 +567,7 @@
               
               <div class="flex items-center justify-between pt-2 border-t border-stone-200/60 mt-2 text-xs">
                 <span class="font-semibold text-stone-700">Recogida gratis</span>
-                <button type="button" onclick="openNodeSelectorModal()" class="font-bold text-[#1a3d2f] hover:underline flex items-center gap-0.5 cursor-pointer">
+                <button type="button" onclick="event.stopPropagation(); openNodeSelectorModal()" class="no-select-node font-bold text-[#1a3d2f] hover:underline flex items-center gap-0.5 cursor-pointer">
                   <span>Cambiar nodo</span>
                   <span>→</span>
                 </button>
