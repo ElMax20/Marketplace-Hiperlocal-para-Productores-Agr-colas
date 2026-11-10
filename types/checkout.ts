@@ -84,3 +84,4 @@ export interface CheckoutState {
   isSubmitting: boolean;
   error: string | null;
 }
+

@@ -97,7 +97,6 @@ function openLoginModal(type = 'cliente') {
   const submitBtn = document.getElementById('auth-submit-btn');
   const tabCliente = document.getElementById('tab-login-cliente');
   const tabProductor = document.getElementById('tab-login-productor');
-  const hintEl = document.getElementById('auth-credentials-hint');
   const errorBox = document.getElementById('auth-error-box');
 
   if (errorBox) {
@@ -122,9 +121,6 @@ function openLoginModal(type = 'cliente') {
       submitBtn.textContent = 'Ingresar como Cliente';
       submitBtn.className = 'w-full bg-[#1a3d2f] hover:bg-[#255440] text-white py-3 rounded-xl font-bold text-sm shadow-md transition';
     }
-    if (hintEl) {
-      hintEl.innerHTML = 'Credenciales de prueba: <strong>max</strong> / <strong>123</strong> (o admin: <strong>admin</strong> / <strong>admin123</strong>)';
-    }
     if (tabCliente) {
       tabCliente.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-[#1a3d2f] text-white transition shadow-sm';
     }
@@ -141,9 +137,6 @@ function openLoginModal(type = 'cliente') {
     if (submitBtn) {
       submitBtn.textContent = 'Ingresar al Portal Productor';
       submitBtn.className = 'w-full bg-[#c85a32] hover:bg-[#b04a25] text-white py-3 rounded-xl font-bold text-sm shadow-md transition';
-    }
-    if (hintEl) {
-      hintEl.innerHTML = 'Credenciales de prueba: <strong>maxp</strong> / <strong>123</strong> (o admin: <strong>admin</strong> / <strong>admin123</strong>)';
     }
     if (tabProductor) {
       tabProductor.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-[#c85a32] text-white transition shadow-sm';
