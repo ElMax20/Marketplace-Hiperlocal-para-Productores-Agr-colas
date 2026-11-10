@@ -1574,29 +1574,77 @@ function handleLogout() {
 }
 
 // =============================================================================
-// 8. Pantalla de Checkout y Confirmación de Orden
+// 8. Pantalla de Checkout y Confirmación de Orden (Dinámico con Supabase)
 // =============================================================================
-function openCheckoutModal(user) {
+
+// Estado global de Checkout
+let checkoutUser = null;
+let checkoutPickupNodes = [];
+let checkoutDeliveryAddresses = [];
+let checkoutPaymentCards = [];
+
+let checkoutDeliveryType = 'node'; // 'node' | 'home'
+let checkoutSelectedNode = null;
+let checkoutSelectedAddress = null;
+
+let checkoutPaymentType = 'card'; // 'card' | 'cash' | 'pse'
+let checkoutSelectedCardId = null;
+let checkoutIsUsingNewCard = false;
+let checkoutSelectedBank = '';
+let checkoutTermsAccepted = false;
+let checkoutSubtotal = 0;
+let checkoutDeliveryFee = 0;
+let checkoutTotal = 0;
+
+/**
+ * Abre el modal de checkout y carga datos de entrega y tarjetas desde Supabase
+ */
+async function openCheckoutModal(user) {
   const modal = document.getElementById('checkout-modal');
   const payStep = document.getElementById('checkout-step-pay');
   const successStep = document.getElementById('checkout-step-success');
-  const userInfo = document.getElementById('checkout-user-info');
-  const nodeInfo = document.getElementById('checkout-node-info');
-  const totalEl = document.getElementById('checkout-final-total');
 
-  const currentUser = user || (typeof getCurrentUser === 'function' ? getCurrentUser() : null) || {
-    name: 'Vecino del Barrio',
-    email: 'compras@raizbarrio.co',
-    phone: '300 123 4567',
+  if (cart.length === 0) {
+    showToast('Tu canasta de compras está vacía.');
+    return;
+  }
+
+  // 1. Obtener usuario activo
+  checkoutUser = user || (typeof getCurrentUser === 'function' ? getCurrentUser() : null) || {
+    id: '00000000-0000-0000-0000-000000000001',
+    name: 'Carlos Max Campoverde B.',
+    username: 'max',
+    email: 'max@vecinos.com',
+    phone: '0997766751',
     preferredNode: 'Nodo Central · La Perseverancia'
   };
 
-  const totalAmount = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  // 2. Resetear estados iniciales
+  checkoutIsUsingNewCard = false;
+  checkoutTermsAccepted = false;
+  const termsCheckbox = document.getElementById('checkout-confirm-terms');
+  if (termsCheckbox) termsCheckbox.checked = false;
 
-  if (userInfo) userInfo.textContent = `${currentUser.name} (${currentUser.email}${currentUser.phone ? ` - Tel: ${currentUser.phone}` : ''})`;
-  if (nodeInfo) nodeInfo.textContent = `📍 Punto de recogida: ${currentUser.preferredNode || 'Nodo Central · La Perseverancia'}`;
-  if (totalEl) totalEl.textContent = `$${formatCOP(totalAmount)}`;
+  const errorEl = document.getElementById('checkout-error-msg');
+  if (errorEl) {
+    errorEl.textContent = '';
+    errorEl.classList.add('hidden');
+  }
 
+  // 3. Info del comprador
+  const userNameEl = document.getElementById('checkout-user-name');
+  const userEmailEl = document.getElementById('checkout-user-email');
+  if (userNameEl) userNameEl.textContent = checkoutUser.name || 'Comprador';
+  if (userEmailEl) userEmailEl.textContent = checkoutUser.email || 'correo@ejemplo.com';
+
+  // 4. Calcular subtotal de la canasta
+  checkoutSubtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const itemsCountEl = document.getElementById('checkout-items-count');
+  const subtotalEl = document.getElementById('checkout-subtotal-amount');
+  if (itemsCountEl) itemsCountEl.textContent = cart.reduce((acc, item) => acc + item.quantity, 0);
+  if (subtotalEl) subtotalEl.textContent = `$${formatCOP(checkoutSubtotal)}`;
+
+  // 5. Cerrar drawer del carrito y mostrar modal
   if (window.closeCartDrawer) window.closeCartDrawer();
   if (payStep) payStep.classList.remove('hidden');
   if (successStep) successStep.classList.add('hidden');
@@ -1604,8 +1652,131 @@ function openCheckoutModal(user) {
     modal.classList.remove('hidden');
     modal.classList.add('flex');
   }
+
+  // Ocultar sub-selector de entrega inicialmente
+  toggleDeliveryPicker(false);
+
+  // 6. Cargar datos desde Supabase en paralelo
+  await loadCheckoutData();
+
+  // 7. Renderizar vistas
+  renderActiveDeliveryCard();
+  renderDeliveryPickerLists();
+  renderPaymentCardsList();
+  updateCheckoutPriceBreakdown();
+  switchCheckoutPayTab(checkoutPaymentType || 'card');
+  validateCheckoutForm();
 }
 
+/**
+ * Carga nodos, direcciones y tarjetas del usuario desde Supabase
+ */
+async function loadCheckoutData() {
+  const userId = checkoutUser?.id || '00000000-0000-0000-0000-000000000001';
+
+  try {
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      // Perfil (para modo activo de entrega y nodo preferido)
+      let activeMode = 'node';
+      let preferredNodeId = null;
+      try {
+        const profs = await window.supabase.fetchApi(`profiles?id=eq.${userId}&select=*`);
+        if (profs && profs.length > 0) {
+          activeMode = profs[0].active_delivery_mode || 'node';
+          preferredNodeId = profs[0].preferred_pickup_node_id;
+        }
+      } catch (errProf) {
+        console.warn('Error leyendo perfil en checkout:', errProf);
+      }
+
+      // Nodos activos
+      try {
+        const nodes = await window.supabase.fetchApi('pickup_nodes?is_active=eq.true&order=created_at.asc');
+        if (nodes && nodes.length > 0) {
+          checkoutPickupNodes = nodes;
+        }
+      } catch (errNodes) {
+        console.warn('Error leyendo pickup_nodes:', errNodes);
+      }
+
+      // Direcciones del usuario
+      try {
+        const addrs = await window.supabase.fetchApi(`delivery_addresses?user_id=eq.${userId}&order=created_at.desc`);
+        if (addrs) {
+          checkoutDeliveryAddresses = addrs;
+        }
+      } catch (errAddrs) {
+        console.warn('Error leyendo delivery_addresses:', errAddrs);
+      }
+
+      // Tarjetas guardadas del usuario
+      try {
+        const cards = await window.supabase.fetchApi(`payment_methods?user_id=eq.${userId}&order=created_at.desc`);
+        if (cards) {
+          checkoutPaymentCards = cards;
+        }
+      } catch (errCards) {
+        console.warn('Error leyendo payment_methods:', errCards);
+      }
+
+      // Determinar selección inicial de entrega según preferencias del perfil
+      if (activeMode === 'home' && checkoutDeliveryAddresses.length > 0) {
+        checkoutDeliveryType = 'home';
+        checkoutSelectedAddress = checkoutDeliveryAddresses.find(a => a.is_preferred) || checkoutDeliveryAddresses[0];
+        checkoutSelectedNode = null;
+      } else {
+        checkoutDeliveryType = 'node';
+        if (preferredNodeId) {
+          checkoutSelectedNode = checkoutPickupNodes.find(n => n.id === preferredNodeId) || checkoutPickupNodes[0];
+        } else {
+          checkoutSelectedNode = checkoutPickupNodes[0] || null;
+        }
+        checkoutSelectedAddress = null;
+      }
+
+      // Determinar tarjeta seleccionada inicial
+      if (checkoutPaymentCards.length > 0) {
+        const defaultCard = checkoutPaymentCards.find(c => c.is_default) || checkoutPaymentCards[0];
+        checkoutSelectedCardId = defaultCard.id;
+        checkoutIsUsingNewCard = false;
+      } else {
+        checkoutSelectedCardId = null;
+        checkoutIsUsingNewCard = true; // Si no tiene tarjetas, abrir formulario de tarjeta nueva
+      }
+    }
+  } catch (errGlobal) {
+    console.error('Error cargando datos de checkout en Supabase:', errGlobal);
+  }
+
+  // Fallbacks locales si no hay datos
+  if (checkoutPickupNodes.length === 0) {
+    checkoutPickupNodes = [
+      {
+        id: 'e0177a54-9cbc-4426-a538-1d630f852ac1',
+        name: 'Nodo Central · La Perseverancia',
+        address: 'Carrera 5 n.º 30A-10',
+        city: 'Bogotá',
+        pickup_schedule: 'Sáb. 7 nov. · 8:00 a. m. – 12:00 p. m.',
+        is_active: true
+      },
+      {
+        id: '65925730-63b5-486f-9dd0-aaac13a0ffe9',
+        name: 'Nodo Chapinero Alto · Café del Bosque',
+        address: 'Calle 57 n.º 4-22',
+        city: 'Bogotá',
+        pickup_schedule: 'Sáb. 7 nov. · 9:00 a. m. – 1:00 p. m.',
+        is_active: true
+      }
+    ];
+    if (!checkoutSelectedNode && checkoutDeliveryType === 'node') {
+      checkoutSelectedNode = checkoutPickupNodes[0];
+    }
+  }
+}
+
+/**
+ * Cierra el modal de checkout
+ */
 function closeCheckoutModal() {
   const modal = document.getElementById('checkout-modal');
   if (modal) {
@@ -1614,43 +1785,717 @@ function closeCheckoutModal() {
   }
 }
 
-function selectPaymentMethod(card) {
-  document.querySelectorAll('.pay-method-card').forEach(c => {
-    c.className = 'pay-method-card p-2.5 rounded-xl border border-stone-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-stone-50 transition';
-    const spanTitle = c.querySelector('span.font-bold');
-    if (spanTitle) spanTitle.className = 'font-bold text-stone-700';
-    const radio = c.querySelector('input[type="radio"]');
-    if (radio) radio.checked = false;
+/**
+ * Despliega o repliega el sub-selector de entrega
+ */
+function toggleDeliveryPicker(forceOpen = null) {
+  const picker = document.getElementById('checkout-delivery-picker');
+  const arrow = document.getElementById('delivery-picker-arrow');
+  if (!picker) return;
+
+  const shouldOpen = forceOpen !== null ? forceOpen : picker.classList.contains('hidden');
+  if (shouldOpen) {
+    picker.classList.remove('hidden');
+    if (arrow) arrow.textContent = '▴';
+    selectDeliveryModeTab(checkoutDeliveryType);
+  } else {
+    picker.classList.add('hidden');
+    if (arrow) arrow.textContent = '▾';
+  }
+}
+
+/**
+ * Alterna entre pestañas del sub-selector (Nodo vs Domicilio)
+ */
+function selectDeliveryModeTab(mode) {
+  const tabNode = document.getElementById('tab-mode-node');
+  const tabHome = document.getElementById('tab-mode-home');
+  const listNodes = document.getElementById('checkout-nodes-list');
+  const listHome = document.getElementById('checkout-addresses-list');
+
+  if (mode === 'node') {
+    if (tabNode) tabNode.className = 'py-1.5 text-xs font-bold rounded-lg transition bg-white text-[#1a3d2f] shadow-2xs cursor-pointer';
+    if (tabHome) tabHome.className = 'py-1.5 text-xs font-semibold rounded-lg transition text-stone-600 hover:text-stone-900 cursor-pointer';
+    if (listNodes) listNodes.classList.remove('hidden');
+    if (listHome) listHome.classList.add('hidden');
+  } else {
+    if (tabNode) tabNode.className = 'py-1.5 text-xs font-semibold rounded-lg transition text-stone-600 hover:text-stone-900 cursor-pointer';
+    if (tabHome) tabHome.className = 'py-1.5 text-xs font-bold rounded-lg transition bg-white text-[#1a3d2f] shadow-2xs cursor-pointer';
+    if (listNodes) listNodes.classList.add('hidden');
+    if (listHome) listHome.classList.remove('hidden');
+  }
+}
+
+/**
+ * Renderiza la tarjeta superior con la entrega actualmente activa
+ */
+function renderActiveDeliveryCard() {
+  const iconEl = document.getElementById('delivery-type-icon');
+  const labelEl = document.getElementById('delivery-type-label');
+  const titleEl = document.getElementById('active-delivery-title');
+  const addrEl = document.getElementById('active-delivery-address');
+  const schedEl = document.getElementById('active-delivery-schedule');
+  const badgeEl = document.getElementById('active-delivery-badge');
+  const cashNoteEl = document.getElementById('cash-payment-note');
+
+  if (checkoutDeliveryType === 'node' && checkoutSelectedNode) {
+    if (iconEl) iconEl.textContent = '🏪';
+    if (labelEl) labelEl.textContent = 'Recogida en nodo comunitario';
+    if (titleEl) titleEl.textContent = checkoutSelectedNode.name;
+    if (addrEl) addrEl.textContent = `${checkoutSelectedNode.address} · ${checkoutSelectedNode.city || 'Bogotá'}`;
+    if (schedEl) schedEl.textContent = checkoutSelectedNode.pickup_schedule;
+    if (badgeEl) {
+      badgeEl.textContent = 'Recogida gratis';
+      badgeEl.className = 'text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0 shadow-2xs';
+    }
+    if (cashNoteEl) {
+      cashNoteEl.textContent = 'Pagarás en efectivo o datáfono al retirar tu canasta en el nodo comunitario.';
+    }
+    checkoutDeliveryFee = 0;
+  } else if (checkoutDeliveryType === 'home' && checkoutSelectedAddress) {
+    if (iconEl) iconEl.textContent = '🚚';
+    if (labelEl) labelEl.textContent = `Entrega a domicilio · ${checkoutSelectedAddress.label || 'Domicilio'}`;
+    if (titleEl) titleEl.textContent = checkoutSelectedAddress.street_address;
+    if (addrEl) addrEl.textContent = `${checkoutSelectedAddress.neighborhood ? checkoutSelectedAddress.neighborhood + ' · ' : ''}${checkoutSelectedAddress.city || 'Bogotá, D. C.'}`;
+    if (schedEl) schedEl.textContent = checkoutSelectedAddress.delivery_schedule || 'Sáb. 7 nov. · 2:00 – 6:00 p. m.';
+    
+    checkoutDeliveryFee = Number(checkoutSelectedAddress.delivery_fee || 8000);
+    if (badgeEl) {
+      badgeEl.textContent = `Envío: $${formatCOP(checkoutDeliveryFee)}`;
+      badgeEl.className = 'text-[10px] font-bold text-[#c85a32] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full shrink-0 shadow-2xs';
+    }
+    if (cashNoteEl) {
+      cashNoteEl.textContent = 'Pagarás contraentrega en efectivo o datáfono al recibir tu pedido en tu domicilio.';
+    }
+  } else {
+    if (titleEl) titleEl.textContent = 'Selecciona un lugar de entrega';
+    if (addrEl) addrEl.textContent = 'Haz clic en "Cambiar lugar" para elegir.';
+    checkoutDeliveryFee = 0;
+  }
+
+  updateCheckoutPriceBreakdown();
+}
+
+/**
+ * Renderiza las listas interactivas del sub-selector
+ */
+function renderDeliveryPickerLists() {
+  const nodesList = document.getElementById('checkout-nodes-list');
+  const addrsList = document.getElementById('checkout-addresses-list');
+
+  // 1. Nodos
+  if (nodesList) {
+    if (checkoutPickupNodes.length === 0) {
+      nodesList.innerHTML = '<p class="text-stone-400 text-center py-2 text-[11px]">No hay nodos activos disponibles.</p>';
+    } else {
+      nodesList.innerHTML = checkoutPickupNodes.map(node => {
+        const isSelected = checkoutDeliveryType === 'node' && checkoutSelectedNode && (checkoutSelectedNode.id === node.id);
+        return `
+          <div 
+            onclick="chooseDeliveryOption('node', '${node.id}')" 
+            class="p-2.5 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-2 ${
+              isSelected 
+                ? 'border-[#15803d] bg-emerald-50/70 shadow-2xs' 
+                : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50/60'
+            }"
+          >
+            <div class="flex items-start gap-2">
+              <span class="w-3.5 h-3.5 rounded-full mt-0.5 ${
+                isSelected 
+                  ? 'border-2 border-[#15803d] flex items-center justify-center' 
+                  : 'border border-stone-300'
+              }">
+                ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-[#15803d]"></span>' : ''}
+              </span>
+              <div>
+                <p class="font-bold text-xs text-stone-900">${escapeHtml(node.name)}</p>
+                <p class="text-[10px] text-stone-600">${escapeHtml(node.address)} · ${escapeHtml(node.city || 'Bogotá')}</p>
+                <p class="text-[10px] text-stone-500">${escapeHtml(node.pickup_schedule)}</p>
+              </div>
+            </div>
+            <span class="text-[9px] font-bold text-emerald-800 bg-white border border-emerald-200 px-1.5 py-0.5 rounded-full shrink-0">
+              Gratis
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+
+  // 2. Direcciones a domicilio
+  if (addrsList) {
+    if (checkoutDeliveryAddresses.length === 0) {
+      addrsList.innerHTML = `
+        <div class="p-3 bg-stone-50 rounded-xl border border-dashed border-stone-200 text-center space-y-1">
+          <p class="text-stone-500 text-[11px]">No tienes direcciones a domicilio registradas.</p>
+          <a href="perfil.html" target="_blank" class="text-xs font-bold text-[#15803d] hover:underline block">
+            + Registrar mi primera dirección en perfil ↗
+          </a>
+        </div>
+      `;
+    } else {
+      addrsList.innerHTML = checkoutDeliveryAddresses.map(addr => {
+        const isSelected = checkoutDeliveryType === 'home' && checkoutSelectedAddress && (checkoutSelectedAddress.id === addr.id);
+        const fee = Number(addr.delivery_fee || 8000);
+        return `
+          <div 
+            onclick="chooseDeliveryOption('home', '${addr.id}')" 
+            class="p-2.5 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-2 ${
+              isSelected 
+                ? 'border-[#15803d] bg-emerald-50/70 shadow-2xs' 
+                : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50/60'
+            }"
+          >
+            <div class="flex items-start gap-2">
+              <span class="w-3.5 h-3.5 rounded-full mt-0.5 ${
+                isSelected 
+                  ? 'border-2 border-[#15803d] flex items-center justify-center' 
+                  : 'border border-stone-300'
+              }">
+                ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-[#15803d]"></span>' : ''}
+              </span>
+              <div>
+                <p class="font-bold text-xs text-stone-900">${escapeHtml(addr.label || 'Domicilio')}: ${escapeHtml(addr.street_address)}</p>
+                <p class="text-[10px] text-stone-600">${escapeHtml(addr.neighborhood ? addr.neighborhood + ' · ' : '')}${escapeHtml(addr.city || 'Bogotá, D. C.')}</p>
+                <p class="text-[10px] text-stone-500">${escapeHtml(addr.delivery_schedule || 'Sáb. 7 nov. · 2:00 – 6:00 p. m.')}</p>
+              </div>
+            </div>
+            <span class="text-[9px] font-bold text-stone-700 bg-white border border-stone-200 px-1.5 py-0.5 rounded-full shrink-0">
+              +$${formatCOP(fee)}
+            </span>
+          </div>
+        `;
+      }).join('');
+    }
+  }
+}
+
+/**
+ * Selecciona una opción de entrega y recalcula totales
+ */
+function chooseDeliveryOption(type, id) {
+  if (type === 'node') {
+    checkoutDeliveryType = 'node';
+    checkoutSelectedNode = checkoutPickupNodes.find(n => n.id === id) || checkoutPickupNodes[0];
+    checkoutSelectedAddress = null;
+  } else {
+    checkoutDeliveryType = 'home';
+    checkoutSelectedAddress = checkoutDeliveryAddresses.find(a => a.id === id) || checkoutDeliveryAddresses[0];
+    checkoutSelectedNode = null;
+  }
+
+  renderActiveDeliveryCard();
+  renderDeliveryPickerLists();
+  toggleDeliveryPicker(false);
+  validateCheckoutForm();
+}
+
+/**
+ * Actualiza desglose de precios (Subtotal, Envío y Total)
+ */
+function updateCheckoutPriceBreakdown() {
+  const shippingEl = document.getElementById('checkout-shipping-amount');
+  const totalEl = document.getElementById('checkout-final-total');
+
+  if (checkoutDeliveryType === 'node') {
+    checkoutDeliveryFee = 0;
+    if (shippingEl) {
+      shippingEl.textContent = 'Gratis (Nodo)';
+      shippingEl.className = 'font-semibold text-emerald-800';
+    }
+  } else {
+    checkoutDeliveryFee = checkoutSelectedAddress ? Number(checkoutSelectedAddress.delivery_fee || 8000) : 8000;
+    if (shippingEl) {
+      shippingEl.textContent = `+$${formatCOP(checkoutDeliveryFee)}`;
+      shippingEl.className = 'font-semibold text-[#c85a32]';
+    }
+  }
+
+  checkoutTotal = checkoutSubtotal + checkoutDeliveryFee;
+  if (totalEl) {
+    totalEl.textContent = `$${formatCOP(checkoutTotal)}`;
+  }
+}
+
+/**
+ * Alterna entre pestañas de método de pago: 'card' | 'cash' | 'pse'
+ */
+function switchCheckoutPayTab(mode) {
+  checkoutPaymentType = mode;
+
+  const tabs = {
+    card: document.getElementById('pay-tab-card'),
+    cash: document.getElementById('pay-tab-cash'),
+    pse: document.getElementById('pay-tab-pse')
+  };
+
+  const panels = {
+    card: document.getElementById('checkout-panel-card'),
+    cash: document.getElementById('checkout-panel-cash'),
+    pse: document.getElementById('checkout-panel-pse')
+  };
+
+  // Actualizar estilos de tabs
+  ['card', 'cash', 'pse'].forEach(key => {
+    const tab = tabs[key];
+    const panel = panels[key];
+    const isThisActive = (key === mode);
+
+    if (tab) {
+      if (isThisActive) {
+        tab.className = 'pay-method-tab p-2.5 rounded-xl border-2 border-[#15803d] bg-[#f0fdf4] flex flex-col items-center justify-center text-center cursor-pointer transition shadow-2xs';
+        const titleSpan = tab.querySelector('span.text-xs');
+        if (titleSpan) titleSpan.className = 'font-bold text-[#15803d] text-xs';
+        const radio = tab.querySelector('input[type="radio"]');
+        if (radio) radio.checked = true;
+      } else {
+        tab.className = 'pay-method-tab p-2.5 rounded-xl border border-stone-200 bg-white flex flex-col items-center justify-center text-center cursor-pointer hover:bg-stone-50 transition';
+        const titleSpan = tab.querySelector('span.text-xs');
+        if (titleSpan) titleSpan.className = 'font-bold text-stone-700 text-xs';
+        const radio = tab.querySelector('input[type="radio"]');
+        if (radio) radio.checked = false;
+      }
+    }
+
+    if (panel) {
+      if (isThisActive) {
+        panel.classList.remove('hidden');
+      } else {
+        panel.classList.add('hidden');
+      }
+    }
   });
 
-  card.className = 'pay-method-card p-2.5 rounded-xl border-2 border-[#1a3d2f] bg-[#f4f7f4] flex flex-col items-center justify-center text-center cursor-pointer transition';
-  const activeTitle = card.querySelector('span.font-bold');
-  if (activeTitle) activeTitle.className = 'font-bold text-[#1a3d2f]';
-  const activeRadio = card.querySelector('input[type="radio"]');
-  if (activeRadio) activeRadio.checked = true;
+  validateCheckoutForm();
 }
-window.selectPaymentMethod = selectPaymentMethod;
 
-function confirmOrderPayment() {
+/**
+ * Renderiza la lista de tarjetas guardadas en Supabase
+ */
+function renderPaymentCardsList() {
+  const container = document.getElementById('checkout-saved-cards-list');
+  const newCardBtn = document.getElementById('btn-use-new-card');
+  if (!container) return;
+
+  if (checkoutPaymentCards.length === 0) {
+    container.innerHTML = `
+      <div class="p-3 bg-stone-50 rounded-xl border border-dashed border-stone-200 text-center">
+        <p class="text-[11px] text-stone-500">No tienes tarjetas guardadas.</p>
+        <p class="text-[10px] text-stone-400 mt-0.5">Ingresa los datos de tu tarjeta a continuación para este pedido.</p>
+      </div>
+    `;
+    if (newCardBtn) newCardBtn.classList.add('hidden');
+    toggleNewCardForm(true);
+    return;
+  }
+
+  if (newCardBtn) newCardBtn.classList.remove('hidden');
+
+  container.innerHTML = checkoutPaymentCards.map(card => {
+    const isSelected = !checkoutIsUsingNewCard && (checkoutSelectedCardId === card.id);
+    return `
+      <label 
+        onclick="choosePaymentCard('${card.id}')" 
+        class="p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+          isSelected 
+            ? 'border-[#15803d] bg-emerald-50/70 shadow-2xs' 
+            : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50/50'
+        }"
+      >
+        <div class="flex items-center gap-2.5">
+          <span class="w-3.5 h-3.5 rounded-full ${
+            isSelected 
+              ? 'border-2 border-[#15803d] flex items-center justify-center' 
+              : 'border border-stone-300'
+          }">
+            ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-[#15803d]"></span>' : ''}
+          </span>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-mono font-bold text-xs text-stone-900">${escapeHtml(card.brand || 'TARJETA')}</span>
+              <span class="font-mono text-xs text-stone-600">•••• ${escapeHtml(card.last4 || '0000')}</span>
+              ${card.is_default ? '<span class="text-[9px] font-bold text-emerald-800 bg-white border border-emerald-200 px-1.5 py-0.2 rounded-full">Preferida</span>' : ''}
+            </div>
+            <p class="text-[10px] text-stone-500 uppercase mt-0.5">${escapeHtml(card.cardholder_name || checkoutUser?.name || 'Titular')}</p>
+          </div>
+        </div>
+        <span class="text-[10px] text-stone-400 font-mono">
+          ${String(card.exp_month || 12).padStart(2, '0')}/${String(card.exp_year || 28).slice(-2)}
+        </span>
+      </label>
+    `;
+  }).join('');
+}
+
+/**
+ * Selecciona una tarjeta guardada
+ */
+function choosePaymentCard(cardId) {
+  checkoutSelectedCardId = cardId;
+  checkoutIsUsingNewCard = false;
+  toggleNewCardForm(false);
+  renderPaymentCardsList();
+  validateCheckoutForm();
+}
+
+/**
+ * Muestra u oculta el formulario de nueva tarjeta
+ */
+function toggleNewCardForm(forceShow = null) {
+  const form = document.getElementById('checkout-new-card-form');
+  const btn = document.getElementById('btn-use-new-card');
+  if (!form) return;
+
+  const shouldShow = forceShow !== null ? forceShow : form.classList.contains('hidden');
+  checkoutIsUsingNewCard = shouldShow;
+
+  if (shouldShow) {
+    form.classList.remove('hidden');
+    if (btn) btn.textContent = '✕ Usar tarjeta guardada';
+  } else {
+    form.classList.add('hidden');
+    if (btn) btn.textContent = '+ Usar una tarjeta nueva';
+    if (checkoutPaymentCards.length > 0 && !checkoutSelectedCardId) {
+      checkoutSelectedCardId = (checkoutPaymentCards.find(c => c.is_default) || checkoutPaymentCards[0]).id;
+    }
+  }
+
+  renderPaymentCardsList();
+  validateCheckoutForm();
+}
+
+/**
+ * Formateo automático de número de tarjeta en grupos de 4 dígitos
+ */
+function handleCardNumberInput(input) {
+  let val = input.value.replace(/\D/g, '').slice(0, 19);
+  let formatted = val.replace(/(\d{4})(?=\d)/g, '$1 ');
+  input.value = formatted;
+}
+
+/**
+ * Formateo automático de expiración MM/AA
+ */
+function handleExpiryInput(input) {
+  let val = input.value.replace(/\D/g, '').slice(0, 4);
+  if (val.length >= 2) {
+    val = val.slice(0, 2) + '/' + val.slice(2);
+  }
+  input.value = val;
+}
+
+/**
+ * Algoritmo de Luhn para validación de tarjetas
+ */
+function isValidLuhn(numberStr) {
+  const digits = numberStr.replace(/\D/g, '');
+  if (digits.length < 13 || digits.length > 19) return false;
+
+  let sum = 0;
+  let shouldDouble = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let digit = parseInt(digits.charAt(i), 10);
+    if (shouldDouble) {
+      digit *= 2;
+      if (digit > 9) digit -= 9;
+    }
+    sum += digit;
+    shouldDouble = !shouldDouble;
+  }
+  return (sum % 10) === 0;
+}
+
+/**
+ * Validación estricta del formulario para habilitar el botón "Pagar y confirmar pedido"
+ */
+function validateCheckoutForm() {
+  const confirmCheck = document.getElementById('checkout-confirm-terms');
+  const submitBtn = document.getElementById('btn-confirm-order-payment');
+  const errorEl = document.getElementById('checkout-error-msg');
+
+  const termsOk = !!confirmCheck?.checked;
+
+  // 1. Validar entrega
+  const deliveryOk = (checkoutDeliveryType === 'node' && !!checkoutSelectedNode) ||
+                     (checkoutDeliveryType === 'home' && !!checkoutSelectedAddress);
+
+  // 2. Validar método de pago
+  let paymentOk = false;
+  let validationMsg = '';
+
+  if (checkoutPaymentType === 'card') {
+    if (!checkoutIsUsingNewCard) {
+      paymentOk = !!checkoutSelectedCardId;
+      if (!paymentOk) validationMsg = 'Selecciona una tarjeta para pagar.';
+    } else {
+      const holder = (document.getElementById('new-card-holder')?.value || '').trim();
+      const rawNum = (document.getElementById('new-card-number')?.value || '').replace(/\D/g, '');
+      const exp = (document.getElementById('new-card-exp')?.value || '').trim();
+      const cvv = (document.getElementById('new-card-cvv')?.value || '').trim();
+
+      const holderOk = holder.length >= 3;
+      const numOk = isValidLuhn(rawNum);
+      const expParts = exp.split('/');
+      let expOk = false;
+      if (expParts.length === 2) {
+        const m = parseInt(expParts[0], 10);
+        const y = parseInt('20' + expParts[1], 10);
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        if (m >= 1 && m <= 12 && (y > currentYear || (y === currentYear && m >= currentMonth))) {
+          expOk = true;
+        }
+      }
+      const cvvOk = cvv.length >= 3 && cvv.length <= 4;
+
+      paymentOk = holderOk && numOk && expOk && cvvOk;
+      if (!paymentOk && termsOk) {
+        if (!holderOk) validationMsg = 'Ingresa el nombre del titular de la tarjeta.';
+        else if (!numOk) validationMsg = 'Número de tarjeta inválido (verifica los dígitos).';
+        else if (!expOk) validationMsg = 'Fecha de expiración vencida o inválida (MM/AA).';
+        else if (!cvvOk) validationMsg = 'Código CVV incompleto (3 o 4 dígitos).';
+      }
+    }
+  } else if (checkoutPaymentType === 'pse') {
+    const bankSelect = document.getElementById('checkout-pse-bank');
+    checkoutSelectedBank = bankSelect ? bankSelect.value : '';
+    paymentOk = !!checkoutSelectedBank;
+    if (!paymentOk) validationMsg = 'Selecciona tu banco para continuar con PSE.';
+  } else if (checkoutPaymentType === 'cash') {
+    paymentOk = true;
+  }
+
+  const isFormReady = termsOk && deliveryOk && paymentOk;
+
+  if (submitBtn) {
+    submitBtn.disabled = !isFormReady;
+    if (isFormReady) {
+      submitBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+      submitBtn.classList.add('cursor-pointer');
+    } else {
+      submitBtn.classList.add('opacity-40', 'cursor-not-allowed');
+      submitBtn.classList.remove('cursor-pointer');
+    }
+  }
+
+  if (errorEl) {
+    if (!isFormReady && termsOk && validationMsg) {
+      errorEl.textContent = validationMsg;
+      errorEl.classList.remove('hidden');
+    } else {
+      errorEl.textContent = '';
+      errorEl.classList.add('hidden');
+    }
+  }
+
+  return isFormReady;
+}
+
+/**
+ * Inserta la orden en Supabase public.orders y despliega la confirmación real
+ */
+async function confirmOrderPayment() {
+  const isReady = validateCheckoutForm();
+  const errorEl = document.getElementById('checkout-error-msg');
+  const submitBtn = document.getElementById('btn-confirm-order-payment');
+  const btnText = document.getElementById('btn-confirm-order-text');
+  const btnIcon = document.getElementById('btn-confirm-order-icon');
+
+  if (!isReady) {
+    if (errorEl && errorEl.textContent === '') {
+      errorEl.textContent = 'Por favor completa todos los campos requeridos y acepta la confirmación.';
+      errorEl.classList.remove('hidden');
+    }
+    return;
+  }
+
   const payStep = document.getElementById('checkout-step-pay');
   const successStep = document.getElementById('checkout-step-success');
-  const orderIdEl = document.getElementById('success-order-id');
-  const successNodeEl = document.getElementById('success-node');
 
-  const randomOrderId = '#RB-' + Math.floor(1000 + Math.random() * 9000);
-  const user = getCurrentUser();
+  const userId = checkoutUser?.id || '00000000-0000-0000-0000-000000000001';
+  const orderNumber = '#RB-' + Math.floor(1000 + Math.random() * 9000);
 
-  if (orderIdEl) orderIdEl.textContent = randomOrderId;
-  if (successNodeEl && user) successNodeEl.textContent = user.preferredNode || 'Nodo Central · La Perseverancia';
+  // Detalles de método de pago para resumen
+  let paymentDetails = { type: checkoutPaymentType };
+  let paymentMethodSummary = '';
+  let paymentMethodId = null;
 
-  // Limpiar carrito tras compra exitosa
-  cart = [];
-  saveCartToStorage();
-  renderProducts();
+  if (checkoutPaymentType === 'card') {
+    if (!checkoutIsUsingNewCard) {
+      const card = checkoutPaymentCards.find(c => c.id === checkoutSelectedCardId);
+      paymentMethodId = card ? card.id : null;
+      paymentDetails = {
+        type: 'card',
+        brand: card?.brand || 'VISA',
+        last4: card?.last4 || '4786',
+        cardholder_name: card?.cardholder_name || checkoutUser.name
+      };
+      paymentMethodSummary = `Tarjeta ${paymentDetails.brand} •••• ${paymentDetails.last4}`;
+    } else {
+      const holder = (document.getElementById('new-card-holder')?.value || '').trim();
+      const rawNum = (document.getElementById('new-card-number')?.value || '').replace(/\D/g, '');
+      const last4 = rawNum.slice(-4);
+      paymentDetails = {
+        type: 'card',
+        brand: 'TARJETA',
+        last4: last4,
+        cardholder_name: holder,
+        is_new: true
+      };
+      paymentMethodSummary = `Tarjeta de crédito/débito •••• ${last4}`;
+    }
+  } else if (checkoutPaymentType === 'pse') {
+    const bankSelect = document.getElementById('checkout-pse-bank');
+    const bankName = bankSelect?.options[bankSelect.selectedIndex]?.text || 'Bancolombia';
+    paymentDetails = {
+      type: 'pse',
+      bank_code: checkoutSelectedBank,
+      bank_name: bankName
+    };
+    paymentMethodSummary = `PSE - ${bankName}`;
+  } else {
+    paymentDetails = {
+      type: 'cash_on_delivery',
+      note: checkoutDeliveryType === 'node' ? 'Pago en nodo al recoger' : 'Pago contraentrega en domicilio'
+    };
+    paymentMethodSummary = 'Pago Contraentrega (Efectivo / Datáfono)';
+  }
 
-  payStep.classList.add('hidden');
-  successStep.classList.remove('hidden');
+  // Detalles de entrega
+  let deliveryDetails = {};
+  let deliveryPlaceSummary = '';
+  let deliveryScheduleSummary = '';
+  let deliveryTargetId = null;
+
+  if (checkoutDeliveryType === 'node' && checkoutSelectedNode) {
+    deliveryTargetId = checkoutSelectedNode.id;
+    deliveryDetails = {
+      type: 'node',
+      node_id: checkoutSelectedNode.id,
+      name: checkoutSelectedNode.name,
+      address: checkoutSelectedNode.address,
+      city: checkoutSelectedNode.city || 'Bogotá',
+      schedule: checkoutSelectedNode.pickup_schedule
+    };
+    deliveryPlaceSummary = `${checkoutSelectedNode.name} (${checkoutSelectedNode.address})`;
+    deliveryScheduleSummary = checkoutSelectedNode.pickup_schedule;
+  } else if (checkoutDeliveryType === 'home' && checkoutSelectedAddress) {
+    deliveryTargetId = checkoutSelectedAddress.id;
+    deliveryDetails = {
+      type: 'home',
+      address_id: checkoutSelectedAddress.id,
+      label: checkoutSelectedAddress.label,
+      street_address: checkoutSelectedAddress.street_address,
+      neighborhood: checkoutSelectedAddress.neighborhood,
+      city: checkoutSelectedAddress.city,
+      schedule: checkoutSelectedAddress.delivery_schedule
+    };
+    deliveryPlaceSummary = `${checkoutSelectedAddress.street_address}, ${checkoutSelectedAddress.neighborhood} · ${checkoutSelectedAddress.city}`;
+    deliveryScheduleSummary = checkoutSelectedAddress.delivery_schedule || 'Sáb. 7 nov. · 2:00 – 6:00 p. m.';
+  }
+
+  // Activar estado de carga en botón
+  if (submitBtn) submitBtn.disabled = true;
+  if (btnText) btnText.textContent = 'Procesando pedido y confirmando...';
+  if (btnIcon) btnIcon.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span>';
+
+  try {
+    const orderPayload = {
+      order_number: orderNumber,
+      user_id: userId,
+      items: cart.map(item => ({
+        id: item.id,
+        title: item.title,
+        price: item.price,
+        quantity: item.quantity,
+        unit: item.unit || 'unidad',
+        farmer: item.farmer || item.farm || 'Productor local',
+        subtotal: item.price * item.quantity
+      })),
+      subtotal: checkoutSubtotal,
+      delivery_fee: checkoutDeliveryFee,
+      total_amount: checkoutTotal,
+      delivery_type: checkoutDeliveryType,
+      delivery_address_or_node_id: deliveryTargetId,
+      payment_method_type: checkoutPaymentType,
+      payment_method_id: paymentMethodId,
+      payment_details: paymentDetails,
+      delivery_details: deliveryDetails,
+      status: 'confirmed'
+    };
+
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      await window.supabase.fetchApi('orders', {
+        method: 'POST',
+        body: JSON.stringify(orderPayload)
+      });
+    }
+
+    // 1. Actualizar campos de la pantalla de éxito
+    const successOrderId = document.getElementById('success-order-id');
+    const successDeliveryPlace = document.getElementById('success-delivery-place');
+    const successDeliverySchedule = document.getElementById('success-delivery-schedule');
+    const successPaymentMethod = document.getElementById('success-payment-method');
+    const successTotalAmount = document.getElementById('success-total-amount');
+
+    if (successOrderId) successOrderId.textContent = orderNumber;
+    if (successDeliveryPlace) successDeliveryPlace.textContent = deliveryPlaceSummary;
+    if (successDeliverySchedule) successDeliverySchedule.textContent = deliveryScheduleSummary;
+    if (successPaymentMethod) successPaymentMethod.textContent = paymentMethodSummary;
+    if (successTotalAmount) successTotalAmount.textContent = `$${formatCOP(checkoutTotal)} COP`;
+
+    // 2. Limpiar carrito de compras
+    cart = [];
+    saveCartToStorage();
+    renderProducts();
+
+    // 3. Cambiar a pantalla de éxito
+    if (payStep) payStep.classList.add('hidden');
+    if (successStep) successStep.classList.remove('hidden');
+
+    showToast(`🎉 ¡Pedido ${orderNumber} confirmado con éxito!`);
+
+  } catch (err) {
+    console.error('Error al registrar pedido en Supabase:', err);
+    if (errorEl) {
+      errorEl.textContent = 'Ocurrió un error al confirmar tu pedido en la base de datos: ' + (err.message || 'Error de red.');
+      errorEl.classList.remove('hidden');
+    }
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
+    if (btnText) btnText.textContent = 'Pagar y confirmar pedido';
+    if (btnIcon) btnIcon.textContent = '➔';
+    validateCheckoutForm();
+  }
 }
+
+/**
+ * Escapa cadenas para prevenir inyecciones XSS en el HTML
+ */
+function escapeHtml(str) {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+window.selectPaymentMethod = switchCheckoutPayTab;
+window.toggleDeliveryPicker = toggleDeliveryPicker;
+window.selectDeliveryModeTab = selectDeliveryModeTab;
+window.chooseDeliveryOption = chooseDeliveryOption;
+window.switchCheckoutPayTab = switchCheckoutPayTab;
+window.choosePaymentCard = choosePaymentCard;
+window.toggleNewCardForm = toggleNewCardForm;
+window.handleCardNumberInput = handleCardNumberInput;
+window.handleExpiryInput = handleExpiryInput;
+window.validateCheckoutForm = validateCheckoutForm;
+window.confirmOrderPayment = confirmOrderPayment;
+window.closeCheckoutModal = closeCheckoutModal;
+
 
 // =============================================================================
 // 9. Utilidades y Notificaciones Toast

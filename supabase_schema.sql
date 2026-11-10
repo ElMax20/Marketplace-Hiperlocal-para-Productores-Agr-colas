@@ -293,6 +293,44 @@ GRANT ALL ON TABLE public.delivery_addresses TO anon, authenticated, service_rol
 -- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS preferred_pickup_node_id uuid REFERENCES public.pickup_nodes(id) ON DELETE SET NULL;
 -- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS active_delivery_mode text DEFAULT 'node';
 
+-- =============================================================================
+-- 14. TABLA: orders (Órdenes y pedidos confirmados en el marketplace)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.orders (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    order_number text NOT NULL,
+    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    items jsonb NOT NULL DEFAULT '[]'::jsonb,
+    subtotal numeric(12,2) NOT NULL DEFAULT 0,
+    delivery_fee numeric(12,2) NOT NULL DEFAULT 0,
+    total_amount numeric(12,2) NOT NULL,
+    delivery_type text NOT NULL CHECK (delivery_type IN ('node', 'home')),
+    delivery_address_or_node_id uuid,
+    payment_method_type text NOT NULL CHECK (payment_method_type IN ('card', 'cash_on_delivery', 'pse')),
+    payment_method_id uuid REFERENCES public.payment_methods(id) ON DELETE SET NULL,
+    payment_details jsonb DEFAULT '{}'::jsonb,
+    delivery_details jsonb DEFAULT '{}'::jsonb,
+    status text NOT NULL DEFAULT 'confirmed',
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON public.orders (user_id);
+CREATE INDEX IF NOT EXISTS idx_orders_order_number ON public.orders (order_number);
+
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir select orders" ON public.orders;
+CREATE POLICY "Permitir select orders" ON public.orders FOR SELECT TO public USING (true);
+
+DROP POLICY IF EXISTS "Permitir insert orders" ON public.orders;
+CREATE POLICY "Permitir insert orders" ON public.orders FOR INSERT TO public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir update orders" ON public.orders;
+CREATE POLICY "Permitir update orders" ON public.orders FOR UPDATE TO public USING (true) WITH CHECK (true);
+
+GRANT ALL ON TABLE public.orders TO anon, authenticated, service_role;
+
+
 
 
 

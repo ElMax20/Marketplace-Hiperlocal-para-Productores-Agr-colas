@@ -670,81 +670,323 @@
   </div>
 
   <!-- =======================================================================
-       9. CHECKOUT / ORDER SUCCESS MODAL
+       9. CHECKOUT / ORDER SUCCESS MODAL (Interactivo con Supabase)
        ======================================================================= -->
-  <div id="checkout-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeCheckoutModal()"></div>
+  <div id="checkout-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-xs" onclick="closeCheckoutModal()"></div>
     
-    <div class="relative bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-stone-200 overflow-hidden z-10 animate-slide-up">
+    <div class="relative bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-stone-200 overflow-hidden z-10 animate-slide-up flex flex-col max-h-[92vh]">
       
       <!-- Checkout Screen -->
-      <div id="checkout-step-pay" class="p-6 space-y-4 text-xs">
-        <div class="flex items-center justify-between pb-3 border-b border-stone-200">
+      <div id="checkout-step-pay" class="flex flex-col flex-1 overflow-hidden text-xs">
+        
+        <!-- Modal Header -->
+        <div class="px-5 py-4 border-b border-stone-200 flex items-center justify-between bg-stone-50/60 shrink-0">
           <div>
-            <span class="text-[10px] font-bold uppercase tracking-wider text-[#c85a32]">Paso Final</span>
-            <h3 class="font-serif text-xl font-bold text-[#1a3d2f]">Confirmar y pagar pedido</h3>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#15803d]">Paso Final · Compra Segura</span>
+            <h3 class="font-serif text-lg sm:text-xl font-bold text-[#1a3d2f]">Confirmar y pagar pedido</h3>
           </div>
-          <button onclick="closeCheckoutModal()" class="w-7 h-7 rounded-full bg-stone-100 flex items-center justify-center text-stone-500">✕</button>
+          <button type="button" onclick="closeCheckoutModal()" class="w-8 h-8 rounded-full bg-white hover:bg-stone-200 text-stone-500 flex items-center justify-center text-sm font-bold shadow-xs transition cursor-pointer" title="Cerrar">✕</button>
         </div>
 
-        <!-- Customer Summary -->
-        <div class="bg-stone-50 p-3.5 rounded-xl border border-stone-200">
-          <p class="font-bold text-stone-800">Comprador:</p>
-          <p id="checkout-user-info" class="text-stone-600">Max Campoverde (max@ejemplo.com)</p>
-          <p id="checkout-node-info" class="text-[#1a3d2f] font-semibold mt-1">📍 Punto de recogida: Nodo Central · La Perseverancia</p>
-        </div>
+        <!-- Scrollable Body -->
+        <div class="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1">
+          
+          <!-- SECCIÓN 1: ENTREGA / RECOGIDA (Verificación obligatoria) -->
+          <div class="rounded-2xl border border-stone-200 bg-stone-50/40 p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 font-bold text-stone-800 text-xs">
+                <span id="delivery-type-icon" class="text-base">📍</span>
+                <span id="delivery-type-label">Lugar de entrega / recogida</span>
+              </div>
+              <button 
+                type="button" 
+                id="btn-toggle-delivery-picker" 
+                onclick="toggleDeliveryPicker()" 
+                class="text-xs font-semibold text-[#15803d] hover:text-[#166534] hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>Cambiar lugar</span>
+                <span id="delivery-picker-arrow">▾</span>
+              </button>
+            </div>
 
-        <!-- Payment Method -->
-        <div>
-          <label class="block font-bold text-stone-700 mb-2">Selecciona método de pago:</label>
-          <div class="grid grid-cols-3 gap-2">
-            <label onclick="selectPaymentMethod(this)" class="pay-method-card p-2.5 rounded-xl border-2 border-[#1a3d2f] bg-[#f4f7f4] flex flex-col items-center justify-center text-center cursor-pointer transition">
-              <input type="radio" name="pay-method" checked class="hidden">
-              <span class="font-bold text-[#1a3d2f]">PSE</span>
-              <span class="text-[10px] text-stone-500">Débito bancario</span>
-            </label>
-            <label onclick="selectPaymentMethod(this)" class="pay-method-card p-2.5 rounded-xl border border-stone-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-stone-50 transition">
-              <input type="radio" name="pay-method" class="hidden">
-              <span class="font-bold text-stone-700">Tarjeta</span>
-              <span class="text-[10px] text-stone-500">Crédito / Débito</span>
-            </label>
-            <label onclick="selectPaymentMethod(this)" class="pay-method-card p-2.5 rounded-xl border border-stone-200 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-stone-50 transition">
-              <input type="radio" name="pay-method" class="hidden">
-              <span class="font-bold text-stone-700">En Nodo</span>
-              <span class="text-[10px] text-stone-500">Contraentrega</span>
-            </label>
+            <!-- Tarjeta visual de la opción de entrega actualmente activa -->
+            <div id="checkout-active-delivery-display" class="bg-white border-2 border-[#15803d] rounded-xl p-3 shadow-2xs">
+              <!-- Renderizado dinámicamente -->
+              <div class="flex items-start justify-between gap-2">
+                <div>
+                  <h4 id="active-delivery-title" class="font-bold text-xs text-stone-900">Cargando preferencia...</h4>
+                  <p id="active-delivery-address" class="text-[11px] text-stone-600 mt-0.5">...</p>
+                  <p id="active-delivery-schedule" class="text-[11px] text-stone-500">...</p>
+                </div>
+                <span id="active-delivery-badge" class="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+                  Gratis
+                </span>
+              </div>
+            </div>
+
+            <!-- Sub-selector desplegable (Oculto por defecto, se abre con "Cambiar lugar") -->
+            <div id="checkout-delivery-picker" class="hidden pt-2 border-t border-stone-200 space-y-3">
+              <!-- Tabs Selector de Modalidad -->
+              <div class="grid grid-cols-2 gap-2 p-1 bg-stone-100 rounded-xl">
+                <button 
+                  type="button" 
+                  id="tab-mode-node" 
+                  onclick="selectDeliveryModeTab('node')" 
+                  class="py-1.5 text-xs font-bold rounded-lg transition bg-white text-[#1a3d2f] shadow-2xs cursor-pointer"
+                >
+                  🏪 Recogida en nodo (Gratis)
+                </button>
+                <button 
+                  type="button" 
+                  id="tab-mode-home" 
+                  onclick="selectDeliveryModeTab('home')" 
+                  class="py-1.5 text-xs font-semibold rounded-lg transition text-stone-600 hover:text-stone-900 cursor-pointer"
+                >
+                  🚚 A domicilio (+$8.000)
+                </button>
+              </div>
+
+              <!-- Lista de Nodos -->
+              <div id="checkout-nodes-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <!-- Se llena con pickup_nodes -->
+                <p class="text-stone-400 text-center py-2 text-[11px]">Cargando nodos...</p>
+              </div>
+
+              <!-- Lista de Domicilios -->
+              <div id="checkout-addresses-list" class="space-y-2 max-h-48 overflow-y-auto pr-1 hidden">
+                <!-- Se llena con delivery_addresses -->
+                <p class="text-stone-400 text-center py-2 text-[11px]">Cargando direcciones...</p>
+              </div>
+
+              <div class="flex items-center justify-between pt-1 text-[11px]">
+                <a href="perfil.html" target="_blank" class="text-[#15803d] hover:underline font-medium">+ Administrar mis direcciones en perfil ↗</a>
+                <button type="button" onclick="toggleDeliveryPicker(false)" class="text-stone-500 hover:text-stone-800 font-semibold cursor-pointer">
+                  Listo ✓
+                </button>
+              </div>
+            </div>
+
+            <!-- Resumen del Comprador -->
+            <div class="pt-2 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-500">
+              <span>Comprador: <strong id="checkout-user-name" class="text-stone-800">Max Campoverde</strong></span>
+              <span id="checkout-user-email">max@vecinos.com</span>
+            </div>
           </div>
+
+          <!-- SECCIÓN 2: SELECCIÓN DINÁMICA DEL MÉTODO DE PAGO -->
+          <div class="space-y-3">
+            <label class="block font-bold text-stone-800 text-xs">Selecciona método de pago:</label>
+            
+            <!-- Pestañas de Métodos de Pago -->
+            <div class="grid grid-cols-3 gap-2">
+              <label onclick="switchCheckoutPayTab('card')" id="pay-tab-card" class="pay-method-tab p-2.5 rounded-xl border-2 border-[#15803d] bg-[#f0fdf4] flex flex-col items-center justify-center text-center cursor-pointer transition shadow-2xs">
+                <input type="radio" name="checkout-pay-mode" value="card" checked class="hidden">
+                <span class="text-sm mb-0.5">💳</span>
+                <span class="font-bold text-[#15803d] text-xs">Tarjeta</span>
+                <span class="text-[9px] text-stone-500">Crédito / Débito</span>
+              </label>
+
+              <label onclick="switchCheckoutPayTab('cash')" id="pay-tab-cash" class="pay-method-tab p-2.5 rounded-xl border border-stone-200 bg-white flex flex-col items-center justify-center text-center cursor-pointer hover:bg-stone-50 transition">
+                <input type="radio" name="checkout-pay-mode" value="cash" class="hidden">
+                <span class="text-sm mb-0.5">🏪</span>
+                <span class="font-bold text-stone-700 text-xs">En Nodo</span>
+                <span class="text-[9px] text-stone-500">Contraentrega</span>
+              </label>
+
+              <label onclick="switchCheckoutPayTab('pse')" id="pay-tab-pse" class="pay-method-tab p-2.5 rounded-xl border border-stone-200 bg-white flex flex-col items-center justify-center text-center cursor-pointer hover:bg-stone-50 transition">
+                <input type="radio" name="checkout-pay-mode" value="pse" class="hidden">
+                <span class="text-sm mb-0.5">🏦</span>
+                <span class="font-bold text-stone-700 text-xs">PSE</span>
+                <span class="text-[9px] text-stone-500">Débito bancario</span>
+              </label>
+            </div>
+
+            <!-- Panel de Pago: TARJETA -->
+            <div id="checkout-panel-card" class="p-3.5 rounded-2xl border border-stone-200 bg-stone-50/50 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-stone-800 text-[11px]">Tus tarjetas guardadas:</span>
+                <button 
+                  type="button" 
+                  id="btn-use-new-card" 
+                  onclick="toggleNewCardForm()" 
+                  class="text-[11px] font-bold text-[#15803d] hover:underline cursor-pointer"
+                >
+                  + Usar una tarjeta nueva
+                </button>
+              </div>
+
+              <!-- Lista de tarjetas guardadas desde Supabase -->
+              <div id="checkout-saved-cards-list" class="space-y-2">
+                <div class="text-center py-2 text-stone-400 text-[11px]">Cargando métodos de pago...</div>
+              </div>
+
+              <!-- Formulario de Tarjeta Nueva (Colapsable) -->
+              <div id="checkout-new-card-form" class="hidden pt-3 border-t border-stone-200 space-y-2.5 animate-in fade-in duration-150">
+                <div class="flex items-center justify-between">
+                  <span class="font-bold text-[#1a3d2f] text-xs">Ingresa los datos de la tarjeta:</span>
+                  <button type="button" onclick="toggleNewCardForm(false)" class="text-[10px] text-stone-500 hover:text-stone-800 underline cursor-pointer">
+                    Cancelar tarjeta nueva
+                  </button>
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-stone-600 mb-0.5">Nombre del titular *</label>
+                  <input type="text" id="new-card-holder" oninput="validateCheckoutForm()" placeholder="NOMBRE COMO APARECE EN LA TARJETA" class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-white uppercase focus:border-[#15803d] focus:outline-none">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-stone-600 mb-0.5">Número de tarjeta *</label>
+                  <input type="text" id="new-card-number" oninput="handleCardNumberInput(this); validateCheckoutForm()" maxlength="19" placeholder="0000 0000 0000 0000" class="w-full text-xs p-2.5 font-mono rounded-xl border border-stone-200 bg-white focus:border-[#15803d] focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[10px] font-bold text-stone-600 mb-0.5">Vencimiento (MM/AA) *</label>
+                    <input type="text" id="new-card-exp" oninput="handleExpiryInput(this); validateCheckoutForm()" maxlength="5" placeholder="MM/AA" class="w-full text-xs p-2.5 text-center font-mono rounded-xl border border-stone-200 bg-white focus:border-[#15803d] focus:outline-none">
+                  </div>
+                  <div>
+                    <label class="block text-[10px] font-bold text-stone-600 mb-0.5">CVV/CVC *</label>
+                    <input type="password" id="new-card-cvv" oninput="validateCheckoutForm()" maxlength="4" placeholder="123" class="w-full text-xs p-2.5 text-center font-mono rounded-xl border border-stone-200 bg-white focus:border-[#15803d] focus:outline-none">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Panel de Pago: EN NODO (Contraentrega) -->
+            <div id="checkout-panel-cash" class="hidden p-3.5 rounded-2xl border border-emerald-200 bg-emerald-50/50 space-y-1.5">
+              <div class="flex items-center gap-2 text-emerald-900 font-bold text-xs">
+                <span>💡</span>
+                <span>Pago contraentrega garantizado</span>
+              </div>
+              <p id="cash-payment-note" class="text-stone-600 text-[11px] leading-relaxed">
+                Pagarás en efectivo o datáfono al retirar tu canasta en el nodo comunitario.
+              </p>
+            </div>
+
+            <!-- Panel de Pago: PSE -->
+            <div id="checkout-panel-pse" class="hidden p-3.5 rounded-2xl border border-stone-200 bg-stone-50/50 space-y-3">
+              <div>
+                <label for="checkout-pse-bank" class="block font-bold text-stone-700 text-[11px] mb-1">
+                  Selecciona tu entidad financiera *
+                </label>
+                <select 
+                  id="checkout-pse-bank" 
+                  onchange="validateCheckoutForm()" 
+                  class="w-full text-xs p-2.5 rounded-xl border border-stone-200 bg-white focus:border-[#15803d] focus:outline-none font-medium cursor-pointer"
+                >
+                  <option value="">-- Elige tu banco --</option>
+                  <option value="bancolombia">Bancolombia</option>
+                  <option value="nequi">Nequi</option>
+                  <option value="davivienda">Davivienda</option>
+                  <option value="daviplata">Daviplata</option>
+                  <option value="bogota">Banco de Bogotá</option>
+                  <option value="bbva">BBVA Colombia</option>
+                  <option value="occidente">Banco de Occidente</option>
+                  <option value="colpatria">Scotiabank Colpatria</option>
+                  <option value="nu">Nu Colombia</option>
+                  <option value="lulo">Lulo Bank</option>
+                  <option value="rappipay">RappiPay</option>
+                  <option value="itau">Itaú Colombia</option>
+                  <option value="popular">Banco Popular</option>
+                  <option value="agrario">Banco Agrario de Colombia</option>
+                  <option value="falabella">Banco Falabella</option>
+                </select>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-[10px] text-stone-500">
+                <p>🔒 Transacción segura encriptada por ACH Colombia.</p>
+                <p class="text-right">Acreditación instantánea.</p>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- SECCIÓN 3: RESUMEN Y DESGLOSE TOTAL -->
+          <div class="p-3.5 bg-[#FAF7F2] rounded-2xl border border-stone-200 space-y-1.5">
+            <div class="flex justify-between items-center text-stone-600 text-[11px]">
+              <span>Subtotal productos (<span id="checkout-items-count">0</span>):</span>
+              <span id="checkout-subtotal-amount" class="font-medium">$0,00</span>
+            </div>
+            <div class="flex justify-between items-center text-stone-600 text-[11px]">
+              <span>Costo de entrega:</span>
+              <span id="checkout-shipping-amount" class="font-medium text-emerald-800">Gratis (Nodo)</span>
+            </div>
+            <div class="pt-2 border-t border-stone-200 flex justify-between items-center font-bold text-sm text-[#1a3d2f]">
+              <span>Total a pagar:</span>
+              <span id="checkout-final-total" class="text-base text-[#15803d] font-extrabold">$0,00</span>
+            </div>
+          </div>
+
+          <!-- Checkbox de confirmación obligatoria -->
+          <label class="flex items-start gap-2.5 p-3 rounded-2xl border border-stone-200 bg-stone-50/70 hover:bg-stone-100/70 transition cursor-pointer select-none">
+            <input 
+              type="checkbox" 
+              id="checkout-confirm-terms" 
+              onchange="validateCheckoutForm()" 
+              class="mt-0.5 rounded text-[#15803d] focus:ring-[#15803d] cursor-pointer"
+            >
+            <span class="text-xs text-stone-700 leading-snug">
+              He revisado mi pedido, el lugar de entrega y el método de pago seleccionado.
+            </span>
+          </label>
+
+          <!-- Mensaje de Error Visible -->
+          <p id="checkout-error-msg" class="text-xs text-red-600 bg-red-50 p-2.5 rounded-xl border border-red-200 hidden font-medium"></p>
+
         </div>
 
-        <!-- Order Total -->
-        <div class="p-3 bg-[#FAF7F2] rounded-xl flex justify-between items-center font-bold text-sm text-[#1a3d2f]">
-          <span>Total a pagar:</span>
-          <span id="checkout-final-total" class="text-base text-[#c85a32]">$0,00</span>
+        <!-- Footer con Botón de Confirmación -->
+        <div class="p-4 bg-stone-50 border-t border-stone-200 shrink-0">
+          <button 
+            type="button" 
+            id="btn-confirm-order-payment" 
+            onclick="confirmOrderPayment()" 
+            disabled 
+            class="w-full bg-[#15803d] hover:bg-[#166534] disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-2xl shadow-lg transition text-xs flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span id="btn-confirm-order-text">Pagar y confirmar pedido</span>
+            <span id="btn-confirm-order-icon">➔</span>
+          </button>
         </div>
 
-        <button onclick="confirmOrderPayment()" class="w-full bg-[#1a3d2f] hover:bg-[#24523f] text-white font-bold py-3.5 rounded-full shadow-lg transition text-xs flex items-center justify-center gap-2">
-          <span>Pagar y confirmar pedido</span>
-          <span>➔</span>
-        </button>
       </div>
 
-      <!-- Success Screen (Hidden by default) -->
-      <div id="checkout-step-success" class="p-8 text-center space-y-4 hidden">
-        <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto text-3xl shadow-inner">
+      <!-- Success Screen -->
+      <div id="checkout-step-success" class="p-8 text-center space-y-4 hidden overflow-y-auto">
+        <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center mx-auto text-3xl shadow-inner animate-in zoom-in-75">
           ✓
         </div>
         <h3 class="font-serif text-2xl font-bold text-[#1a3d2f]">¡Pedido confirmado!</h3>
         <p class="text-xs text-stone-600 max-w-sm mx-auto leading-relaxed">
-          Los agricultores ya están preparando tu cosecha fresca. Te hemos enviado un resumen y confirmación a tu correo.
+          Los agricultores ya están preparando tu cosecha fresca. Hemos registrado tu orden con éxito en el sistema.
         </p>
-        <div class="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-left text-xs space-y-1">
-          <p><strong>N° de Pedido:</strong> <span id="success-order-id" class="font-mono text-[#c85a32]">#RB-9482</span></p>
-          <p><strong>Punto de recogida:</strong> <span id="success-node">Nodo Central · La Perseverancia</span></p>
-          <p><strong>Fecha de entrega:</strong> Sábado 7 de Noviembre · 9:00 AM a 12:00 PM</p>
+
+        <!-- Tarjeta de Resumen Real -->
+        <div class="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-left text-xs space-y-2">
+          <div class="flex justify-between items-center pb-2 border-b border-stone-200">
+            <span class="font-bold text-stone-800">Número de Pedido:</span>
+            <span id="success-order-id" class="font-mono font-bold text-base text-[#15803d]">#RB-9482</span>
+          </div>
+          <div>
+            <span class="font-bold text-stone-800">Lugar de entrega / recogida:</span>
+            <p id="success-delivery-place" class="text-stone-700 font-medium mt-0.5">Nodo Central · La Perseverancia</p>
+            <p id="success-delivery-schedule" class="text-[11px] text-stone-500">Sábado 7 de Noviembre · 8:00 AM – 12:00 PM</p>
+          </div>
+          <div class="pt-2 border-t border-stone-200">
+            <span class="font-bold text-stone-800">Método de pago:</span>
+            <p id="success-payment-method" class="text-stone-700 font-medium mt-0.5">Tarjeta VISA •••• 4786</p>
+          </div>
+          <div class="pt-2 border-t border-stone-200 flex justify-between items-center font-bold text-sm text-[#1a3d2f]">
+            <span>Total pagado:</span>
+            <span id="success-total-amount" class="text-base text-[#15803d] font-extrabold">$0,00</span>
+          </div>
         </div>
-        <button onclick="closeCheckoutModal()" class="w-full bg-[#1a3d2f] text-white font-bold py-3 rounded-full hover:bg-[#24523f] transition text-xs">
-          Volver al Mercado
-        </button>
+
+        <div class="flex flex-col sm:flex-row gap-2 pt-2">
+          <a href="pedidos.html" class="flex-1 bg-[#15803d] text-white font-bold py-3 rounded-2xl hover:bg-[#166534] transition text-xs flex items-center justify-center gap-1.5 shadow-md">
+            <span>📦 Ver mis pedidos</span>
+          </a>
+          <button type="button" onclick="closeCheckoutModal()" class="flex-1 bg-stone-100 text-stone-700 font-bold py-3 rounded-2xl hover:bg-stone-200 transition text-xs cursor-pointer">
+            Seguir comprando
+          </button>
+        </div>
       </div>
 
     </div>
