@@ -47,6 +47,7 @@ async function initProfilePage() {
 
   // 3. RENDERIZAR INMEDIATAMENTE (0 milisegundos de espera, sin flash de otro usuario)
   renderProfileUI(currentUser);
+  initProfileInputValidators();
   updateCartBadge();
   initPaymentMethods();
   initDeliverySection();
@@ -104,6 +105,210 @@ async function initProfilePage() {
       console.warn('Sync con Supabase:', err);
     }
   }
+}
+
+// =============================================================================
+// VALIDACIONES EN TIEMPO REAL PARA EL FORMULARIO DE PERFIL
+// =============================================================================
+
+let profileUsernameTimer = null;
+let profileEmailTimer = null;
+
+function initProfileInputValidators() {
+  const userInp = document.getElementById('input-username');
+  if (userInp) {
+    userInp.addEventListener('input', handleProfileUsernameInput);
+  }
+  const phoneInp = document.getElementById('input-phone');
+  if (phoneInp) {
+    phoneInp.addEventListener('input', handleProfilePhoneInput);
+  }
+  const emailInp = document.getElementById('new_email');
+  if (emailInp) {
+    emailInp.addEventListener('input', handleProfileEmailInput);
+  }
+}
+
+function handleProfileUsernameInput(e) {
+  const val = e.target.value.trim().toLowerCase();
+  const feedback = document.getElementById('profile-username-feedback');
+  const inputEl = document.getElementById('input-username');
+  clearTimeout(profileUsernameTimer);
+
+  if (!val) {
+    if (feedback) { feedback.classList.add('hidden'); feedback.textContent = ''; }
+    if (inputEl) inputEl.classList.remove('border-emerald-500', 'border-red-500');
+    return;
+  }
+
+  // Si no ha cambiado respecto al usuario en sesión
+  if (currentUser && currentUser.username && val === currentUser.username.toLowerCase()) {
+    if (feedback) {
+      feedback.className = 'text-[11px] font-medium text-emerald-700 mt-1 block';
+      feedback.textContent = '✓ Nombre de usuario actual';
+    }
+    if (inputEl) {
+      inputEl.classList.remove('border-red-500');
+      inputEl.classList.add('border-emerald-500');
+    }
+    return;
+  }
+
+  const check = window.validateUsername ? window.validateUsername(val) : { valid: val.length >= 4 };
+  if (!check.valid) {
+    if (feedback) {
+      feedback.className = 'text-[11px] font-semibold text-red-600 mt-1 block';
+      feedback.textContent = `✕ ${check.message}`;
+    }
+    if (inputEl) {
+      inputEl.classList.remove('border-emerald-500');
+      inputEl.classList.add('border-red-500');
+    }
+    return;
+  }
+
+  if (feedback) {
+    feedback.className = 'text-[11px] font-medium text-stone-500 mt-1 block';
+    feedback.textContent = '⏳ Verificando disponibilidad...';
+  }
+
+  profileUsernameTimer = setTimeout(async () => {
+    try {
+      let isAvailable = true;
+      if (window.supabase && typeof window.supabase.checkUsernameAvailable === 'function') {
+        isAvailable = await window.supabase.checkUsernameAvailable(check.cleanUsername);
+      }
+      if (isAvailable) {
+        if (feedback) {
+          feedback.className = 'text-[11px] font-bold text-emerald-700 mt-1 block';
+          feedback.textContent = '✓ Nombre de usuario disponible';
+        }
+        if (inputEl) {
+          inputEl.classList.remove('border-red-500');
+          inputEl.classList.add('border-emerald-500');
+        }
+      } else {
+        if (feedback) {
+          feedback.className = 'text-[11px] font-bold text-red-600 mt-1 block';
+          feedback.textContent = '✕ Este usuario ya está en uso';
+        }
+        if (inputEl) {
+          inputEl.classList.remove('border-emerald-500');
+          inputEl.classList.add('border-red-500');
+        }
+      }
+    } catch (_) {
+      if (feedback) {
+        feedback.className = 'text-[11px] font-bold text-emerald-700 mt-1 block';
+        feedback.textContent = '✓ Nombre de usuario disponible';
+      }
+    }
+  }, 400);
+}
+
+function handleProfilePhoneInput(e) {
+  const val = e.target.value.trim();
+  const feedback = document.getElementById('profile-phone-feedback');
+  const inputEl = document.getElementById('input-phone');
+
+  if (!val) {
+    if (feedback) { feedback.classList.add('hidden'); feedback.textContent = ''; }
+    if (inputEl) inputEl.classList.remove('border-emerald-500', 'border-red-500');
+    return;
+  }
+
+  const check = window.validatePhoneNumber ? window.validatePhoneNumber(val) : { valid: val.length >= 10 };
+  if (!check.valid) {
+    if (feedback) {
+      feedback.className = 'text-[11px] font-semibold text-red-600 mt-1 block';
+      feedback.textContent = `✕ ${check.message}`;
+    }
+    if (inputEl) {
+      inputEl.classList.remove('border-emerald-500');
+      inputEl.classList.add('border-red-500');
+    }
+  } else {
+    if (feedback) {
+      feedback.className = 'text-[11px] font-bold text-emerald-700 mt-1 block';
+      feedback.textContent = '✓ Teléfono celular válido';
+    }
+    if (inputEl) {
+      inputEl.classList.remove('border-red-500');
+      inputEl.classList.add('border-emerald-500');
+    }
+  }
+}
+
+function handleProfileEmailInput(e) {
+  const val = e.target.value.trim().toLowerCase();
+  const feedback = document.getElementById('profile-email-feedback');
+  const inputEl = document.getElementById('new_email');
+  clearTimeout(profileEmailTimer);
+
+  if (!val) {
+    if (feedback) { feedback.classList.add('hidden'); feedback.textContent = ''; }
+    if (inputEl) inputEl.classList.remove('border-emerald-500', 'border-red-500');
+    return;
+  }
+
+  const check = window.validateEmail ? window.validateEmail(val) : { valid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val) };
+  if (!check.valid) {
+    if (feedback) {
+      feedback.className = 'text-[11px] font-semibold text-red-600 mt-1 block';
+      feedback.textContent = `✕ ${check.message}`;
+    }
+    if (inputEl) {
+      inputEl.classList.remove('border-emerald-500');
+      inputEl.classList.add('border-red-500');
+    }
+    return;
+  }
+
+  if (currentUser && currentUser.email && val === currentUser.email.toLowerCase()) {
+    if (feedback) {
+      feedback.className = 'text-[11px] font-medium text-amber-600 mt-1 block';
+      feedback.textContent = '⚠️ Este ya es tu correo actual';
+    }
+    return;
+  }
+
+  if (feedback) {
+    feedback.className = 'text-[11px] font-medium text-stone-500 mt-1 block';
+    feedback.textContent = '⏳ Verificando correo...';
+  }
+
+  profileEmailTimer = setTimeout(async () => {
+    try {
+      let isAvailable = true;
+      if (window.supabase && typeof window.supabase.checkEmailAvailable === 'function') {
+        isAvailable = await window.supabase.checkEmailAvailable(check.cleanEmail);
+      }
+      if (isAvailable) {
+        if (feedback) {
+          feedback.className = 'text-[11px] font-bold text-emerald-700 mt-1 block';
+          feedback.textContent = '✓ Correo disponible para cambio';
+        }
+        if (inputEl) {
+          inputEl.classList.remove('border-red-500');
+          inputEl.classList.add('border-emerald-500');
+        }
+      } else {
+        if (feedback) {
+          feedback.className = 'text-[11px] font-bold text-red-600 mt-1 block';
+          feedback.textContent = '✕ Este correo ya se encuentra registrado';
+        }
+        if (inputEl) {
+          inputEl.classList.remove('border-emerald-500');
+          inputEl.classList.add('border-red-500');
+        }
+      }
+    } catch (_) {
+      if (feedback) {
+        feedback.className = 'text-[11px] font-bold text-emerald-700 mt-1 block';
+        feedback.textContent = '✓ Correo disponible';
+      }
+    }
+  }, 400);
 }
 
 /**
@@ -315,9 +520,49 @@ async function saveSettingsChanges() {
   const newUsername = document.getElementById('input-username')?.value.trim().toLowerCase() || currentUser.username;
   const newPhone = document.getElementById('input-phone')?.value.trim() || currentUser.phone;
 
+  // 1. Validar nombre completo
+  if (!newName || newName.length < 2) {
+    showToast('El nombre completo debe tener al menos 2 caracteres.');
+    alert('Por favor ingresa un nombre completo válido.');
+    if (btnSave) { btnSave.disabled = false; btnSave.innerHTML = originalBtnHtml; }
+    return;
+  }
+
+  // 2. Validar nombre de usuario estricto
+  const userCheck = (window.validateUsername ? window.validateUsername(newUsername) : { valid: newUsername.length >= 4, cleanUsername: newUsername });
+  if (!userCheck.valid) {
+    showToast(userCheck.message);
+    alert('Error en nombre de usuario:\n' + userCheck.message);
+    const feedback = document.getElementById('profile-username-feedback');
+    if (feedback) {
+      feedback.className = 'text-[11px] font-semibold text-red-600 mt-1 block';
+      feedback.textContent = `✕ ${userCheck.message}`;
+    }
+    const inp = document.getElementById('input-username');
+    if (inp) { inp.classList.add('border-red-500'); inp.focus(); }
+    if (btnSave) { btnSave.disabled = false; btnSave.innerHTML = originalBtnHtml; }
+    return;
+  }
+
+  // 3. Validar teléfono estricto
+  const phoneCheck = (window.validatePhoneNumber ? window.validatePhoneNumber(newPhone) : { valid: true, cleanNumber: newPhone });
+  if (!phoneCheck.valid) {
+    showToast(phoneCheck.message);
+    alert('Error en teléfono móvil:\n' + phoneCheck.message);
+    const feedback = document.getElementById('profile-phone-feedback');
+    if (feedback) {
+      feedback.className = 'text-[11px] font-semibold text-red-600 mt-1 block';
+      feedback.textContent = `✕ ${phoneCheck.message}`;
+    }
+    const inp = document.getElementById('input-phone');
+    if (inp) { inp.classList.add('border-red-500'); inp.focus(); }
+    if (btnSave) { btnSave.disabled = false; btnSave.innerHTML = originalBtnHtml; }
+    return;
+  }
+
   currentUser.name = newName;
-  currentUser.username = newUsername;
-  currentUser.phone = newPhone;
+  currentUser.username = userCheck.cleanUsername;
+  currentUser.phone = phoneCheck.cleanNumber;
 
   // Procesar foto si hay pendiente
   if (pendingPhotoDraft) {
@@ -989,8 +1234,16 @@ async function handleRequestEmailChange() {
   const newEmail = inputNew?.value.trim().toLowerCase();
 
   // 1. Validaciones en el cliente
-  if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
-    showToast('Por favor escribe un correo electrónico válido con formato nombre@dominio.com');
+  const emailCheck = window.validateEmail ? window.validateEmail(newEmail) : { valid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail), message: 'Ingresa un correo electrónico con un dominio válido (ej. nombre@correo.com)' };
+  if (!emailCheck.valid) {
+    showToast(emailCheck.message);
+    alert(emailCheck.message);
+    const feedback = document.getElementById('profile-email-feedback');
+    if (feedback) {
+      feedback.className = 'text-[11px] font-semibold text-red-600 mt-1 block';
+      feedback.textContent = `✕ ${emailCheck.message}`;
+    }
+    inputNew?.classList.add('border-red-500');
     inputNew?.focus();
     return;
   }

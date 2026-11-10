@@ -370,45 +370,215 @@ let currentEmailState = 'idle';
 let currentPhoneState = 'idle';
 let currentPasswordState = { isValid: false, minLength: false, hasCase: false, hasNumber: false, hasSpecial: false };
 
+// Conjunto de TLDs estándar reconocidos internacionalmente y canónicos
+const STANDARD_TLDS = new Set([
+  'com', 'org', 'net', 'edu', 'gov', 'mil', 'int', 'biz', 'info',
+  'co', 'ec', 'es', 'mx', 'ar', 'pe', 'cl', 'uy', 've', 'bo', 'py', 'cr', 'pa', 'gt', 'hn', 'sv', 'ni', 'do', 'pr',
+  'us', 'ca', 'uk', 'de', 'fr', 'it', 'br', 'eu', 'lat',
+  'io', 'app', 'dev', 'ai', 'me', 'tv', 'la', 'coop', 'agro', 'cloud', 'store', 'shop', 'site', 'tech', 'xyz', 'online'
+]);
+
 /**
- * Valida formato y restricciones estrictas de teléfono / WhatsApp
+ * Validador estricto de "Nombre de usuario":
+ * - Longitud: 4 a 20 caracteres
+ * - Formato: Solo letras minúsculas, números, puntos y guiones bajos (/^[a-z0-9._]+$/)
+ * - Regla anti-números solos: Debe contener al menos 2 letras alfabéticas
+ * - Regla de caracteres especiales: No inicia ni termina en punto o guion bajo, ni '..' ni '__' ni '._' ni '_.'
+ */
+function validateUsername(username) {
+  if (!username) {
+    return { valid: false, message: 'El nombre de usuario es obligatorio.' };
+  }
+  const clean = username.trim().toLowerCase();
+
+  // 1. Longitud entre 4 y 20 caracteres
+  if (clean.length < 4 || clean.length > 20) {
+    return { 
+      valid: false, 
+      message: 'El usuario debe tener al menos 4 caracteres y contener letras (no solo números)' 
+    };
+  }
+
+  // 2. Caracteres permitidos: solo minúsculas, números, puntos y guiones bajos
+  if (!/^[a-z0-9._]+$/.test(clean)) {
+    return { 
+      valid: false, 
+      message: 'Solo se permiten letras minúsculas, números, puntos y guiones bajos.' 
+    };
+  }
+
+  // 3. Regla anti-números solos: debe contener al menos 2 letras
+  const letterMatches = clean.match(/[a-z]/g);
+  if (!letterMatches || letterMatches.length < 2) {
+    return { 
+      valid: false, 
+      message: 'El usuario debe tener al menos 4 caracteres y contener letras (no solo números)' 
+    };
+  }
+
+  // 4. Regla de caracteres especiales en extremos (no punto ni guion bajo al inicio o fin)
+  if (/^[._]/.test(clean) || /[._]$/.test(clean)) {
+    return { 
+      valid: false, 
+      message: 'El usuario no puede iniciar ni terminar con punto o guion bajo.' 
+    };
+  }
+
+  // 5. Regla de caracteres especiales consecutivos (.., __, ._, _.)
+  if (/\.\.|\_\_|\.\_|\_\./.test(clean)) {
+    return { 
+      valid: false, 
+      message: 'No se permiten puntos o guiones bajos consecutivos.' 
+    };
+  }
+
+  return { valid: true, cleanUsername: clean };
+}
+window.validateUsername = validateUsername;
+
+/**
+ * Validador estricto de "Correo electrónico":
+ * - Al menos 2 caracteres antes del @
+ * - Dominio con punto separador y etiquetas válidas
+ * - TLD canónico estándar de 2 a 6 caracteres alfabéticos
+ * - Excluye extensiones incoherentes o ficticias (.cmda, .xyzabc, números o caracteres repetidos)
+ */
+function validateEmail(email) {
+  if (!email) {
+    return { valid: false, message: 'El correo electrónico es obligatorio.' };
+  }
+  const clean = email.trim().toLowerCase();
+
+  // Expresión regular base recomendada
+  const baseRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+  if (!baseRegex.test(clean)) {
+    return { 
+      valid: false, 
+      message: 'Ingresa un correo electrónico con un dominio válido (ej. nombre@correo.com)' 
+    };
+  }
+
+  const parts = clean.split('@');
+  if (parts.length !== 2) {
+    return { 
+      valid: false, 
+      message: 'Ingresa un correo electrónico con un dominio válido (ej. nombre@correo.com)' 
+    };
+  }
+
+  const [localPart, domainPart] = parts;
+
+  // Al menos 2 caracteres antes del @
+  if (localPart.length < 2) {
+    return { 
+      valid: false, 
+      message: 'El nombre antes del @ debe tener al menos 2 caracteres.' 
+    };
+  }
+
+  // No permitir puntos al inicio o final del usuario
+  if (localPart.startsWith('.') || localPart.endsWith('.') || localPart.includes('..')) {
+    return { 
+      valid: false, 
+      message: 'El nombre de usuario del correo contiene puntos inválidos.' 
+    };
+  }
+
+  // Validar partes del dominio
+  const domainLabels = domainPart.split('.');
+  if (domainLabels.length < 2) {
+    return { 
+      valid: false, 
+      message: 'Ingresa un correo electrónico con un dominio válido (ej. nombre@correo.com)' 
+    };
+  }
+
+  // Validar TLD contra extensiones canónicas conocidas
+  const tld = domainLabels[domainLabels.length - 1];
+  if (!STANDARD_TLDS.has(tld)) {
+    return { 
+      valid: false, 
+      message: 'Ingresa un correo electrónico con un dominio válido (ej. nombre@correo.com)' 
+    };
+  }
+
+  // Validar cada etiqueta del dominio
+  for (const label of domainLabels) {
+    if (label.length < 2 || label.startsWith('-') || label.endsWith('-')) {
+      return { 
+        valid: false, 
+        message: 'Ingresa un correo electrónico con un dominio válido (ej. nombre@correo.com)' 
+      };
+    }
+  }
+
+  return { valid: true, cleanEmail: clean };
+}
+window.validateEmail = validateEmail;
+
+/**
+ * Validador algorítmico estricto de "Teléfono / WhatsApp":
+ * - Exactamente 10 dígitos numéricos
+ * - Prefijos válidos: 09 (Ecuador/regional) o 3 (Colombia), acepta prefijo internacional opcional (+593 / +57)
+ * - Filtro contra dígitos idénticos repetidos (/^(\d)\1{7,}$/)
+ * - Filtro contra secuencias comunes de prueba ('1233456789', '1234567890', '0987654321', etc.)
  */
 function validatePhoneNumber(phoneRaw) {
   if (!phoneRaw) return { valid: false, message: 'El teléfono es requerido.' };
   
-  // Limpiar caracteres no numéricos
-  let digits = String(phoneRaw).replace(/\D/g, '');
+  const raw = String(phoneRaw).trim();
+  let digits = raw.replace(/\D/g, '');
 
-  // Manejar prefijo internacional de Colombia (+57)
-  if (digits.startsWith('57') && digits.length === 12) {
+  // Manejar formato internacional Ecuador (+593)
+  if (raw.startsWith('+593') || (digits.startsWith('593') && (digits.length === 12 || digits.length === 11))) {
+    const rest = digits.substring(3);
+    digits = rest.startsWith('0') ? rest : ('0' + rest);
+  }
+  // Manejar formato internacional Colombia (+57)
+  else if (raw.startsWith('+57') || (digits.startsWith('57') && digits.length === 12)) {
     digits = digits.substring(2);
   }
 
-  // Debe ser exactamente de 10 dígitos
+  // Debe tener exactamente 10 dígitos numéricos
   if (digits.length !== 10) {
     return { 
       valid: false, 
-      message: 'Ingresa un número celular válido de 10 dígitos (ej: 310 123 4567).' 
+      message: 'El número celular debe tener 10 dígitos (ej: 099 123 4567 o 310 123 4567).' 
     };
   }
 
-  // Rechazar secuencias repetitivas inválidas como 0000000000, 1111111111, etc.
-  if (/^(\d)\1{9}$/.test(digits)) {
-    return { valid: false, message: 'Número inválido (no se permiten todos los dígitos repetidos).' };
+  // Debe empezar con prefijo móvil válido (09 para Ecuador/regional o 3 para Colombia)
+  if (!digits.startsWith('09') && !digits.startsWith('3')) {
+    return { 
+      valid: false, 
+      message: 'El número móvil debe iniciar con 09 o 3 (ej: 099 776 6751 o 310 123 4567).' 
+    };
   }
 
-  // Rechazar patrones consecutivos obvios
-  const bannedPatterns = ['1234567890', '0123456789', '9876543210', '0987654321'];
-  if (bannedPatterns.includes(digits)) {
-    return { valid: false, message: 'Número inválido (secuencia no permitida).' };
+  // Descartar dígitos idénticos repetidos (ej: 0000000000, 1111111111, 0999999999)
+  if (/^(\d)\1{7,}$/.test(digits) || /^09(\d)\1{7}$/.test(digits)) {
+    return { 
+      valid: false, 
+      message: 'Número celular inválido (dígitos idénticos repetidos).' 
+    };
   }
 
-  if (digits.startsWith('00')) {
-    return { valid: false, message: 'El número no puede iniciar con 00.' };
+  // Descartar secuencias inventadas y comunes de prueba
+  const fakeSequences = [
+    '1234567890', '1233456789', '0123456789', '9876543210', 
+    '0987654321', '0912345678', '0900000000', '0999999999', 
+    '0901234567', '3000000000', '3111111111', '3123456789', '3987654321'
+  ];
+  if (fakeSequences.includes(digits)) {
+    return { 
+      valid: false, 
+      message: 'Número celular de prueba inválido (secuencia no permitida).' 
+    };
   }
 
   return { valid: true, cleanNumber: digits };
 }
+window.validatePhoneNumber = validatePhoneNumber;
 
 /**
  * Valida reglas de seguridad de contraseña
@@ -451,13 +621,13 @@ function handleUsernameInput(e) {
     return;
   }
 
-  // Validar formato (alfanumérico y guion bajo, 3 a 24 caracteres)
-  const isValidFormat = /^[a-z0-9_]{3,24}$/.test(val);
-  if (!isValidFormat) {
+  // 1. Validar reglas algorítmicas de formato y letras
+  const check = validateUsername(val);
+  if (!check.valid) {
     currentUsernameState = 'invalid';
     if (feedback) {
       feedback.className = 'text-[11px] mt-1 font-semibold text-red-600 block';
-      feedback.textContent = '✕ Mínimo 3 caracteres alfanuméricos (solo letras, números y _)';
+      feedback.textContent = `✕ ${check.message}`;
     }
     if (inputEl) {
       inputEl.classList.remove('border-emerald-500');
@@ -467,6 +637,7 @@ function handleUsernameInput(e) {
     return;
   }
 
+  // 2. Si pasa las reglas, consultar disponibilidad en Supabase
   if (feedback) {
     feedback.className = 'text-[11px] mt-1 font-medium text-stone-500 block';
     feedback.textContent = '⏳ Verificando disponibilidad...';
@@ -477,7 +648,7 @@ function handleUsernameInput(e) {
     try {
       let isAvailable = true;
       if (window.supabase && typeof window.supabase.checkUsernameAvailable === 'function') {
-        isAvailable = await window.supabase.checkUsernameAvailable(val);
+        isAvailable = await window.supabase.checkUsernameAvailable(check.cleanUsername);
       }
       if (isAvailable) {
         currentUsernameState = 'available';
@@ -525,12 +696,13 @@ function handleEmailInput(e) {
     return;
   }
 
-  const isValidEmailFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
-  if (!isValidEmailFormat) {
+  // 1. Validar formato y TLD estándar canónico
+  const check = validateEmail(val);
+  if (!check.valid) {
     currentEmailState = 'invalid';
     if (feedback) {
       feedback.className = 'text-[11px] mt-1 font-semibold text-red-600 block';
-      feedback.textContent = '✕ Formato de correo electrónico no válido';
+      feedback.textContent = `✕ ${check.message}`;
     }
     if (inputEl) {
       inputEl.classList.remove('border-emerald-500');
@@ -540,11 +712,18 @@ function handleEmailInput(e) {
     return;
   }
 
+  // 2. Si pasa el formato canónico, verificar disponibilidad en Supabase
+  if (feedback) {
+    feedback.className = 'text-[11px] mt-1 font-medium text-stone-500 block';
+    feedback.textContent = '⏳ Verificando correo...';
+  }
+  currentEmailState = 'checking';
+
   emailDebounceTimer = setTimeout(async () => {
     try {
       let isAvailable = true;
       if (window.supabase && typeof window.supabase.checkEmailAvailable === 'function') {
-        isAvailable = await window.supabase.checkEmailAvailable(val);
+        isAvailable = await window.supabase.checkEmailAvailable(check.cleanEmail);
       }
       if (isAvailable) {
         currentEmailState = 'available';
@@ -655,9 +834,9 @@ function validateRegisterForm() {
   const passVal = document.getElementById('reg-pass')?.value || '';
 
   const isNameValid = nameVal.length >= 2;
-  const isUsernameValid = currentUsernameState === 'available';
-  const isEmailValid = (currentEmailState === 'available' || (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal) && currentEmailState !== 'taken' && currentEmailState !== 'invalid'));
-  const isPhoneValid = currentPhoneState === 'valid' || validatePhoneNumber(phoneVal).valid;
+  const isUsernameValid = currentUsernameState === 'available' && validateUsername(usernameVal).valid;
+  const isEmailValid = (currentEmailState === 'available' || (validateEmail(emailVal).valid && currentEmailState !== 'taken' && currentEmailState !== 'invalid'));
+  const isPhoneValid = currentPhoneState === 'valid' && validatePhoneNumber(phoneVal).valid;
   const isPassValid = validatePasswordRules(passVal).isValid;
 
   const allValid = isNameValid && isUsernameValid && isEmailValid && isPhoneValid && isPassValid;
@@ -693,12 +872,34 @@ async function handleCustomerRegister(e) {
   const phone = document.getElementById('reg-phone')?.value.trim() || '';
   const password = document.getElementById('reg-pass')?.value || '';
 
+  // 1. Validar Nombre
+  if (!name || name.length < 2) {
+    alert('Por favor ingresa un nombre válido.');
+    return false;
+  }
+
+  // 2. Validar Nombre de usuario
+  const userCheck = validateUsername(username);
+  if (!userCheck.valid) {
+    alert(userCheck.message);
+    return false;
+  }
+
+  // 3. Validar Correo electrónico
+  const emailCheck = validateEmail(email);
+  if (!emailCheck.valid) {
+    alert(emailCheck.message);
+    return false;
+  }
+
+  // 4. Validar Teléfono celular
   const phoneCheck = validatePhoneNumber(phone);
   if (!phoneCheck.valid) {
     alert(phoneCheck.message);
     return false;
   }
 
+  // 5. Validar Contraseña segura
   const pwdCheck = validatePasswordRules(password);
   if (!pwdCheck.isValid) {
     alert('La contraseña debe cumplir con todos los requisitos de seguridad (mínimo 8 caracteres, mayúscula, minúscula, número y símbolo).');
@@ -722,8 +923,8 @@ async function handleCustomerRegister(e) {
     if (window.supabase && typeof window.supabase.registerCustomer === 'function') {
       createdProfile = await window.supabase.registerCustomer({
         full_name: name,
-        username: username,
-        email: email,
+        username: userCheck.cleanUsername,
+        email: emailCheck.cleanEmail,
         phone: phoneCheck.cleanNumber,
         password: password
       });
@@ -731,9 +932,9 @@ async function handleCustomerRegister(e) {
 
     const sessionUser = {
       id: createdProfile?.id || ('usr_' + Date.now()),
-      username: username,
+      username: userCheck.cleanUsername,
       name: name,
-      email: email,
+      email: emailCheck.cleanEmail,
       phone: phoneCheck.cleanNumber,
       role: 'cliente',
       avatar: null, // STRICTLY NULL

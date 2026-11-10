@@ -334,10 +334,7 @@
                   value="max" 
                   class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
                 >
-                <p class="text-[11px] text-emerald-700 font-medium mt-1 flex items-center gap-1">
-                  <span>✓</span>
-                  <span>Nombre de usuario disponible</span>
-                </p>
+                <div id="profile-username-feedback" class="text-[11px] font-medium mt-1 hidden"></div>
               </div>
 
               <div>
@@ -346,9 +343,10 @@
                   type="tel" 
                   id="input-phone" 
                   value="0997766751" 
-                  placeholder="Ej. 300 123 4567"
+                  placeholder="Ej. 099 123 4567 o 310 123 4567"
                   class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
                 >
+                <div id="profile-phone-feedback" class="text-[11px] font-medium mt-1 hidden"></div>
               </div>
 
               <div>
@@ -374,9 +372,10 @@
                   type="email" 
                   id="new_email" 
                   name="new_email"
-                  placeholder="Escribe tu nuevo correo" 
+                  placeholder="Escribe tu nuevo correo (ej. nombre@correo.com)" 
                   class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
                 >
+                <div id="profile-email-feedback" class="text-[11px] font-medium mt-1 hidden"></div>
                 <p class="text-[10px] text-stone-400 mt-1.5 leading-tight">
                   Para cambiar tu correo, verifica el enlace que enviaremos a la nueva dirección. El actual seguirá activo hasta entonces.
                 </p>
@@ -1353,8 +1352,8 @@
   </aside>
 
   <!-- Scripts: Supabase y Lógica de Perfil -->
-  <script src="js/supabase.js?v=4.4"></script>
-  <script src="js/auth.js?v=4.4"></script>
-  <script src="js/perfil.js?v=4.4"></script>
+  <script src="js/supabase.js?v=4.5"></script>
+  <script src="js/auth.js?v=4.5"></script>
+  <script src="js/perfil.js?v=4.5"></script>
 </body>
 </html>

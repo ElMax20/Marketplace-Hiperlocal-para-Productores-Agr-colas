@@ -54,3 +54,11 @@ export interface PasswordValidationRules {
 }
 
 export type UsernameValidationState = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
+
+export interface FieldValidationResult {
+  valid: boolean;
+  message?: string;
+  cleanValue?: string;
+}
+
+
