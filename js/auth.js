@@ -7,8 +7,18 @@
  * - Admin:        admin / admin123
  */
 
-window.DEFAULT_USER_AVATAR = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc2NCcgaGVpZ2h0PSc2NCcgdmlld0JveD0nMCAwIDY0IDY0Jz48Y2lyY2xlIGN4PSczMicgY3k9JzMyJyByPSczMicgZmlsbD0nI2U3ZTVlNCcvPjxwYXRoIGQ9J00zMiAzMmExMCAxMCAwIDEgMCAwLTIwIDEwIDEwIDAgMCAwIDAgMjB6bTAgNmMtOC44NCAwLTIwIDQuNDgtMjAgMTJ2NGg0MHYtNGMwLTcuNTItMTEuMTYtMTItMjAtMTJ6JyBmaWxsPScjNzg3MTZjJy8+PC9zdmc+";
+window.DEFAULT_USER_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='32' fill='%23e7e5e4'/><path d='M32 32a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0 6c-8.84 0-20 4.48-20 12v4h40v-4c0-7.52-11.16-12-20-12z' fill='%23a8a29e'/></svg>";
 var DEFAULT_USER_AVATAR = window.DEFAULT_USER_AVATAR;
+
+window.getNeutralAvatarWithInitials = function(name = '') {
+  const initials = (name || '')
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map(p => p[0]?.toUpperCase() || '')
+    .join('') || 'U';
+  return `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23e7e5e4'/><text x='50' y='55' font-family='sans-serif' font-size='38' font-weight='700' fill='%2357534e' text-anchor='middle' dominant-baseline='middle'>${initials}</text></svg>`;
+};
 
 window.normalizeAvatarUrl = function(url) {
   if (!url || typeof url !== 'string') return '';
@@ -127,6 +137,11 @@ function openLoginModal(type = 'cliente') {
     if (tabProductor) {
       tabProductor.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-stone-600 hover:text-stone-900 transition';
     }
+    // Visibilidad de opciones específicas
+    const regLink = document.getElementById('auth-buyer-register-link');
+    if (regLink) regLink.classList.remove('hidden');
+    const prodTechSection = document.getElementById('auth-producer-technical-section');
+    if (prodTechSection) prodTechSection.classList.add('hidden');
   } else {
     if (titleEl) titleEl.textContent = 'Portal de Familias Productoras';
     if (badgeEl) {
@@ -144,6 +159,11 @@ function openLoginModal(type = 'cliente') {
     if (tabCliente) {
       tabCliente.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-stone-600 hover:text-stone-900 transition';
     }
+    // Visibilidad de opciones específicas
+    const regLink = document.getElementById('auth-buyer-register-link');
+    if (regLink) regLink.classList.add('hidden');
+    const prodTechSection = document.getElementById('auth-producer-technical-section');
+    if (prodTechSection) prodTechSection.classList.remove('hidden');
   }
 
   modal.classList.remove('hidden');
@@ -218,7 +238,7 @@ async function handleAuthSubmit(event) {
         phone: dbUser.phone || '',
         address: dbUser.location_address || '',
         email: dbUser.email || 'lucia@raizybarrio.co',
-        avatar: normalizeAvatarUrl(dbUser.avatar_url || 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg'),
+        avatar: normalizeAvatarUrl(dbUser.avatar_url || ''),
         loggedIn: true
       };
       setCurrentUser(adminUser);
@@ -272,7 +292,7 @@ async function handleAuthSubmit(event) {
           address: dbUser.location_address || '',
           finca: dbUser.farm_name || 'Huerta El Renacer',
           email: dbUser.email || '',
-          avatar: normalizeAvatarUrl(dbUser.avatar_url || 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg'),
+          avatar: normalizeAvatarUrl(dbUser.avatar_url || ''),
           loggedIn: true
         };
         setCurrentUser(prodUser);
@@ -336,6 +356,522 @@ function showAuthError(msg) {
   if (errorBox) {
     errorBox.textContent = msg;
     errorBox.classList.remove('hidden');
+  }
+}
+
+// =============================================================================
+// VALIDACIONES Y CONTROL DE REGISTRO DE CLIENTES & ALTA TÉCNICA PRODUCTORES
+// =============================================================================
+
+let usernameDebounceTimer = null;
+let currentUsernameState = 'idle'; // 'idle' | 'checking' | 'available' | 'taken' | 'invalid'
+let emailDebounceTimer = null;
+let currentEmailState = 'idle';
+let currentPhoneState = 'idle';
+let currentPasswordState = { isValid: false, minLength: false, hasCase: false, hasNumber: false, hasSpecial: false };
+
+/**
+ * Valida formato y restricciones estrictas de teléfono / WhatsApp
+ */
+function validatePhoneNumber(phoneRaw) {
+  if (!phoneRaw) return { valid: false, message: 'El teléfono es requerido.' };
+  
+  // Limpiar caracteres no numéricos
+  let digits = String(phoneRaw).replace(/\D/g, '');
+
+  // Manejar prefijo internacional de Colombia (+57)
+  if (digits.startsWith('57') && digits.length === 12) {
+    digits = digits.substring(2);
+  }
+
+  // Debe ser exactamente de 10 dígitos
+  if (digits.length !== 10) {
+    return { 
+      valid: false, 
+      message: 'Ingresa un número celular válido de 10 dígitos (ej: 310 123 4567).' 
+    };
+  }
+
+  // Rechazar secuencias repetitivas inválidas como 0000000000, 1111111111, etc.
+  if (/^(\d)\1{9}$/.test(digits)) {
+    return { valid: false, message: 'Número inválido (no se permiten todos los dígitos repetidos).' };
+  }
+
+  // Rechazar patrones consecutivos obvios
+  const bannedPatterns = ['1234567890', '0123456789', '9876543210', '0987654321'];
+  if (bannedPatterns.includes(digits)) {
+    return { valid: false, message: 'Número inválido (secuencia no permitida).' };
+  }
+
+  if (digits.startsWith('00')) {
+    return { valid: false, message: 'El número no puede iniciar con 00.' };
+  }
+
+  return { valid: true, cleanNumber: digits };
+}
+
+/**
+ * Valida reglas de seguridad de contraseña
+ */
+function validatePasswordRules(pwd) {
+  const p = pwd || '';
+  const minLength = p.length >= 8;
+  const hasUppercase = /[A-Z]/.test(p);
+  const hasLowercase = /[a-z]/.test(p);
+  const hasNumber = /[0-9]/.test(p);
+  const hasSpecial = /[^A-Za-z0-9]/.test(p);
+
+  const hasCase = hasUppercase && hasLowercase;
+  const isValid = minLength && hasCase && hasNumber && hasSpecial;
+
+  return {
+    minLength,
+    hasCase,
+    hasNumber,
+    hasSpecial,
+    isValid
+  };
+}
+
+/**
+ * Validador en vivo para nombre de usuario con debounce de 400ms
+ */
+function handleUsernameInput(e) {
+  const val = (e ? e.target.value : (document.getElementById('reg-username')?.value || '')).trim().toLowerCase();
+  const feedback = document.getElementById('reg-username-feedback');
+  const inputEl = document.getElementById('reg-username');
+
+  clearTimeout(usernameDebounceTimer);
+
+  if (!val) {
+    currentUsernameState = 'idle';
+    if (feedback) { feedback.classList.add('hidden'); feedback.textContent = ''; }
+    if (inputEl) { inputEl.classList.remove('border-emerald-500', 'border-red-500'); }
+    validateRegisterForm();
+    return;
+  }
+
+  // Validar formato (alfanumérico y guion bajo, 3 a 24 caracteres)
+  const isValidFormat = /^[a-z0-9_]{3,24}$/.test(val);
+  if (!isValidFormat) {
+    currentUsernameState = 'invalid';
+    if (feedback) {
+      feedback.className = 'text-[11px] mt-1 font-semibold text-red-600 block';
+      feedback.textContent = '✕ Mínimo 3 caracteres alfanuméricos (solo letras, números y _)';
+    }
+    if (inputEl) {
+      inputEl.classList.remove('border-emerald-500');
+      inputEl.classList.add('border-red-500');
+    }
+    validateRegisterForm();
+    return;
+  }
+
+  if (feedback) {
+    feedback.className = 'text-[11px] mt-1 font-medium text-stone-500 block';
+    feedback.textContent = '⏳ Verificando disponibilidad...';
+  }
+  currentUsernameState = 'checking';
+
+  usernameDebounceTimer = setTimeout(async () => {
+    try {
+      let isAvailable = true;
+      if (window.supabase && typeof window.supabase.checkUsernameAvailable === 'function') {
+        isAvailable = await window.supabase.checkUsernameAvailable(val);
+      }
+      if (isAvailable) {
+        currentUsernameState = 'available';
+        if (feedback) {
+          feedback.className = 'text-[11px] mt-1 font-bold text-emerald-700 block';
+          feedback.textContent = '✓ Nombre de usuario disponible';
+        }
+        if (inputEl) {
+          inputEl.classList.remove('border-red-500');
+          inputEl.classList.add('border-emerald-500');
+        }
+      } else {
+        currentUsernameState = 'taken';
+        if (feedback) {
+          feedback.className = 'text-[11px] mt-1 font-bold text-red-600 block';
+          feedback.textContent = '✕ Este usuario ya está en uso';
+        }
+        if (inputEl) {
+          inputEl.classList.remove('border-emerald-500');
+          inputEl.classList.add('border-red-500');
+        }
+      }
+    } catch (_) {
+      currentUsernameState = 'available';
+    }
+    validateRegisterForm();
+  }, 400);
+}
+
+/**
+ * Validador en vivo para correo electrónico
+ */
+function handleEmailInput(e) {
+  const val = (e ? e.target.value : (document.getElementById('reg-email')?.value || '')).trim().toLowerCase();
+  const feedback = document.getElementById('reg-email-feedback');
+  const inputEl = document.getElementById('reg-email');
+
+  clearTimeout(emailDebounceTimer);
+
+  if (!val) {
+    currentEmailState = 'idle';
+    if (feedback) feedback.classList.add('hidden');
+    if (inputEl) inputEl.classList.remove('border-emerald-500', 'border-red-500');
+    validateRegisterForm();
+    return;
+  }
+
+  const isValidEmailFormat = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
+  if (!isValidEmailFormat) {
+    currentEmailState = 'invalid';
+    if (feedback) {
+      feedback.className = 'text-[11px] mt-1 font-semibold text-red-600 block';
+      feedback.textContent = '✕ Formato de correo electrónico no válido';
+    }
+    if (inputEl) {
+      inputEl.classList.remove('border-emerald-500');
+      inputEl.classList.add('border-red-500');
+    }
+    validateRegisterForm();
+    return;
+  }
+
+  emailDebounceTimer = setTimeout(async () => {
+    try {
+      let isAvailable = true;
+      if (window.supabase && typeof window.supabase.checkEmailAvailable === 'function') {
+        isAvailable = await window.supabase.checkEmailAvailable(val);
+      }
+      if (isAvailable) {
+        currentEmailState = 'available';
+        if (feedback) {
+          feedback.className = 'text-[11px] mt-1 font-bold text-emerald-700 block';
+          feedback.textContent = '✓ Correo disponible';
+        }
+        if (inputEl) {
+          inputEl.classList.remove('border-red-500');
+          inputEl.classList.add('border-emerald-500');
+        }
+      } else {
+        currentEmailState = 'taken';
+        if (feedback) {
+          feedback.className = 'text-[11px] mt-1 font-bold text-red-600 block';
+          feedback.textContent = '✕ Este correo ya se encuentra registrado';
+        }
+        if (inputEl) {
+          inputEl.classList.remove('border-emerald-500');
+          inputEl.classList.add('border-red-500');
+        }
+      }
+    } catch (_) {
+      currentEmailState = 'available';
+    }
+    validateRegisterForm();
+  }, 400);
+}
+
+/**
+ * Validador en vivo para número telefónico móvil
+ */
+function handlePhoneInput(e) {
+  const val = (e ? e.target.value : (document.getElementById('reg-phone')?.value || '')).trim();
+  const feedback = document.getElementById('reg-phone-feedback');
+  const inputEl = document.getElementById('reg-phone');
+
+  if (!val) {
+    currentPhoneState = 'idle';
+    if (feedback) feedback.classList.add('hidden');
+    if (inputEl) inputEl.classList.remove('border-emerald-500', 'border-red-500');
+    validateRegisterForm();
+    return;
+  }
+
+  const check = validatePhoneNumber(val);
+  if (!check.valid) {
+    currentPhoneState = 'invalid';
+    if (feedback) {
+      feedback.className = 'text-[11px] mt-1 font-semibold text-red-600 block';
+      feedback.textContent = `✕ ${check.message}`;
+    }
+    if (inputEl) {
+      inputEl.classList.remove('border-emerald-500');
+      inputEl.classList.add('border-red-500');
+    }
+  } else {
+    currentPhoneState = 'valid';
+    if (feedback) {
+      feedback.className = 'text-[11px] mt-1 font-bold text-emerald-700 block';
+      feedback.textContent = '✓ Celular válido';
+    }
+    if (inputEl) {
+      inputEl.classList.remove('border-red-500');
+      inputEl.classList.add('border-emerald-500');
+    }
+  }
+  validateRegisterForm();
+}
+
+/**
+ * Validador en vivo de contraseña con checklist dinámico
+ */
+function handlePasswordInput(e) {
+  const val = e ? e.target.value : (document.getElementById('reg-pass')?.value || '');
+  const res = validatePasswordRules(val);
+  currentPasswordState = res;
+
+  const updateRuleUI = (ruleId, isMet) => {
+    const el = document.getElementById(ruleId);
+    if (!el) return;
+    const icon = el.querySelector('.rule-icon');
+    if (isMet) {
+      el.className = 'flex items-center gap-1.5 text-emerald-700 font-bold transition';
+      if (icon) icon.textContent = '✓';
+    } else {
+      el.className = 'flex items-center gap-1.5 text-stone-400 transition';
+      if (icon) icon.textContent = '○';
+    }
+  };
+
+  updateRuleUI('pwd-rule-len', res.minLength);
+  updateRuleUI('pwd-rule-case', res.hasCase);
+  updateRuleUI('pwd-rule-num', res.hasNumber);
+  updateRuleUI('pwd-rule-sym', res.hasSpecial);
+
+  validateRegisterForm();
+}
+
+/**
+ * Valida todos los requisitos y habilita/bloquea el botón de envío
+ */
+function validateRegisterForm() {
+  const nameVal = document.getElementById('reg-name')?.value.trim() || '';
+  const usernameVal = document.getElementById('reg-username')?.value.trim() || '';
+  const emailVal = document.getElementById('reg-email')?.value.trim() || '';
+  const phoneVal = document.getElementById('reg-phone')?.value.trim() || '';
+  const passVal = document.getElementById('reg-pass')?.value || '';
+
+  const isNameValid = nameVal.length >= 2;
+  const isUsernameValid = currentUsernameState === 'available';
+  const isEmailValid = (currentEmailState === 'available' || (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal) && currentEmailState !== 'taken' && currentEmailState !== 'invalid'));
+  const isPhoneValid = currentPhoneState === 'valid' || validatePhoneNumber(phoneVal).valid;
+  const isPassValid = validatePasswordRules(passVal).isValid;
+
+  const allValid = isNameValid && isUsernameValid && isEmailValid && isPhoneValid && isPassValid;
+
+  const submitButtons = document.querySelectorAll('#reg-submit-btn, button[type="submit"][id="reg-submit-btn"]');
+  submitButtons.forEach(btn => {
+    if (allValid) {
+      btn.removeAttribute('disabled');
+      btn.classList.remove('opacity-50', 'cursor-not-allowed');
+      btn.classList.add('cursor-pointer');
+    } else {
+      btn.setAttribute('disabled', 'true');
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+      btn.classList.remove('cursor-pointer');
+    }
+  });
+
+  return allValid;
+}
+
+/**
+ * Manejador unificado de registro de clientes (index.html y mercado.html)
+ */
+async function handleCustomerRegister(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  const name = document.getElementById('reg-name')?.value.trim() || '';
+  const username = document.getElementById('reg-username')?.value.trim().toLowerCase() || '';
+  const email = document.getElementById('reg-email')?.value.trim().toLowerCase() || '';
+  const phone = document.getElementById('reg-phone')?.value.trim() || '';
+  const password = document.getElementById('reg-pass')?.value || '';
+
+  const phoneCheck = validatePhoneNumber(phone);
+  if (!phoneCheck.valid) {
+    alert(phoneCheck.message);
+    return false;
+  }
+
+  const pwdCheck = validatePasswordRules(password);
+  if (!pwdCheck.isValid) {
+    alert('La contraseña debe cumplir con todos los requisitos de seguridad (mínimo 8 caracteres, mayúscula, minúscula, número y símbolo).');
+    return false;
+  }
+
+  const submitBtns = document.querySelectorAll('#reg-submit-btn');
+  submitBtns.forEach(btn => {
+    btn.setAttribute('disabled', 'true');
+    btn.innerHTML = `
+      <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+      </svg>
+      <span>Creando cuenta...</span>
+    `;
+  });
+
+  try {
+    let createdProfile = null;
+    if (window.supabase && typeof window.supabase.registerCustomer === 'function') {
+      createdProfile = await window.supabase.registerCustomer({
+        full_name: name,
+        username: username,
+        email: email,
+        phone: phoneCheck.cleanNumber,
+        password: password
+      });
+    }
+
+    const sessionUser = {
+      id: createdProfile?.id || ('usr_' + Date.now()),
+      username: username,
+      name: name,
+      email: email,
+      phone: phoneCheck.cleanNumber,
+      role: 'cliente',
+      avatar: null, // STRICTLY NULL
+      loggedIn: true,
+      registeredAt: new Date().toISOString()
+    };
+
+    setCurrentUser(sessionUser);
+    closeRegisterModal();
+    if (typeof closeAuthModal === 'function') closeAuthModal();
+    if (typeof closeLoginModal === 'function') closeLoginModal();
+    updateAuthUI();
+
+    if (typeof showToast === 'function') {
+      showToast(`¡Bienvenido a Raíz & Barrio, ${name}! Tu cuenta ha sido creada.`);
+    } else {
+      alert(`¡Bienvenido a Raíz & Barrio, ${name}! Tu cuenta ha sido creada exitosamente.`);
+    }
+
+    // Si estamos en el mercado y hay productos en el carrito, proceder con checkout
+    if (window.cart && window.cart.length > 0 && typeof openCheckoutModal === 'function') {
+      setTimeout(() => openCheckoutModal(sessionUser), 400);
+    }
+    return false;
+  } catch (err) {
+    console.error('Error registrando usuario:', err);
+    alert('No se pudo crear la cuenta: ' + (err.message || 'Error en la conexión'));
+    submitBtns.forEach(btn => {
+      btn.removeAttribute('disabled');
+      btn.innerHTML = `<span>Crear cuenta y comenzar a comprar</span><span>➔</span>`;
+    });
+    return false;
+  }
+}
+
+/**
+ * Control del Modal de Registro
+ */
+function openRegisterModal() {
+  closeLoginModal();
+  const regModal = document.getElementById('register-auth-modal');
+  if (regModal) {
+    regModal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    const firstInput = document.getElementById('reg-name');
+    if (firstInput) firstInput.focus();
+  } else if (typeof openAuthModal === 'function') {
+    openAuthModal('register');
+  }
+}
+
+function closeRegisterModal() {
+  const regModal = document.getElementById('register-auth-modal');
+  if (regModal) {
+    regModal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+}
+
+/**
+ * Control del Modal de Acreditación Técnica para Productores
+ */
+function openProducerTechnicalModal() {
+  closeLoginModal();
+  const modal = document.getElementById('producer-technical-modal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    const first = document.getElementById('pt-farm-name');
+    if (first) first.focus();
+  }
+}
+
+function closeProducerTechnicalModal() {
+  const modal = document.getElementById('producer-technical-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+}
+
+async function handleProducerTechnicalSubmit(e) {
+  if (e) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
+  const farmName = document.getElementById('pt-farm-name')?.value.trim() || '';
+  const location = document.getElementById('pt-location')?.value.trim() || '';
+  const products = document.getElementById('pt-products')?.value.trim() || '';
+  const whatsapp = document.getElementById('pt-whatsapp')?.value.trim() || '';
+
+  if (!farmName || !location || !products || !whatsapp) {
+    alert('Por favor completa todos los campos del formulario.');
+    return false;
+  }
+
+  const phoneCheck = validatePhoneNumber(whatsapp);
+  if (!phoneCheck.valid) {
+    alert(phoneCheck.message);
+    return false;
+  }
+
+  const submitBtn = document.getElementById('pt-submit-btn');
+  if (submitBtn) {
+    submitBtn.setAttribute('disabled', 'true');
+    submitBtn.innerHTML = `
+      <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+      </svg>
+      <span>Enviando solicitud...</span>
+    `;
+  }
+
+  try {
+    if (window.supabase && typeof window.supabase.submitProducerApplication === 'function') {
+      await window.supabase.submitProducerApplication({
+        farm_name: farmName,
+        location: location,
+        products: products,
+        whatsapp: phoneCheck.cleanNumber
+      });
+    }
+
+    closeProducerTechnicalModal();
+    alert(`🌱 ¡Solicitud de alta recibida con éxito!\n\nEstimado productor de "${farmName}": nuestro Director Técnico e Ingeniero Agrónomo revisará los datos y se pondrá en contacto al WhatsApp ${whatsapp} para agendar la visita de verificación agronómica.`);
+    
+    document.getElementById('form-producer-technical')?.reset();
+    return false;
+  } catch (err) {
+    console.error('Error enviando solicitud de productor:', err);
+    alert('Ocurrió un error al enviar la solicitud: ' + (err.message || 'Error de conexión'));
+    if (submitBtn) {
+      submitBtn.removeAttribute('disabled');
+      submitBtn.innerHTML = `<span>Enviar solicitud al Director Técnico</span><span>➔</span>`;
+    }
+    return false;
   }
 }
 

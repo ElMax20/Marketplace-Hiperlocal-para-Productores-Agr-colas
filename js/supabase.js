@@ -120,6 +120,133 @@ class SupabaseService {
     }
   }
 
+  /**
+   * Verifica disponibilidad de un nombre de usuario en Supabase
+   */
+  async checkUsernameAvailable(username) {
+    try {
+      if (!username || username.trim().length < 3) return false;
+      const cleanUser = encodeURIComponent(username.trim().toLowerCase());
+      const res = await this.fetchApi(`profiles?username=ilike.${cleanUser}&select=id`);
+      return (!res || res.length === 0);
+    } catch (e) {
+      console.warn('Error verificando username en Supabase:', e);
+      return true;
+    }
+  }
+
+  /**
+   * Verifica disponibilidad de un correo electrónico en Supabase
+   */
+  async checkEmailAvailable(email) {
+    try {
+      if (!email || !email.includes('@')) return false;
+      const cleanEmail = encodeURIComponent(email.trim().toLowerCase());
+      const res = await this.fetchApi(`profiles?email=ilike.${cleanEmail}&select=id`);
+      return (!res || res.length === 0);
+    } catch (e) {
+      console.warn('Error verificando email en Supabase:', e);
+      return true;
+    }
+  }
+
+  /**
+   * Registra un nuevo cliente en la tabla profiles de Supabase
+   * Por defecto avatar_url es estrictamente NULL (sin fotos mockeadas)
+   */
+  async registerCustomer({ full_name, username, email, phone, password }) {
+    try {
+      const hashedPassword = await this.hashPassword(password.trim());
+      const cleanUsername = username.trim().toLowerCase();
+      const cleanEmail = email.trim().toLowerCase();
+
+      const newRecord = {
+        full_name: full_name.trim(),
+        username: cleanUsername,
+        email: cleanEmail,
+        phone: phone.trim(),
+        password: hashedPassword,
+        role: 'cliente',
+        avatar_url: null
+      };
+
+      const res = await this.fetchApi('profiles', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify(newRecord)
+      });
+
+      if (res && res.length > 0) {
+        return res[0];
+      }
+      return newRecord;
+    } catch (e) {
+      console.error('Error al registrar usuario en Supabase:', e);
+      throw e;
+    }
+  }
+
+  /**
+   * Envía solicitud de acreditación técnica de un productor agrícola
+   */
+  async submitProducerApplication({ farm_name, location, products, whatsapp }) {
+    try {
+      const record = {
+        farm_name: farm_name.trim(),
+        location: location.trim(),
+        products: products.trim(),
+        whatsapp: whatsapp.trim(),
+        status: 'pendiente'
+      };
+
+      const res = await this.fetchApi('producer_applications', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify(record)
+      });
+
+      return (res && res.length > 0) ? res[0] : record;
+    } catch (e) {
+      console.error('Error enviando solicitud de productor:', e);
+      throw e;
+    }
+  }
+
+  /**
+   * Sube un archivo a un bucket de Supabase Storage (por defecto 'avatars' o 'assets')
+   */
+  async uploadFile(bucket = 'avatars', path, file) {
+    try {
+      const cleanPath = path.replace(/^\/+/, '');
+      const uploadUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/${bucket}/${cleanPath}`;
+      
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_CONFIG.anonKey,
+          'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+          'Content-Type': file.type || 'image/jpeg',
+          'x-upsert': 'true'
+        },
+        body: file
+      });
+
+      if (!response.ok) {
+        // Fallback al bucket 'assets' si 'avatars' no responde
+        if (bucket === 'avatars') {
+          return await this.uploadFile('assets', `avatars/${cleanPath}`, file);
+        }
+        throw new Error(`Error en subida de archivo (${response.status}): ${response.statusText}`);
+      }
+
+      const publicUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/${bucket}/${cleanPath}`;
+      return { publicUrl, path: `${bucket}/${cleanPath}` };
+    } catch (e) {
+      console.error(`Error al subir archivo a bucket ${bucket}:`, e);
+      throw e;
+    }
+  }
+
   // =========================================================================
   // PRODUCTOS (products)
   // =========================================================================

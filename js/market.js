@@ -1404,32 +1404,8 @@ function switchAuthTab(tab) {
 
 // Registro de Usuario
 function handleRegister(e) {
-  e.preventDefault();
-  const name = document.getElementById('reg-name').value.trim();
-  const email = document.getElementById('reg-email').value.trim();
-  const phone = document.getElementById('reg-phone').value.trim();
-  const node = document.getElementById('reg-node').value;
-
-  const newUser = {
-    name,
-    email,
-    phone,
-    preferredNode: node,
-    loggedIn: true,
-    registeredAt: new Date().toISOString()
-  };
-
-  localStorage.setItem('raiz_user', JSON.stringify(newUser));
-  localStorage.setItem('rb_current_user', JSON.stringify(newUser));
-  closeAuthModal();
-  checkAuthStatus();
-  showToast(`¡Cuenta creada con éxito! Bienvenido, ${name}.`);
-
-  // Si tiene productos en el carrito, pasar directamente a pagar
-  if (cart.length > 0) {
-    setTimeout(() => {
-      openCheckoutModal(newUser);
-    }, 400);
+  if (typeof handleCustomerRegister === 'function') {
+    return handleCustomerRegister(e);
   }
 }
 

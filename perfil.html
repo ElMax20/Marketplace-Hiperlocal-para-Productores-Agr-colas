@@ -89,13 +89,13 @@
               class="flex items-center gap-2 p-1 rounded-full hover:bg-stone-50 transition cursor-pointer text-left"
               title="Opciones de usuario"
             >
-              <div class="w-8 h-8 rounded-full overflow-hidden border border-stone-200 bg-stone-100 shrink-0 shadow-2xs">
+              <div class="w-8 h-8 rounded-full overflow-hidden border border-stone-200 bg-stone-100 shrink-0 shadow-2xs flex items-center justify-center">
                 <img 
                   id="nav-user-avatar" 
-                  src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/avatars/avatar_max_1794094307238.jpg" 
+                  src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='32' fill='%23e7e5e4'/><path d='M32 32a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0 6c-8.84 0-20 4.48-20 12v4h40v-4c0-7.52-11.16-12-20-12z' fill='%23a8a29e'/></svg>" 
                   alt="Avatar" 
                   class="w-full h-full object-cover"
-                  onerror="this.src='https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg'"
+                  onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 64 64\'><circle cx=\'32\' cy=\'32\' r=\'32\' fill=\'%23e7e5e4\'/><path d=\'M32 32a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0 6c-8.84 0-20 4.48-20 12v4h40v-4c0-7.52-11.16-12-20-12z\' fill=\'%23a8a29e\'/></svg>'"
                 >
               </div>
               <div class="hidden sm:block text-left text-xs leading-tight">
@@ -199,10 +199,10 @@
           <div class="w-24 h-24 mx-auto rounded-full overflow-hidden border-2 border-stone-200 shadow-xs relative bg-stone-100 flex items-center justify-center">
             <img 
               id="profile-avatar-preview" 
-              src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/avatars/avatar_max_1794094307238.jpg" 
+              src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='32' fill='%23e7e5e4'/><path d='M32 32a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0 6c-8.84 0-20 4.48-20 12v4h40v-4c0-7.52-11.16-12-20-12z' fill='%23a8a29e'/></svg>" 
               alt="Foto de perfil" 
               class="w-full h-full object-cover"
-              onerror="this.src='https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg'"
+              onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 64 64\'><circle cx=\'32\' cy=\'32\' r=\'32\' fill=\'%23e7e5e4\'/><path d=\'M32 32a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0 6c-8.84 0-20 4.48-20 12v4h40v-4c0-7.52-11.16-12-20-12z\' fill=\'%23a8a29e\'/></svg>'"
             >
           </div>
 
@@ -237,6 +237,7 @@
             </label>
             <button 
               type="button" 
+              id="btn-delete-avatar"
               onclick="handleRemovePhoto()" 
               class="text-xs font-semibold text-red-600 hover:text-red-700 transition cursor-pointer"
             >
@@ -1352,8 +1353,8 @@
   </aside>
 
   <!-- Scripts: Supabase y Lógica de Perfil -->
-  <script src="js/supabase.js"></script>
-  <script src="js/auth.js"></script>
-  <script src="js/perfil.js"></script>
+  <script src="js/supabase.js?v=4.4"></script>
+  <script src="js/auth.js?v=4.4"></script>
+  <script src="js/perfil.js?v=4.4"></script>
 </body>
 </html>

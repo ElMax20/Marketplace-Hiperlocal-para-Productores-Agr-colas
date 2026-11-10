@@ -330,6 +330,34 @@ CREATE POLICY "Permitir update orders" ON public.orders FOR UPDATE TO public USI
 
 GRANT ALL ON TABLE public.orders TO anon, authenticated, service_role;
 
+-- =============================================================================
+-- 15. TABLA: producer_applications (Solicitudes técnicas de acreditación agronómica)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.producer_applications (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    farm_name text NOT NULL,
+    location text NOT NULL,
+    products text NOT NULL,
+    whatsapp text NOT NULL,
+    status text DEFAULT 'pendiente',
+    created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.producer_applications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "allow_anon_insert_producer_applications" ON public.producer_applications;
+CREATE POLICY "allow_anon_insert_producer_applications" ON public.producer_applications FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+DROP POLICY IF EXISTS "allow_read_producer_applications" ON public.producer_applications;
+CREATE POLICY "allow_read_producer_applications" ON public.producer_applications FOR SELECT TO anon, authenticated USING (true);
+
+GRANT ALL ON TABLE public.producer_applications TO anon, authenticated, service_role;
+
+-- Constraints y defaults para profiles
+ALTER TABLE public.profiles ADD CONSTRAINT profiles_email_key UNIQUE (email);
+ALTER TABLE public.profiles ALTER COLUMN avatar_url SET DEFAULT NULL;
+
+
 
 
 

@@ -5,7 +5,8 @@
  * Conexión completa con LocalStorage, Supabase y Cropper de Foto Anti-Descuadre.
  */
 
-const DEFAULT_AVATAR = 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/avatars/avatar_max_1794094307238.jpg';
+const NEUTRAL_AVATAR_FALLBACK = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='32' fill='%23e7e5e4'/><path d='M32 32a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0 6c-8.84 0-20 4.48-20 12v4h40v-4c0-7.52-11.16-12-20-12z' fill='%23a8a29e'/></svg>";
+const DEFAULT_AVATAR = NEUTRAL_AVATAR_FALLBACK;
 
 let currentUser = null;
 let originalUserData = null;
@@ -36,7 +37,7 @@ async function initProfilePage() {
       role: 'cliente',
       preferredNode: 'Nodo Central · La Perseverancia',
       address: 'Carrera 7 n.º 32-16, apto. 402',
-      avatar: DEFAULT_AVATAR,
+      avatar: null,
       registeredAt: '2026-09-15T00:00:00.000Z'
     };
   }
@@ -125,8 +126,14 @@ function renderProfileUI(u) {
   const dropRole = document.getElementById('dropdown-user-role');
   if (dropRole) dropRole.textContent = roleText;
 
+  const hasAvatar = !!(u.avatar && typeof u.avatar === 'string' && u.avatar.trim() !== '' && !u.avatar.includes('lucia_torres.jpg') && !u.avatar.includes('elena_moreno.jpg'));
+  const avatarSrc = hasAvatar ? normalizeAvatarUrl(u.avatar) : NEUTRAL_AVATAR_FALLBACK;
+
   const navAvatar = document.getElementById('nav-user-avatar');
-  if (navAvatar) navAvatar.src = u.avatar || DEFAULT_AVATAR;
+  if (navAvatar) {
+    navAvatar.src = avatarSrc;
+    navAvatar.onerror = function() { this.src = NEUTRAL_AVATAR_FALLBACK; };
+  }
 
   const navNode = document.getElementById('nav-user-node');
   if (navNode) navNode.textContent = (u.preferredNode || 'Nodo Central').split('·')[0].trim();
@@ -143,7 +150,22 @@ function renderProfileUI(u) {
 
   // Sidebar: Foto y Perfil
   const profileImg = document.getElementById('profile-avatar-preview');
-  if (profileImg) profileImg.src = u.avatar || DEFAULT_AVATAR;
+  if (profileImg) {
+    profileImg.src = avatarSrc;
+    profileImg.onerror = function() { this.src = NEUTRAL_AVATAR_FALLBACK; };
+  }
+
+  // Visibilidad del botón Eliminar foto (oculto si no hay foto subida)
+  const deleteBtn = document.getElementById('btn-delete-avatar');
+  if (deleteBtn) {
+    if (hasAvatar) {
+      deleteBtn.classList.remove('hidden');
+      deleteBtn.removeAttribute('disabled');
+    } else {
+      deleteBtn.classList.add('hidden');
+      deleteBtn.setAttribute('disabled', 'true');
+    }
+  }
 
   const nameDisplay = document.getElementById('profile-name-display');
   if (nameDisplay) nameDisplay.textContent = u.name || 'Usuario';
@@ -203,6 +225,11 @@ function handlePhotoFileSelected(e) {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
 
+  if (!file.type.match(/^image\/(jpeg|png|webp)$/i)) {
+    showToast('Formato no válido. Solo se admiten archivos JPG o PNG.');
+    return;
+  }
+
   if (file.size > 5 * 1024 * 1024) {
     showToast('La imagen supera el límite de 5 MB. Por favor elige otra.');
     return;
@@ -218,6 +245,12 @@ function handlePhotoFileSelected(e) {
 
     const preview = document.getElementById('profile-avatar-preview');
     if (preview) preview.src = croppedDataUrl;
+
+    const deleteBtn = document.getElementById('btn-delete-avatar');
+    if (deleteBtn) {
+      deleteBtn.classList.remove('hidden');
+      deleteBtn.removeAttribute('disabled');
+    }
 
     const badge = document.getElementById('photo-draft-badge');
     if (badge) badge.classList.remove('hidden');
@@ -237,7 +270,13 @@ function handleRemovePhoto() {
   };
 
   const preview = document.getElementById('profile-avatar-preview');
-  if (preview) preview.src = DEFAULT_AVATAR;
+  if (preview) preview.src = NEUTRAL_AVATAR_FALLBACK;
+
+  const deleteBtn = document.getElementById('btn-delete-avatar');
+  if (deleteBtn) {
+    deleteBtn.classList.add('hidden');
+    deleteBtn.setAttribute('disabled', 'true');
+  }
 
   const badge = document.getElementById('photo-draft-badge');
   if (badge) {
@@ -283,14 +322,14 @@ async function saveSettingsChanges() {
   // Procesar foto si hay pendiente
   if (pendingPhotoDraft) {
     if (pendingPhotoDraft.remove) {
-      currentUser.avatar = '';
+      currentUser.avatar = null;
     } else if (pendingPhotoDraft.dataUrl) {
       // Si hay archivo recortado y Supabase Storage activo:
       let uploadedUrl = null;
       if (window.supabase && typeof window.supabase.uploadFile === 'function' && pendingPhotoDraft.file) {
         try {
           const fileName = `avatar_${currentUser.username}_${Date.now()}.jpg`;
-          const uploadRes = await window.supabase.uploadFile('assets', `avatars/${fileName}`, pendingPhotoDraft.file);
+          const uploadRes = await window.supabase.uploadFile('avatars', fileName, pendingPhotoDraft.file);
           if (uploadRes && uploadRes.publicUrl) {
             uploadedUrl = uploadRes.publicUrl;
           }
@@ -319,7 +358,7 @@ async function saveSettingsChanges() {
         phone: currentUser.phone,
         location_address: currentUser.address,
         farm_name: currentUser.preferredNode,
-        avatar_url: currentUser.avatar
+        avatar_url: currentUser.avatar ? currentUser.avatar : null
       };
 
       const endpoint = currentUser.id && currentUser.id.length > 10

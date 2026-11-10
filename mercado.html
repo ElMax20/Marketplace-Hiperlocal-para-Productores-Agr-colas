@@ -609,34 +609,94 @@
       </div>
 
       <!-- Registration Form -->
-      <form id="form-register" onsubmit="handleRegister(event)" class="p-6 space-y-3.5 text-xs">
+      <form id="form-register" onsubmit="handleCustomerRegister(event)" class="p-6 space-y-3.5 text-xs">
         <div>
           <label class="block font-bold text-stone-700 mb-1">Nombre completo *</label>
-          <input type="text" id="reg-name" required placeholder="Ej: Max Campoverde" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none">
-        </div>
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Correo electrónico *</label>
-          <input type="email" id="reg-email" required placeholder="tucorreo@ejemplo.com" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none">
-        </div>
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Teléfono / WhatsApp *</label>
-          <input type="tel" id="reg-phone" required placeholder="Ej: 310 123 4567" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none">
-        </div>
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Punto de entrega preferido *</label>
-          <select id="reg-node" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none font-medium">
-            <option value="Nodo Central · La Perseverancia">Nodo Central · La Perseverancia (Sábados 9-12)</option>
-            <option value="Sede Chapinero Alto · Café del Bosque">Sede Chapinero Alto · Café del Bosque (Miér. y Vier.)</option>
-            <option value="Sede Teusaquillo · Casa Taller">Sede Teusaquillo · Casa Taller (Miércoles)</option>
-            <option value="Sede Usaquén · Mercado Verde">Sede Usaquén · Mercado Verde (Sábados)</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Contraseña *</label>
-          <input type="password" id="reg-pass" required placeholder="Mínimo 6 caracteres" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none">
+          <input 
+            type="text" 
+            id="reg-name" 
+            required 
+            placeholder="Ej: Max Campoverde" 
+            oninput="validateRegisterForm()" 
+            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none transition"
+          >
         </div>
 
-        <button type="submit" class="w-full mt-2 bg-[#1a3d2f] hover:bg-[#24523f] text-white font-bold py-3 rounded-xl shadow-md transition text-xs flex items-center justify-center gap-1.5">
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Nombre de usuario *</label>
+          <input 
+            type="text" 
+            id="reg-username" 
+            required 
+            placeholder="Ej: max_campoverde" 
+            autocomplete="username"
+            oninput="handleUsernameInput(event)" 
+            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none transition"
+          >
+          <div id="reg-username-feedback" class="text-[11px] mt-1 font-medium hidden"></div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Correo electrónico *</label>
+          <input 
+            type="email" 
+            id="reg-email" 
+            required 
+            placeholder="tucorreo@ejemplo.com" 
+            autocomplete="email"
+            oninput="handleEmailInput(event)" 
+            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none transition"
+          >
+          <div id="reg-email-feedback" class="text-[11px] mt-1 font-medium hidden"></div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Teléfono / WhatsApp *</label>
+          <input 
+            type="tel" 
+            id="reg-phone" 
+            required 
+            placeholder="Ej: 310 123 4567" 
+            oninput="handlePhoneInput(event)" 
+            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none transition"
+          >
+          <div id="reg-phone-feedback" class="text-[11px] mt-1 font-medium hidden"></div>
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Contraseña *</label>
+          <input 
+            type="password" 
+            id="reg-pass" 
+            required 
+            placeholder="Mínimo 8 caracteres seguros" 
+            autocomplete="new-password"
+            oninput="handlePasswordInput(event)" 
+            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none transition"
+          >
+          <!-- Checklist dinámico de seguridad de contraseña -->
+          <div id="password-checklist" class="mt-2 p-2.5 bg-stone-50 rounded-xl border border-stone-200 text-[11px] space-y-1">
+            <div id="pwd-rule-len" class="flex items-center gap-1.5 text-stone-400">
+              <span class="rule-icon font-mono">○</span> <span>Mínimo 8 caracteres (recomendado 10-12)</span>
+            </div>
+            <div id="pwd-rule-case" class="flex items-center gap-1.5 text-stone-400">
+              <span class="rule-icon font-mono">○</span> <span>Al menos 1 mayúscula y 1 minúscula</span>
+            </div>
+            <div id="pwd-rule-num" class="flex items-center gap-1.5 text-stone-400">
+              <span class="rule-icon font-mono">○</span> <span>Al menos 1 número (0-9)</span>
+            </div>
+            <div id="pwd-rule-sym" class="flex items-center gap-1.5 text-stone-400">
+              <span class="rule-icon font-mono">○</span> <span>Al menos 1 símbolo especial (!@#$%...)</span>
+            </div>
+          </div>
+        </div>
+
+        <button 
+          type="submit" 
+          id="reg-submit-btn" 
+          disabled 
+          class="w-full mt-3 bg-[#1a3d2f] hover:bg-[#24523f] text-white font-bold py-3 rounded-xl shadow-md transition text-xs flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed"
+        >
           <span>Crear cuenta y completar compra</span>
           <span>➔</span>
         </button>
@@ -985,15 +1045,104 @@
     </div>
   </div>
 
+  <!-- =======================================================================
+       MODAL DE SOLICITUD DE ALTA TÉCNICA PARA PRODUCTORES AGRÍCOLAS
+       ======================================================================= -->
+  <div id="producer-technical-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+    <div class="relative bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-stone-200 overflow-hidden z-10 animate-slide-up my-auto">
+      
+      <div class="p-6 pb-4 bg-gradient-to-b from-[#FAF7F2] to-white border-b border-stone-200 relative text-left">
+        <button type="button" onclick="closeProducerTechnicalModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-700 text-sm font-bold w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center transition">✕</button>
+        <span class="inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#faece6] text-[#c85a32] border border-[#f3d9ce]">
+          Acreditación Agronómica
+        </span>
+        <h3 class="font-serif text-2xl font-bold text-[#1a3d2f] mt-2">Solicitud de Alta con Director Técnico</h3>
+        <p class="text-xs text-stone-600 mt-1 leading-relaxed">
+          Para garantizar la trazabilidad agroecológica y calidad de nuestra red campesina, nuestro equipo técnico coordina una visita de verificación antes de habilitar tus credenciales.
+        </p>
+      </div>
+
+      <form id="form-producer-technical" onsubmit="handleProducerTechnicalSubmit(event)" class="p-6 space-y-4 text-xs">
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Nombre de la Finca o Huerta *</label>
+          <input 
+            type="text" 
+            id="pt-farm-name" 
+            required 
+            placeholder="Ej: Huerta El Renacer" 
+            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#c85a32] outline-none transition"
+          >
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Ubicación / Municipio / Vereda *</label>
+          <input 
+            type="text" 
+            id="pt-location" 
+            required 
+            placeholder="Ej: Choachí, Cundinamarca · Vereda El Verjón" 
+            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#c85a32] outline-none transition"
+          >
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Productos agrícolas que cultivas *</label>
+          <textarea 
+            id="pt-products" 
+            required 
+            rows="2" 
+            placeholder="Ej: Tomate chonto orgánico, lechuga romana, zanahorias, fresas sin agroquímicos" 
+            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#c85a32] outline-none transition resize-none"
+          ></textarea>
+        </div>
+
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">WhatsApp de contacto directo *</label>
+          <input 
+            type="tel" 
+            id="pt-whatsapp" 
+            required 
+            placeholder="Ej: 310 123 4567" 
+            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#c85a32] outline-none transition"
+          >
+        </div>
+
+        <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center gap-2 text-[11px] text-emerald-800">
+          <span>🛡️</span>
+          <span>Tus datos se remitirán directamente a la Dirección Técnica para agendar tu inspección agronómica.</span>
+        </div>
+
+        <div class="pt-2 flex items-center justify-end gap-2">
+          <button 
+            type="button" 
+            onclick="closeProducerTechnicalModal()" 
+            class="px-4 py-2.5 rounded-xl border border-stone-200 font-semibold text-stone-600 hover:bg-stone-50 transition"
+          >
+            Cancelar
+          </button>
+          <button 
+            type="submit" 
+            id="pt-submit-btn" 
+            class="px-5 py-2.5 rounded-xl bg-[#c85a32] hover:bg-[#b04a25] text-white font-bold shadow-md transition flex items-center gap-1.5"
+          >
+            <span>Enviar solicitud al Director Técnico</span>
+            <span>➔</span>
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div id="toast" class="fixed bottom-6 right-6 z-50 bg-[#1a3d2f] text-white text-xs px-4 py-3 rounded-2xl shadow-xl flex items-center gap-2.5 opacity-0 pointer-events-none transition-all duration-300">
     <span id="toast-message">Mensaje</span>
   </div>
 
   <!-- Market JavaScript Logic -->
-  <script src="js/supabase.js?v=4.2"></script>
-  <script src="js/auth.js?v=4.2"></script>
-  <script src="js/market.js?v=4.2"></script>
+  <script src="js/supabase.js?v=4.4"></script>
+  <script src="js/auth.js?v=4.4"></script>
+  <script src="js/market.js?v=4.4"></script>
 </body>
 </html>
 
