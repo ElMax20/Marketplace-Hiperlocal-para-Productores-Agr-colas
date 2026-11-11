@@ -419,6 +419,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initFavoritesFromStorage();
   initCartFromStorage();
   checkAuthStatus();
+  initHeaderLocationSelector();
   parseUrlParams();
   renderProducts();
   setupCartDrawerListeners();
@@ -1360,9 +1361,10 @@ function handleProceedToCheckout() {
     return;
   }
 
-  // Si el usuario ya tiene cuenta -> Continuar directo al checkout
+  // Si el usuario ya tiene cuenta -> Continuar directo al checkout en página dedicada
   if (window.closeCartDrawer) window.closeCartDrawer();
-  openCheckoutModal(user);
+  saveCartToStorage();
+  window.location.href = 'checkout.html';
 }
 
 // Control del Modal de Autenticación
@@ -1464,7 +1466,8 @@ async function handleLogin(e) {
 
     if (cart.length > 0) {
       setTimeout(() => {
-        openCheckoutModal(userObj);
+        saveCartToStorage();
+        window.location.href = 'checkout.html';
       }, 400);
     }
     return;
@@ -1484,183 +1487,70 @@ function handleLogout() {
 }
 
 // =============================================================================
-// 8. Pantalla de Checkout y Confirmación de Orden (Dinámico con Supabase)
+// 8. Selector Interactivo de Ubicación en Header y Redirección a Checkout Dedicado
 // =============================================================================
 
-// Estado global de Checkout
-let checkoutUser = null;
-let checkoutPickupNodes = [];
-let checkoutDeliveryAddresses = [];
-let checkoutPaymentCards = [];
-
-let checkoutDeliveryType = 'node'; // 'node' | 'home'
-let checkoutSelectedNode = null;
-let checkoutSelectedAddress = null;
-
-let checkoutPaymentType = 'card'; // 'card' | 'cash' | 'pse'
-let checkoutSelectedCardId = null;
-let checkoutIsUsingNewCard = false;
-let checkoutSelectedBank = '';
-let checkoutTermsAccepted = false;
-let checkoutSubtotal = 0;
-let checkoutDeliveryFee = 0;
-let checkoutTotal = 0;
+let headerPickupNodes = [];
+let headerDeliveryAddresses = [];
+let activeDeliveryPreference = {
+  type: 'node', // 'node' | 'home'
+  id: null,
+  name: 'Nodo Central',
+  detail: 'Carrera 5 n.º 30A-10 · Bogotá'
+};
 
 /**
- * Abre el modal de checkout y carga datos de entrega y tarjetas desde Supabase
+ * Inicializa el selector de ubicación del header (nodos y domicilios)
  */
-async function openCheckoutModal(user) {
-  const modal = document.getElementById('checkout-modal');
-  const payStep = document.getElementById('checkout-step-pay');
-  const successStep = document.getElementById('checkout-step-success');
-
-  if (cart.length === 0) {
-    showToast('Tu canasta de compras está vacía.');
-    return;
+async function initHeaderLocationSelector() {
+  // 1. Cargar preferencia guardada en localStorage
+  try {
+    const saved = localStorage.getItem('raiz_delivery_preference');
+    if (saved) {
+      activeDeliveryPreference = JSON.parse(saved);
+      updateHeaderLocationPillUI(activeDeliveryPreference.name);
+    }
+  } catch (e) {
+    console.warn('Error leyendo raiz_delivery_preference:', e);
   }
 
-  // 1. Obtener usuario activo
-  checkoutUser = user || (typeof getCurrentUser === 'function' ? getCurrentUser() : null) || {
-    id: '00000000-0000-0000-0000-000000000001',
-    name: 'Carlos Max Campoverde B.',
-    username: 'max',
-    email: 'max@vecinos.com',
-    phone: '0997766751',
-    preferredNode: 'Nodo Central · La Perseverancia'
-  };
+  // 2. Cargar datos desde Supabase
+  await loadHeaderLocationData();
 
-  // 2. Resetear estados iniciales
-  checkoutIsUsingNewCard = false;
-  checkoutTermsAccepted = false;
-  const termsCheckbox = document.getElementById('checkout-confirm-terms');
-  if (termsCheckbox) termsCheckbox.checked = false;
+  // 3. Listener para cerrar dropdown al hacer clic fuera
+  document.addEventListener('click', (e) => {
+    const dropdown = document.getElementById('header-location-dropdown');
+    const btn = document.getElementById('header-location-btn');
+    if (!dropdown || dropdown.classList.contains('hidden')) return;
 
-  const errorEl = document.getElementById('checkout-error-msg');
-  if (errorEl) {
-    errorEl.textContent = '';
-    errorEl.classList.add('hidden');
-  }
+    if (btn && (btn === e.target || btn.contains(e.target))) return;
+    if (dropdown.contains(e.target)) return;
 
-  // 3. Info del comprador
-  const userNameEl = document.getElementById('checkout-user-name');
-  const userEmailEl = document.getElementById('checkout-user-email');
-  if (userNameEl) userNameEl.textContent = checkoutUser.name || 'Comprador';
-  if (userEmailEl) userEmailEl.textContent = checkoutUser.email || 'correo@ejemplo.com';
-
-  // 4. Calcular subtotal de la canasta
-  checkoutSubtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const itemsCountEl = document.getElementById('checkout-items-count');
-  const subtotalEl = document.getElementById('checkout-subtotal-amount');
-  if (itemsCountEl) itemsCountEl.textContent = cart.reduce((acc, item) => acc + item.quantity, 0);
-  if (subtotalEl) subtotalEl.textContent = `$${formatCOP(checkoutSubtotal)}`;
-
-  // 5. Cerrar drawer del carrito y mostrar modal
-  if (window.closeCartDrawer) window.closeCartDrawer();
-  if (payStep) payStep.classList.remove('hidden');
-  if (successStep) successStep.classList.add('hidden');
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-  }
-
-  // Ocultar sub-selector de entrega inicialmente
-  toggleDeliveryPicker(false);
-
-  // 6. Cargar datos desde Supabase en paralelo
-  await loadCheckoutData();
-
-  // 7. Renderizar vistas
-  renderActiveDeliveryCard();
-  renderDeliveryPickerLists();
-  renderPaymentCardsList();
-  updateCheckoutPriceBreakdown();
-  switchCheckoutPayTab(checkoutPaymentType || 'card');
-  validateCheckoutForm();
+    closeHeaderLocationDropdown();
+  });
 }
 
 /**
- * Carga nodos, direcciones y tarjetas del usuario desde Supabase
+ * Carga nodos activos y direcciones del usuario desde Supabase
  */
-async function loadCheckoutData() {
-  const userId = checkoutUser?.id || '00000000-0000-0000-0000-000000000001';
+async function loadHeaderLocationData() {
+  const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const userId = user?.id;
 
-  try {
-    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
-      // Perfil (para modo activo de entrega y nodo preferido)
-      let activeMode = 'node';
-      let preferredNodeId = null;
-      try {
-        const profs = await window.supabase.fetchApi(`profiles?id=eq.${userId}&select=*`);
-        if (profs && profs.length > 0) {
-          activeMode = profs[0].active_delivery_mode || 'node';
-          preferredNodeId = profs[0].preferred_pickup_node_id;
-        }
-      } catch (errProf) {
-        console.warn('Error leyendo perfil en checkout:', errProf);
+  // A. Nodos comunitarios activos
+  if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+    try {
+      const nodes = await window.supabase.fetchApi('pickup_nodes?is_active=eq.true&order=created_at.asc');
+      if (Array.isArray(nodes) && nodes.length > 0) {
+        headerPickupNodes = nodes;
       }
-
-      // Nodos activos
-      try {
-        const nodes = await window.supabase.fetchApi('pickup_nodes?is_active=eq.true&order=created_at.asc');
-        if (nodes && nodes.length > 0) {
-          checkoutPickupNodes = nodes;
-        }
-      } catch (errNodes) {
-        console.warn('Error leyendo pickup_nodes:', errNodes);
-      }
-
-      // Direcciones del usuario
-      try {
-        const addrs = await window.supabase.fetchApi(`delivery_addresses?user_id=eq.${userId}&order=created_at.desc`);
-        if (addrs) {
-          checkoutDeliveryAddresses = addrs;
-        }
-      } catch (errAddrs) {
-        console.warn('Error leyendo delivery_addresses:', errAddrs);
-      }
-
-      // Tarjetas guardadas del usuario
-      try {
-        const cards = await window.supabase.fetchApi(`payment_methods?user_id=eq.${userId}&order=created_at.desc`);
-        if (cards) {
-          checkoutPaymentCards = cards;
-        }
-      } catch (errCards) {
-        console.warn('Error leyendo payment_methods:', errCards);
-      }
-
-      // Determinar selección inicial de entrega según preferencias del perfil
-      if (activeMode === 'home' && checkoutDeliveryAddresses.length > 0) {
-        checkoutDeliveryType = 'home';
-        checkoutSelectedAddress = checkoutDeliveryAddresses.find(a => a.is_preferred) || checkoutDeliveryAddresses[0];
-        checkoutSelectedNode = null;
-      } else {
-        checkoutDeliveryType = 'node';
-        if (preferredNodeId) {
-          checkoutSelectedNode = checkoutPickupNodes.find(n => n.id === preferredNodeId) || checkoutPickupNodes[0];
-        } else {
-          checkoutSelectedNode = checkoutPickupNodes[0] || null;
-        }
-        checkoutSelectedAddress = null;
-      }
-
-      // Determinar tarjeta seleccionada inicial
-      if (checkoutPaymentCards.length > 0) {
-        const defaultCard = checkoutPaymentCards.find(c => c.is_default) || checkoutPaymentCards[0];
-        checkoutSelectedCardId = defaultCard.id;
-        checkoutIsUsingNewCard = false;
-      } else {
-        checkoutSelectedCardId = null;
-        checkoutIsUsingNewCard = true; // Si no tiene tarjetas, abrir formulario de tarjeta nueva
-      }
+    } catch (err) {
+      console.warn('Error cargando pickup_nodes para header:', err);
     }
-  } catch (errGlobal) {
-    console.error('Error cargando datos de checkout en Supabase:', errGlobal);
   }
 
-  // Fallbacks locales si no hay datos
-  if (checkoutPickupNodes.length === 0) {
-    checkoutPickupNodes = [
+  if (headerPickupNodes.length === 0) {
+    headerPickupNodes = [
       {
         id: 'e0177a54-9cbc-4426-a538-1d630f852ac1',
         name: 'Nodo Central · La Perseverancia',
@@ -1676,204 +1566,190 @@ async function loadCheckoutData() {
         city: 'Bogotá',
         pickup_schedule: 'Sáb. 7 nov. · 9:00 a. m. – 1:00 p. m.',
         is_active: true
+      },
+      {
+        id: 'c90c74d8-c114-4161-b4ec-7c87c020dca5',
+        name: 'Nodo Teusaquillo · Casa Cultural',
+        address: 'Calle 34 n.º 19-25',
+        city: 'Bogotá',
+        pickup_schedule: 'Sáb. 7 nov. · 8:30 a. m. – 12:30 p. m.',
+        is_active: true
       }
     ];
-    if (!checkoutSelectedNode && checkoutDeliveryType === 'node') {
-      checkoutSelectedNode = checkoutPickupNodes[0];
+  }
+
+  // B. Direcciones del usuario si está autenticado
+  if (userId && window.supabase && typeof window.supabase.fetchApi === 'function') {
+    try {
+      const addrs = await window.supabase.fetchApi(`delivery_addresses?user_id=eq.${userId}&order=is_preferred.desc,created_at.desc`);
+      if (Array.isArray(addrs)) {
+        headerDeliveryAddresses = addrs;
+      }
+    } catch (err) {
+      console.warn('Error cargando delivery_addresses para header:', err);
     }
   }
-}
 
-/**
- * Cierra el modal de checkout
- */
-function closeCheckoutModal() {
-  const modal = document.getElementById('checkout-modal');
-  if (modal) {
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
+  // Si no había preferencia explícita en localStorage pero el usuario tiene perfil con preferencias en Supabase
+  if (!localStorage.getItem('raiz_delivery_preference') && userId && window.supabase && typeof window.supabase.fetchApi === 'function') {
+    try {
+      const profs = await window.supabase.fetchApi(`profiles?id=eq.${userId}&select=*`);
+      if (profs && profs.length > 0) {
+        const p = profs[0];
+        if (p.active_delivery_mode === 'home' && headerDeliveryAddresses.length > 0) {
+          const prefAddr = headerDeliveryAddresses.find(a => a.id === p.preferred_delivery_address_id) || headerDeliveryAddresses[0];
+          activeDeliveryPreference = {
+            type: 'home',
+            id: prefAddr.id,
+            name: `${prefAddr.label || 'Casa'} · ${prefAddr.street_address}`,
+            detail: `${prefAddr.neighborhood || ''} · ${prefAddr.city || 'Bogotá'}`
+          };
+          updateHeaderLocationPillUI(activeDeliveryPreference.name);
+        } else if (p.preferred_pickup_node_id && headerPickupNodes.length > 0) {
+          const prefNode = headerPickupNodes.find(n => n.id === p.preferred_pickup_node_id) || headerPickupNodes[0];
+          activeDeliveryPreference = {
+            type: 'node',
+            id: prefNode.id,
+            name: prefNode.name,
+            detail: prefNode.address
+          };
+          updateHeaderLocationPillUI(activeDeliveryPreference.name);
+        }
+      }
+    } catch (_) {}
   }
+
+  // Renderizar contenido del dropdown
+  renderHeaderLocationDropdown();
 }
 
 /**
- * Despliega o repliega el sub-selector de entrega
+ * Alterna visibilidad del dropdown del header
  */
-function toggleDeliveryPicker(forceOpen = null) {
-  const picker = document.getElementById('checkout-delivery-picker');
-  const arrow = document.getElementById('delivery-picker-arrow');
-  if (!picker) return;
+function toggleHeaderLocationDropdown(event) {
+  if (event) event.stopPropagation();
+  const dropdown = document.getElementById('header-location-dropdown');
+  if (!dropdown) return;
 
-  const shouldOpen = forceOpen !== null ? forceOpen : picker.classList.contains('hidden');
-  if (shouldOpen) {
-    picker.classList.remove('hidden');
-    if (arrow) arrow.textContent = '▴';
-    selectDeliveryModeTab(checkoutDeliveryType);
+  const isHidden = dropdown.classList.contains('hidden');
+  if (isHidden) {
+    renderHeaderLocationDropdown();
+    dropdown.classList.remove('hidden');
   } else {
-    picker.classList.add('hidden');
-    if (arrow) arrow.textContent = '▾';
+    dropdown.classList.add('hidden');
   }
 }
 
 /**
- * Alterna entre pestañas del sub-selector (Nodo vs Domicilio)
+ * Cierra el dropdown del header
  */
-function selectDeliveryModeTab(mode) {
-  const tabNode = document.getElementById('tab-mode-node');
-  const tabHome = document.getElementById('tab-mode-home');
-  const listNodes = document.getElementById('checkout-nodes-list');
-  const listHome = document.getElementById('checkout-addresses-list');
-
-  if (mode === 'node') {
-    if (tabNode) tabNode.className = 'py-1.5 text-xs font-bold rounded-lg transition bg-white text-[#1a3d2f] shadow-2xs cursor-pointer';
-    if (tabHome) tabHome.className = 'py-1.5 text-xs font-semibold rounded-lg transition text-stone-600 hover:text-stone-900 cursor-pointer';
-    if (listNodes) listNodes.classList.remove('hidden');
-    if (listHome) listHome.classList.add('hidden');
-  } else {
-    if (tabNode) tabNode.className = 'py-1.5 text-xs font-semibold rounded-lg transition text-stone-600 hover:text-stone-900 cursor-pointer';
-    if (tabHome) tabHome.className = 'py-1.5 text-xs font-bold rounded-lg transition bg-white text-[#1a3d2f] shadow-2xs cursor-pointer';
-    if (listNodes) listNodes.classList.add('hidden');
-    if (listHome) listHome.classList.remove('hidden');
-  }
+function closeHeaderLocationDropdown() {
+  const dropdown = document.getElementById('header-location-dropdown');
+  if (dropdown) dropdown.classList.add('hidden');
 }
 
 /**
- * Renderiza la tarjeta superior con la entrega actualmente activa
+ * Renderiza las listas de nodos y domicilios en el dropdown
  */
-function renderActiveDeliveryCard() {
-  const iconEl = document.getElementById('delivery-type-icon');
-  const labelEl = document.getElementById('delivery-type-label');
-  const titleEl = document.getElementById('active-delivery-title');
-  const addrEl = document.getElementById('active-delivery-address');
-  const schedEl = document.getElementById('active-delivery-schedule');
-  const badgeEl = document.getElementById('active-delivery-badge');
-  const cashNoteEl = document.getElementById('cash-payment-note');
+function renderHeaderLocationDropdown() {
+  const nodesContainer = document.getElementById('header-dropdown-nodes-list');
+  const addrsContainer = document.getElementById('header-dropdown-addrs-list');
 
-  if (checkoutDeliveryType === 'node' && checkoutSelectedNode) {
-    if (iconEl) iconEl.textContent = '🏪';
-    if (labelEl) labelEl.textContent = 'Recogida en nodo comunitario';
-    if (titleEl) titleEl.textContent = checkoutSelectedNode.name;
-    if (addrEl) addrEl.textContent = `${checkoutSelectedNode.address} · ${checkoutSelectedNode.city || 'Bogotá'}`;
-    if (schedEl) schedEl.textContent = checkoutSelectedNode.pickup_schedule;
-    if (badgeEl) {
-      badgeEl.textContent = 'Recogida gratis';
-      badgeEl.className = 'text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0 shadow-2xs';
-    }
-    if (cashNoteEl) {
-      cashNoteEl.textContent = 'Pagarás en efectivo o datáfono al retirar tu canasta en el nodo comunitario.';
-    }
-    checkoutDeliveryFee = 0;
-  } else if (checkoutDeliveryType === 'home' && checkoutSelectedAddress) {
-    if (iconEl) iconEl.textContent = '🚚';
-    if (labelEl) labelEl.textContent = `Entrega a domicilio · ${checkoutSelectedAddress.label || 'Domicilio'}`;
-    if (titleEl) titleEl.textContent = checkoutSelectedAddress.street_address;
-    if (addrEl) addrEl.textContent = `${checkoutSelectedAddress.neighborhood ? checkoutSelectedAddress.neighborhood + ' · ' : ''}${checkoutSelectedAddress.city || 'Bogotá, D. C.'}`;
-    if (schedEl) schedEl.textContent = checkoutSelectedAddress.delivery_schedule || 'Sáb. 7 nov. · 2:00 – 6:00 p. m.';
-    
-    checkoutDeliveryFee = Number(checkoutSelectedAddress.delivery_fee || 8000);
-    if (badgeEl) {
-      badgeEl.textContent = `Envío: $${formatCOP(checkoutDeliveryFee)}`;
-      badgeEl.className = 'text-[10px] font-bold text-[#c85a32] bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full shrink-0 shadow-2xs';
-    }
-    if (cashNoteEl) {
-      cashNoteEl.textContent = 'Pagarás contraentrega en efectivo o datáfono al recibir tu pedido en tu domicilio.';
-    }
-  } else {
-    if (titleEl) titleEl.textContent = 'Selecciona un lugar de entrega';
-    if (addrEl) addrEl.textContent = 'Haz clic en "Cambiar lugar" para elegir.';
-    checkoutDeliveryFee = 0;
-  }
-
-  updateCheckoutPriceBreakdown();
-}
-
-/**
- * Renderiza las listas interactivas del sub-selector
- */
-function renderDeliveryPickerLists() {
-  const nodesList = document.getElementById('checkout-nodes-list');
-  const addrsList = document.getElementById('checkout-addresses-list');
-
-  // 1. Nodos
-  if (nodesList) {
-    if (checkoutPickupNodes.length === 0) {
-      nodesList.innerHTML = '<p class="text-stone-400 text-center py-2 text-[11px]">No hay nodos activos disponibles.</p>';
+  // 1. Renderizar Nodos Comunitarios
+  if (nodesContainer) {
+    if (headerPickupNodes.length === 0) {
+      nodesContainer.innerHTML = '<p class="text-[11px] text-stone-400 p-2">No hay nodos disponibles.</p>';
     } else {
-      nodesList.innerHTML = checkoutPickupNodes.map(node => {
-        const isSelected = checkoutDeliveryType === 'node' && checkoutSelectedNode && (checkoutSelectedNode.id === node.id);
+      nodesContainer.innerHTML = headerPickupNodes.map(node => {
+        const isSelected = activeDeliveryPreference.type === 'node' && (
+          activeDeliveryPreference.id === node.id || 
+          (!activeDeliveryPreference.id && node.name.includes('Nodo Central'))
+        );
+
         return `
-          <div 
-            onclick="chooseDeliveryOption('node', '${node.id}')" 
-            class="p-2.5 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-2 ${
+          <button 
+            type="button" 
+            onclick="selectHeaderLocation('node', '${node.id}', '${escapeHtml(node.name).replace(/'/g, "\\'")}', '${escapeHtml(node.address).replace(/'/g, "\\'")}')"
+            class="w-full text-left p-2.5 rounded-2xl transition flex items-center justify-between border ${
               isSelected 
-                ? 'border-[#15803d] bg-emerald-50/70 shadow-2xs' 
-                : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50/60'
-            }"
+                ? 'bg-[#f0f6f2] border-[#1a3d2f] text-stone-900 font-bold shadow-2xs' 
+                : 'bg-white hover:bg-stone-50 border-stone-200/70 text-stone-700'
+            } cursor-pointer group"
           >
-            <div class="flex items-start gap-2">
-              <span class="w-3.5 h-3.5 rounded-full mt-0.5 ${
-                isSelected 
-                  ? 'border-2 border-[#15803d] flex items-center justify-center' 
-                  : 'border border-stone-300'
-              }">
-                ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-[#15803d]"></span>' : ''}
-              </span>
-              <div>
-                <p class="font-bold text-xs text-stone-900">${escapeHtml(node.name)}</p>
-                <p class="text-[10px] text-stone-600">${escapeHtml(node.address)} · ${escapeHtml(node.city || 'Bogotá')}</p>
-                <p class="text-[10px] text-stone-500">${escapeHtml(node.pickup_schedule)}</p>
+            <div class="min-w-0 flex-1 pr-2">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs">🏛️</span>
+                <span class="font-bold text-xs truncate ${isSelected ? 'text-[#1a3d2f]' : 'text-stone-800'}">${escapeHtml(node.name)}</span>
               </div>
+              <p class="text-[10px] text-stone-500 truncate mt-0.5 ml-4">${escapeHtml(node.address)} · ${escapeHtml(node.city || 'Bogotá')}</p>
+              <p class="text-[10px] text-emerald-700 font-medium ml-4">${escapeHtml(node.pickup_schedule || 'Sábados')}</p>
             </div>
-            <span class="text-[9px] font-bold text-emerald-800 bg-white border border-emerald-200 px-1.5 py-0.5 rounded-full shrink-0">
-              Gratis
-            </span>
-          </div>
+            <div class="shrink-0 flex items-center gap-1.5">
+              <span class="text-[10px] font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-full">Gratis</span>
+              ${isSelected ? '<span class="text-[#1a3d2f] font-bold text-xs">✓</span>' : ''}
+            </div>
+          </button>
         `;
       }).join('');
     }
   }
 
-  // 2. Direcciones a domicilio
-  if (addrsList) {
-    if (checkoutDeliveryAddresses.length === 0) {
-      addrsList.innerHTML = `
-        <div class="p-3 bg-stone-50 rounded-xl border border-dashed border-stone-200 text-center space-y-1">
-          <p class="text-stone-500 text-[11px]">No tienes direcciones a domicilio registradas.</p>
-          <a href="perfil.html" target="_blank" class="text-xs font-bold text-[#15803d] hover:underline block">
-            + Registrar mi primera dirección en perfil ↗
+  // 2. Renderizar Direcciones a Domicilio
+  if (addrsContainer) {
+    const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+    if (!user || !user.loggedIn) {
+      addrsContainer.innerHTML = `
+        <div class="p-3 bg-stone-50 border border-stone-200/80 rounded-2xl text-center">
+          <p class="text-[11px] text-stone-600 font-medium">Inicia sesión para seleccionar tus domicilios</p>
+          <button 
+            type="button" 
+            onclick="closeHeaderLocationDropdown(); openAuthModal('login');" 
+            class="mt-1.5 text-[11px] font-bold text-[#1a3d2f] hover:underline cursor-pointer"
+          >
+            Iniciar sesión →
+          </button>
+        </div>
+      `;
+    } else if (headerDeliveryAddresses.length === 0) {
+      addrsContainer.innerHTML = `
+        <div class="p-3 bg-stone-50 border border-dashed border-stone-200 rounded-2xl text-center">
+          <p class="text-[11px] text-stone-500">No tienes direcciones guardadas.</p>
+          <a 
+            href="perfil.html" 
+            class="inline-block mt-1 text-[11px] font-bold text-[#1a3d2f] hover:underline"
+          >
+            + Agregar dirección en mi perfil
           </a>
         </div>
       `;
     } else {
-      addrsList.innerHTML = checkoutDeliveryAddresses.map(addr => {
-        const isSelected = checkoutDeliveryType === 'home' && checkoutSelectedAddress && (checkoutSelectedAddress.id === addr.id);
-        const fee = Number(addr.delivery_fee || 8000);
+      addrsContainer.innerHTML = headerDeliveryAddresses.map(addr => {
+        const isSelected = activeDeliveryPreference.type === 'home' && activeDeliveryPreference.id === addr.id;
+        const displayName = `${addr.label || 'Domicilio'} · ${addr.street_address}`;
+
         return `
-          <div 
-            onclick="chooseDeliveryOption('home', '${addr.id}')" 
-            class="p-2.5 rounded-xl border transition-all cursor-pointer flex items-start justify-between gap-2 ${
+          <button 
+            type="button" 
+            onclick="selectHeaderLocation('home', '${addr.id}', '${escapeHtml(displayName).replace(/'/g, "\\'")}', '${escapeHtml(addr.neighborhood || addr.city).replace(/'/g, "\\'")}')"
+            class="w-full text-left p-2.5 rounded-2xl transition flex items-center justify-between border ${
               isSelected 
-                ? 'border-[#15803d] bg-emerald-50/70 shadow-2xs' 
-                : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50/60'
-            }"
+                ? 'bg-[#f0f6f2] border-[#1a3d2f] text-stone-900 font-bold shadow-2xs' 
+                : 'bg-white hover:bg-stone-50 border-stone-200/70 text-stone-700'
+            } cursor-pointer group"
           >
-            <div class="flex items-start gap-2">
-              <span class="w-3.5 h-3.5 rounded-full mt-0.5 ${
-                isSelected 
-                  ? 'border-2 border-[#15803d] flex items-center justify-center' 
-                  : 'border border-stone-300'
-              }">
-                ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-[#15803d]"></span>' : ''}
-              </span>
-              <div>
-                <p class="font-bold text-xs text-stone-900">${escapeHtml(addr.label || 'Domicilio')}: ${escapeHtml(addr.street_address)}</p>
-                <p class="text-[10px] text-stone-600">${escapeHtml(addr.neighborhood ? addr.neighborhood + ' · ' : '')}${escapeHtml(addr.city || 'Bogotá, D. C.')}</p>
-                <p class="text-[10px] text-stone-500">${escapeHtml(addr.delivery_schedule || 'Sáb. 7 nov. · 2:00 – 6:00 p. m.')}</p>
+            <div class="min-w-0 flex-1 pr-2">
+              <div class="flex items-center gap-1.5">
+                <span class="text-xs">🏡</span>
+                <span class="font-bold text-xs truncate ${isSelected ? 'text-[#1a3d2f]' : 'text-stone-800'}">${escapeHtml(addr.label || 'Casa')}</span>
               </div>
+              <p class="text-[10px] text-stone-500 truncate mt-0.5 ml-4">${escapeHtml(addr.street_address)}</p>
+              <p class="text-[10px] text-stone-400 ml-4">${escapeHtml(addr.neighborhood ? addr.neighborhood + ' · ' : '')}${escapeHtml(addr.city || 'Bogotá')}</p>
             </div>
-            <span class="text-[9px] font-bold text-stone-700 bg-white border border-stone-200 px-1.5 py-0.5 rounded-full shrink-0">
-              +$${formatCOP(fee)}
-            </span>
-          </div>
+            <div class="shrink-0 flex items-center gap-1.5">
+              <span class="text-[10px] font-bold text-stone-700 bg-stone-100 px-2 py-0.5 rounded-full">$8.000</span>
+              ${isSelected ? '<span class="text-[#1a3d2f] font-bold text-xs">✓</span>' : ''}
+            </div>
+          </button>
         `;
       }).join('');
     }
@@ -1881,508 +1757,90 @@ function renderDeliveryPickerLists() {
 }
 
 /**
- * Selecciona una opción de entrega y recalcula totales
+ * Selecciona una ubicación (nodo o domicilio), actualiza UI y persiste
  */
-function chooseDeliveryOption(type, id) {
-  if (type === 'node') {
-    checkoutDeliveryType = 'node';
-    checkoutSelectedNode = checkoutPickupNodes.find(n => n.id === id) || checkoutPickupNodes[0];
-    checkoutSelectedAddress = null;
-  } else {
-    checkoutDeliveryType = 'home';
-    checkoutSelectedAddress = checkoutDeliveryAddresses.find(a => a.id === id) || checkoutDeliveryAddresses[0];
-    checkoutSelectedNode = null;
-  }
+async function selectHeaderLocation(type, id, name, detail) {
+  activeDeliveryPreference = { type, id, name, detail };
 
-  renderActiveDeliveryCard();
-  renderDeliveryPickerLists();
-  toggleDeliveryPicker(false);
-  validateCheckoutForm();
-}
-
-/**
- * Actualiza desglose de precios (Subtotal, Envío y Total)
- */
-function updateCheckoutPriceBreakdown() {
-  const shippingEl = document.getElementById('checkout-shipping-amount');
-  const totalEl = document.getElementById('checkout-final-total');
-
-  if (checkoutDeliveryType === 'node') {
-    checkoutDeliveryFee = 0;
-    if (shippingEl) {
-      shippingEl.textContent = 'Gratis (Nodo)';
-      shippingEl.className = 'font-semibold text-emerald-800';
-    }
-  } else {
-    checkoutDeliveryFee = checkoutSelectedAddress ? Number(checkoutSelectedAddress.delivery_fee || 8000) : 8000;
-    if (shippingEl) {
-      shippingEl.textContent = `+$${formatCOP(checkoutDeliveryFee)}`;
-      shippingEl.className = 'font-semibold text-[#c85a32]';
-    }
-  }
-
-  checkoutTotal = checkoutSubtotal + checkoutDeliveryFee;
-  if (totalEl) {
-    totalEl.textContent = `$${formatCOP(checkoutTotal)}`;
-  }
-}
-
-/**
- * Alterna entre pestañas de método de pago: 'card' | 'cash' | 'pse'
- */
-function switchCheckoutPayTab(mode) {
-  checkoutPaymentType = mode;
-
-  const tabs = {
-    card: document.getElementById('pay-tab-card'),
-    cash: document.getElementById('pay-tab-cash'),
-    pse: document.getElementById('pay-tab-pse')
-  };
-
-  const panels = {
-    card: document.getElementById('checkout-panel-card'),
-    cash: document.getElementById('checkout-panel-cash'),
-    pse: document.getElementById('checkout-panel-pse')
-  };
-
-  // Actualizar estilos de tabs
-  ['card', 'cash', 'pse'].forEach(key => {
-    const tab = tabs[key];
-    const panel = panels[key];
-    const isThisActive = (key === mode);
-
-    if (tab) {
-      if (isThisActive) {
-        tab.className = 'pay-method-tab p-2.5 rounded-xl border-2 border-[#15803d] bg-[#f0fdf4] flex flex-col items-center justify-center text-center cursor-pointer transition shadow-2xs';
-        const titleSpan = tab.querySelector('span.text-xs');
-        if (titleSpan) titleSpan.className = 'font-bold text-[#15803d] text-xs';
-        const radio = tab.querySelector('input[type="radio"]');
-        if (radio) radio.checked = true;
-      } else {
-        tab.className = 'pay-method-tab p-2.5 rounded-xl border border-stone-200 bg-white flex flex-col items-center justify-center text-center cursor-pointer hover:bg-stone-50 transition';
-        const titleSpan = tab.querySelector('span.text-xs');
-        if (titleSpan) titleSpan.className = 'font-bold text-stone-700 text-xs';
-        const radio = tab.querySelector('input[type="radio"]');
-        if (radio) radio.checked = false;
-      }
-    }
-
-    if (panel) {
-      if (isThisActive) {
-        panel.classList.remove('hidden');
-      } else {
-        panel.classList.add('hidden');
-      }
-    }
-  });
-
-  validateCheckoutForm();
-}
-
-/**
- * Renderiza la lista de tarjetas guardadas en Supabase
- */
-function renderPaymentCardsList() {
-  const container = document.getElementById('checkout-saved-cards-list');
-  const newCardBtn = document.getElementById('btn-use-new-card');
-  if (!container) return;
-
-  if (checkoutPaymentCards.length === 0) {
-    container.innerHTML = `
-      <div class="p-3 bg-stone-50 rounded-xl border border-dashed border-stone-200 text-center">
-        <p class="text-[11px] text-stone-500">No tienes tarjetas guardadas.</p>
-        <p class="text-[10px] text-stone-400 mt-0.5">Ingresa los datos de tu tarjeta a continuación para este pedido.</p>
-      </div>
-    `;
-    if (newCardBtn) newCardBtn.classList.add('hidden');
-    toggleNewCardForm(true);
-    return;
-  }
-
-  if (newCardBtn) newCardBtn.classList.remove('hidden');
-
-  container.innerHTML = checkoutPaymentCards.map(card => {
-    const isSelected = !checkoutIsUsingNewCard && (checkoutSelectedCardId === card.id);
-    return `
-      <label 
-        onclick="choosePaymentCard('${card.id}')" 
-        class="p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
-          isSelected 
-            ? 'border-[#15803d] bg-emerald-50/70 shadow-2xs' 
-            : 'border-stone-200 bg-white hover:border-stone-300 hover:bg-stone-50/50'
-        }"
-      >
-        <div class="flex items-center gap-2.5">
-          <span class="w-3.5 h-3.5 rounded-full ${
-            isSelected 
-              ? 'border-2 border-[#15803d] flex items-center justify-center' 
-              : 'border border-stone-300'
-          }">
-            ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-[#15803d]"></span>' : ''}
-          </span>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="font-mono font-bold text-xs text-stone-900">${escapeHtml(card.brand || 'TARJETA')}</span>
-              <span class="font-mono text-xs text-stone-600">•••• ${escapeHtml(card.last4 || '0000')}</span>
-              ${card.is_default ? '<span class="text-[9px] font-bold text-emerald-800 bg-white border border-emerald-200 px-1.5 py-0.2 rounded-full">Preferida</span>' : ''}
-            </div>
-            <p class="text-[10px] text-stone-500 uppercase mt-0.5">${escapeHtml(card.cardholder_name || checkoutUser?.name || 'Titular')}</p>
-          </div>
-        </div>
-        <span class="text-[10px] text-stone-400 font-mono">
-          ${String(card.exp_month || 12).padStart(2, '0')}/${String(card.exp_year || 28).slice(-2)}
-        </span>
-      </label>
-    `;
-  }).join('');
-}
-
-/**
- * Selecciona una tarjeta guardada
- */
-function choosePaymentCard(cardId) {
-  checkoutSelectedCardId = cardId;
-  checkoutIsUsingNewCard = false;
-  toggleNewCardForm(false);
-  renderPaymentCardsList();
-  validateCheckoutForm();
-}
-
-/**
- * Muestra u oculta el formulario de nueva tarjeta
- */
-function toggleNewCardForm(forceShow = null) {
-  const form = document.getElementById('checkout-new-card-form');
-  const btn = document.getElementById('btn-use-new-card');
-  if (!form) return;
-
-  const shouldShow = forceShow !== null ? forceShow : form.classList.contains('hidden');
-  checkoutIsUsingNewCard = shouldShow;
-
-  if (shouldShow) {
-    form.classList.remove('hidden');
-    if (btn) btn.textContent = '✕ Usar tarjeta guardada';
-  } else {
-    form.classList.add('hidden');
-    if (btn) btn.textContent = '+ Usar una tarjeta nueva';
-    if (checkoutPaymentCards.length > 0 && !checkoutSelectedCardId) {
-      checkoutSelectedCardId = (checkoutPaymentCards.find(c => c.is_default) || checkoutPaymentCards[0]).id;
-    }
-  }
-
-  renderPaymentCardsList();
-  validateCheckoutForm();
-}
-
-/**
- * Formateo automático de número de tarjeta en grupos de 4 dígitos
- */
-function handleCardNumberInput(input) {
-  let val = input.value.replace(/\D/g, '').slice(0, 19);
-  let formatted = val.replace(/(\d{4})(?=\d)/g, '$1 ');
-  input.value = formatted;
-}
-
-/**
- * Formateo automático de expiración MM/AA
- */
-function handleExpiryInput(input) {
-  let val = input.value.replace(/\D/g, '').slice(0, 4);
-  if (val.length >= 2) {
-    val = val.slice(0, 2) + '/' + val.slice(2);
-  }
-  input.value = val;
-}
-
-/**
- * Algoritmo de Luhn para validación de tarjetas
- */
-function isValidLuhn(numberStr) {
-  const digits = numberStr.replace(/\D/g, '');
-  if (digits.length < 13 || digits.length > 19) return false;
-
-  let sum = 0;
-  let shouldDouble = false;
-  for (let i = digits.length - 1; i >= 0; i--) {
-    let digit = parseInt(digits.charAt(i), 10);
-    if (shouldDouble) {
-      digit *= 2;
-      if (digit > 9) digit -= 9;
-    }
-    sum += digit;
-    shouldDouble = !shouldDouble;
-  }
-  return (sum % 10) === 0;
-}
-
-/**
- * Validación estricta del formulario para habilitar el botón "Pagar y confirmar pedido"
- */
-function validateCheckoutForm() {
-  const confirmCheck = document.getElementById('checkout-confirm-terms');
-  const submitBtn = document.getElementById('btn-confirm-order-payment');
-  const errorEl = document.getElementById('checkout-error-msg');
-
-  const termsOk = !!confirmCheck?.checked;
-
-  // 1. Validar entrega
-  const deliveryOk = (checkoutDeliveryType === 'node' && !!checkoutSelectedNode) ||
-                     (checkoutDeliveryType === 'home' && !!checkoutSelectedAddress);
-
-  // 2. Validar método de pago
-  let paymentOk = false;
-  let validationMsg = '';
-
-  if (checkoutPaymentType === 'card') {
-    if (!checkoutIsUsingNewCard) {
-      paymentOk = !!checkoutSelectedCardId;
-      if (!paymentOk) validationMsg = 'Selecciona una tarjeta para pagar.';
-    } else {
-      const holder = (document.getElementById('new-card-holder')?.value || '').trim();
-      const rawNum = (document.getElementById('new-card-number')?.value || '').replace(/\D/g, '');
-      const exp = (document.getElementById('new-card-exp')?.value || '').trim();
-      const cvv = (document.getElementById('new-card-cvv')?.value || '').trim();
-
-      const holderOk = holder.length >= 3;
-      const numOk = isValidLuhn(rawNum);
-      const expParts = exp.split('/');
-      let expOk = false;
-      if (expParts.length === 2) {
-        const m = parseInt(expParts[0], 10);
-        const y = parseInt('20' + expParts[1], 10);
-        const now = new Date();
-        const currentYear = now.getFullYear();
-        const currentMonth = now.getMonth() + 1;
-        if (m >= 1 && m <= 12 && (y > currentYear || (y === currentYear && m >= currentMonth))) {
-          expOk = true;
-        }
-      }
-      const cvvOk = cvv.length >= 3 && cvv.length <= 4;
-
-      paymentOk = holderOk && numOk && expOk && cvvOk;
-      if (!paymentOk && termsOk) {
-        if (!holderOk) validationMsg = 'Ingresa el nombre del titular de la tarjeta.';
-        else if (!numOk) validationMsg = 'Número de tarjeta inválido (verifica los dígitos).';
-        else if (!expOk) validationMsg = 'Fecha de expiración vencida o inválida (MM/AA).';
-        else if (!cvvOk) validationMsg = 'Código CVV incompleto (3 o 4 dígitos).';
-      }
-    }
-  } else if (checkoutPaymentType === 'pse') {
-    const bankSelect = document.getElementById('checkout-pse-bank');
-    checkoutSelectedBank = bankSelect ? bankSelect.value : '';
-    paymentOk = !!checkoutSelectedBank;
-    if (!paymentOk) validationMsg = 'Selecciona tu banco para continuar con PSE.';
-  } else if (checkoutPaymentType === 'cash') {
-    paymentOk = true;
-  }
-
-  const isFormReady = termsOk && deliveryOk && paymentOk;
-
-  if (submitBtn) {
-    submitBtn.disabled = !isFormReady;
-    if (isFormReady) {
-      submitBtn.classList.remove('opacity-40', 'cursor-not-allowed');
-      submitBtn.classList.add('cursor-pointer');
-    } else {
-      submitBtn.classList.add('opacity-40', 'cursor-not-allowed');
-      submitBtn.classList.remove('cursor-pointer');
-    }
-  }
-
-  if (errorEl) {
-    if (!isFormReady && termsOk && validationMsg) {
-      errorEl.textContent = validationMsg;
-      errorEl.classList.remove('hidden');
-    } else {
-      errorEl.textContent = '';
-      errorEl.classList.add('hidden');
-    }
-  }
-
-  return isFormReady;
-}
-
-/**
- * Inserta la orden en Supabase public.orders y despliega la confirmación real
- */
-async function confirmOrderPayment() {
-  const isReady = validateCheckoutForm();
-  const errorEl = document.getElementById('checkout-error-msg');
-  const submitBtn = document.getElementById('btn-confirm-order-payment');
-  const btnText = document.getElementById('btn-confirm-order-text');
-  const btnIcon = document.getElementById('btn-confirm-order-icon');
-
-  if (!isReady) {
-    if (errorEl && errorEl.textContent === '') {
-      errorEl.textContent = 'Por favor completa todos los campos requeridos y acepta la confirmación.';
-      errorEl.classList.remove('hidden');
-    }
-    return;
-  }
-
-  const payStep = document.getElementById('checkout-step-pay');
-  const successStep = document.getElementById('checkout-step-success');
-
-  const userId = checkoutUser?.id || '00000000-0000-0000-0000-000000000001';
-  const orderNumber = '#RB-' + Math.floor(1000 + Math.random() * 9000);
-
-  // Detalles de método de pago para resumen
-  let paymentDetails = { type: checkoutPaymentType };
-  let paymentMethodSummary = '';
-  let paymentMethodId = null;
-
-  if (checkoutPaymentType === 'card') {
-    if (!checkoutIsUsingNewCard) {
-      const card = checkoutPaymentCards.find(c => c.id === checkoutSelectedCardId);
-      paymentMethodId = card ? card.id : null;
-      paymentDetails = {
-        type: 'card',
-        brand: card?.brand || 'VISA',
-        last4: card?.last4 || '4786',
-        cardholder_name: card?.cardholder_name || checkoutUser.name
-      };
-      paymentMethodSummary = `Tarjeta ${paymentDetails.brand} •••• ${paymentDetails.last4}`;
-    } else {
-      const holder = (document.getElementById('new-card-holder')?.value || '').trim();
-      const rawNum = (document.getElementById('new-card-number')?.value || '').replace(/\D/g, '');
-      const last4 = rawNum.slice(-4);
-      paymentDetails = {
-        type: 'card',
-        brand: 'TARJETA',
-        last4: last4,
-        cardholder_name: holder,
-        is_new: true
-      };
-      paymentMethodSummary = `Tarjeta de crédito/débito •••• ${last4}`;
-    }
-  } else if (checkoutPaymentType === 'pse') {
-    const bankSelect = document.getElementById('checkout-pse-bank');
-    const bankName = bankSelect?.options[bankSelect.selectedIndex]?.text || 'Bancolombia';
-    paymentDetails = {
-      type: 'pse',
-      bank_code: checkoutSelectedBank,
-      bank_name: bankName
-    };
-    paymentMethodSummary = `PSE - ${bankName}`;
-  } else {
-    paymentDetails = {
-      type: 'cash_on_delivery',
-      note: checkoutDeliveryType === 'node' ? 'Pago en nodo al recoger' : 'Pago contraentrega en domicilio'
-    };
-    paymentMethodSummary = 'Pago Contraentrega (Efectivo / Datáfono)';
-  }
-
-  // Detalles de entrega
-  let deliveryDetails = {};
-  let deliveryPlaceSummary = '';
-  let deliveryScheduleSummary = '';
-  let deliveryTargetId = null;
-
-  if (checkoutDeliveryType === 'node' && checkoutSelectedNode) {
-    deliveryTargetId = checkoutSelectedNode.id;
-    deliveryDetails = {
-      type: 'node',
-      node_id: checkoutSelectedNode.id,
-      name: checkoutSelectedNode.name,
-      address: checkoutSelectedNode.address,
-      city: checkoutSelectedNode.city || 'Bogotá',
-      schedule: checkoutSelectedNode.pickup_schedule
-    };
-    deliveryPlaceSummary = `${checkoutSelectedNode.name} (${checkoutSelectedNode.address})`;
-    deliveryScheduleSummary = checkoutSelectedNode.pickup_schedule;
-  } else if (checkoutDeliveryType === 'home' && checkoutSelectedAddress) {
-    deliveryTargetId = checkoutSelectedAddress.id;
-    deliveryDetails = {
-      type: 'home',
-      address_id: checkoutSelectedAddress.id,
-      label: checkoutSelectedAddress.label,
-      street_address: checkoutSelectedAddress.street_address,
-      neighborhood: checkoutSelectedAddress.neighborhood,
-      city: checkoutSelectedAddress.city,
-      schedule: checkoutSelectedAddress.delivery_schedule
-    };
-    deliveryPlaceSummary = `${checkoutSelectedAddress.street_address}, ${checkoutSelectedAddress.neighborhood} · ${checkoutSelectedAddress.city}`;
-    deliveryScheduleSummary = checkoutSelectedAddress.delivery_schedule || 'Sáb. 7 nov. · 2:00 – 6:00 p. m.';
-  }
-
-  // Activar estado de carga en botón
-  if (submitBtn) submitBtn.disabled = true;
-  if (btnText) btnText.textContent = 'Procesando pedido y confirmando...';
-  if (btnIcon) btnIcon.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span>';
-
+  // 1. Guardar en localStorage
   try {
-    const orderPayload = {
-      order_number: orderNumber,
-      user_id: userId,
-      items: cart.map(item => ({
-        id: item.id,
-        title: item.title,
-        price: item.price,
-        quantity: item.quantity,
-        unit: item.unit || 'unidad',
-        farmer: item.farmer || item.farm || 'Productor local',
-        subtotal: item.price * item.quantity
-      })),
-      subtotal: checkoutSubtotal,
-      delivery_fee: checkoutDeliveryFee,
-      total_amount: checkoutTotal,
-      delivery_type: checkoutDeliveryType,
-      delivery_address_or_node_id: deliveryTargetId,
-      payment_method_type: checkoutPaymentType,
-      payment_method_id: paymentMethodId,
-      payment_details: paymentDetails,
-      delivery_details: deliveryDetails,
-      status: 'confirmed'
-    };
+    localStorage.setItem('raiz_delivery_preference', JSON.stringify(activeDeliveryPreference));
+  } catch (e) {
+    console.warn('Error guardando en localStorage:', e);
+  }
 
-    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
-      await window.supabase.fetchApi('orders', {
-        method: 'POST',
-        body: JSON.stringify(orderPayload)
+  // 2. Actualizar texto de la píldora en Navbar
+  updateHeaderLocationPillUI(name);
+
+  // 3. Cerrar dropdown
+  closeHeaderLocationDropdown();
+
+  // 4. Mostrar feedback toast
+  showToast(`📍 Entregas configuradas en: ${name}`);
+
+  // 5. Persistir en Supabase si el usuario está autenticado
+  const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  const userId = user?.id;
+
+  if (userId && window.supabase && typeof window.supabase.fetchApi === 'function') {
+    try {
+      const updateData = { active_delivery_mode: type };
+      if (type === 'node') {
+        updateData.preferred_pickup_node_id = id;
+      } else if (type === 'home') {
+        updateData.preferred_delivery_address_id = id;
+      }
+      await window.supabase.fetchApi(`profiles?id=eq.${userId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(updateData)
       });
+    } catch (errSupabase) {
+      console.warn('Error guardando preferencia en Supabase profiles:', errSupabase);
     }
+  }
 
-    // 1. Actualizar campos de la pantalla de éxito
-    const successOrderId = document.getElementById('success-order-id');
-    const successDeliveryPlace = document.getElementById('success-delivery-place');
-    const successDeliverySchedule = document.getElementById('success-delivery-schedule');
-    const successPaymentMethod = document.getElementById('success-payment-method');
-    const successTotalAmount = document.getElementById('success-total-amount');
+  // 6. Actualizar visualmente badges de entrega en las fichas de productos
+  updateCatalogDeliveryCues(name);
+}
 
-    if (successOrderId) successOrderId.textContent = orderNumber;
-    if (successDeliveryPlace) successDeliveryPlace.textContent = deliveryPlaceSummary;
-    if (successDeliverySchedule) successDeliverySchedule.textContent = deliveryScheduleSummary;
-    if (successPaymentMethod) successPaymentMethod.textContent = paymentMethodSummary;
-    if (successTotalAmount) successTotalAmount.textContent = `$${formatCOP(checkoutTotal)} COP`;
-
-    // 2. Limpiar carrito de compras
-    cart = [];
-    saveCartToStorage();
-    renderProducts();
-
-    // 3. Cambiar a pantalla de éxito
-    if (payStep) payStep.classList.add('hidden');
-    if (successStep) successStep.classList.remove('hidden');
-
-    showToast(`🎉 ¡Pedido ${orderNumber} confirmado con éxito!`);
-
-  } catch (err) {
-    console.error('Error al registrar pedido en Supabase:', err);
-    if (errorEl) {
-      errorEl.textContent = 'Ocurrió un error al confirmar tu pedido en la base de datos: ' + (err.message || 'Error de red.');
-      errorEl.classList.remove('hidden');
-    }
-  } finally {
-    if (submitBtn) submitBtn.disabled = false;
-    if (btnText) btnText.textContent = 'Pagar y confirmar pedido';
-    if (btnIcon) btnIcon.textContent = '➔';
-    validateCheckoutForm();
+/**
+ * Actualiza el texto de la píldora del header
+ */
+function updateHeaderLocationPillUI(name) {
+  const pillLabel = document.getElementById('header-node-name');
+  if (pillLabel) {
+    const short = name.length > 24 ? name.substring(0, 22) + '...' : name;
+    pillLabel.textContent = short;
+    pillLabel.title = name;
   }
 }
 
 /**
- * Escapa cadenas para prevenir inyecciones XSS en el HTML
+ * Actualiza la información de entrega en el catálogo según la zona
  */
+function updateCatalogDeliveryCues(locationName) {
+  const deliveryCueElements = document.querySelectorAll('.product-delivery-cue');
+  deliveryCueElements.forEach(el => {
+    el.textContent = `Disponible para entrega en ${locationName}`;
+  });
+}
+
+/**
+ * Redirección limpia al Checkout dedicado (/checkout)
+ */
+function openCheckoutModal(user) {
+  if (cart.length === 0) {
+    showToast('Tu canasta de compras está vacía.');
+    return;
+  }
+  saveCartToStorage();
+  window.location.href = 'checkout.html';
+}
+
+function closeCheckoutModal() {
+  // No-op para compatibilidad
+}
+
 function escapeHtml(str) {
   if (str === null || str === undefined) return '';
   return String(str)
@@ -2393,19 +1851,11 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
-window.selectPaymentMethod = switchCheckoutPayTab;
-window.toggleDeliveryPicker = toggleDeliveryPicker;
-window.selectDeliveryModeTab = selectDeliveryModeTab;
-window.chooseDeliveryOption = chooseDeliveryOption;
-window.switchCheckoutPayTab = switchCheckoutPayTab;
-window.choosePaymentCard = choosePaymentCard;
-window.toggleNewCardForm = toggleNewCardForm;
-window.handleCardNumberInput = handleCardNumberInput;
-window.handleExpiryInput = handleExpiryInput;
-window.validateCheckoutForm = validateCheckoutForm;
-window.confirmOrderPayment = confirmOrderPayment;
+window.toggleHeaderLocationDropdown = toggleHeaderLocationDropdown;
+window.closeHeaderLocationDropdown = closeHeaderLocationDropdown;
+window.selectHeaderLocation = selectHeaderLocation;
+window.openCheckoutModal = openCheckoutModal;
 window.closeCheckoutModal = closeCheckoutModal;
-
 
 // =============================================================================
 // 9. Utilidades y Notificaciones Toast

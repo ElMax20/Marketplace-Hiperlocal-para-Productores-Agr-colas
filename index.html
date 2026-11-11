@@ -96,15 +96,67 @@
           </form>
         </div>
 
-        <!-- Selector de Ubicación / Entrega -->
-        <div class="hidden md:flex items-center gap-2 border border-stone-200 rounded-full px-3.5 py-1.5 bg-stone-50 hover:bg-stone-100 transition cursor-pointer text-xs">
-          <svg class="w-4 h-4 text-[#c85a32]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-          </svg>
-          <div class="flex flex-col text-left">
-            <span class="text-[10px] text-stone-400 font-medium uppercase tracking-wider">Entregar en:</span>
-            <span class="font-semibold text-stone-800">Chapinero Alto, Bogotá ▾</span>
+        <!-- Selector de Ubicación / Entrega Interactivo -->
+        <div class="relative hidden md:block">
+          <button 
+            type="button" 
+            id="header-location-btn" 
+            onclick="toggleHeaderLocationDropdown(event)" 
+            class="flex items-center gap-2 border border-stone-200 rounded-full px-3.5 py-1.5 bg-stone-50 hover:bg-stone-100 transition cursor-pointer text-xs group"
+            title="Cambiar punto de recogida o entrega a domicilio"
+          >
+            <svg class="w-4 h-4 text-[#c85a32] group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <div class="flex flex-col text-left">
+              <span class="text-[10px] text-stone-400 font-medium uppercase tracking-wider">Entregar en:</span>
+              <span class="font-semibold text-stone-800 flex items-center gap-1">
+                <span id="index-header-node-name" class="max-w-[140px] truncate">Nodo Central</span>
+                <span class="text-stone-400 text-[10px]">▾</span>
+              </span>
+            </div>
+          </button>
+
+          <!-- Dropdown Flotante -->
+          <div 
+            id="header-location-dropdown" 
+            class="hidden absolute left-0 sm:right-0 sm:left-auto top-full mt-2 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-stone-200 p-4 z-50 text-xs text-left"
+          >
+            <div class="pb-3 border-b border-stone-100 flex items-center justify-between">
+              <div>
+                <h4 class="font-bold text-stone-900 text-xs">Elige dónde recibir tu mercado</h4>
+                <p class="text-[11px] text-stone-400 mt-0.5">Adaptamos los días de entrega y cosechas a tu zona</p>
+              </div>
+              <button type="button" onclick="closeHeaderLocationDropdown()" class="text-stone-400 hover:text-stone-600 text-sm p-1 cursor-pointer">✕</button>
+            </div>
+
+            <!-- Sección 1: Nodos Comunitarios (Recogida Gratis) -->
+            <div class="mt-3">
+              <div class="flex items-center justify-between mb-1.5 px-1">
+                <span class="font-bold text-[10px] uppercase tracking-wider text-[#1a3d2f] flex items-center gap-1">
+                  <span>🏛️</span> Nodos Comunitarios (Gratis)
+                </span>
+              </div>
+              <div id="header-dropdown-nodes-list" class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                <p class="text-[11px] text-stone-400 p-2">Cargando nodos...</p>
+              </div>
+            </div>
+
+            <!-- Sección 2: Direcciones a Domicilio -->
+            <div class="mt-3 pt-3 border-t border-stone-100">
+              <div class="flex items-center justify-between mb-1.5 px-1">
+                <span class="font-bold text-[10px] uppercase tracking-wider text-[#c85a32] flex items-center gap-1">
+                  <span>🏡</span> A Domicilio ($8.000)
+                </span>
+                <a href="perfil.html" class="text-[10px] font-bold text-[#1a3d2f] hover:underline">
+                  + Administrar
+                </a>
+              </div>
+              <div id="header-dropdown-addrs-list" class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                <p class="text-[11px] text-stone-400 p-2">Inicia sesión para ver tus direcciones guardadas.</p>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -1501,8 +1553,16 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/supabase.js?v=4.6"></script>
-  <script src="js/auth.js?v=4.6"></script>
-  <script src="js/app.js?v=4.6"></script>
+  <script src="js/supabase.js?v=4.7"></script>
+  <script src="js/auth.js?v=4.7"></script>
+  <script src="js/header-location.js?v=4.7"></script>
+  <script src="js/app.js?v=4.7"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (typeof initHeaderLocationSelector === 'function') {
+        initHeaderLocationSelector();
+      }
+    });
+  </script>
 </body>
 </html>

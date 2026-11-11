@@ -290,8 +290,25 @@ CREATE POLICY "Permitir delete delivery_addresses" ON public.delivery_addresses 
 GRANT ALL ON TABLE public.delivery_addresses TO anon, authenticated, service_role;
 
 -- Columnas de preferencia añadidas a public.profiles:
--- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS preferred_pickup_node_id uuid REFERENCES public.pickup_nodes(id) ON DELETE SET NULL;
--- ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS active_delivery_mode text DEFAULT 'node';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS preferred_pickup_node_id uuid REFERENCES public.pickup_nodes(id) ON DELETE SET NULL;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS preferred_delivery_address_id uuid REFERENCES public.delivery_addresses(id) ON DELETE SET NULL;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS active_delivery_mode text DEFAULT 'node';
+
+-- =============================================================================
+-- 13.1 TABLA: user_preferences (Preferencia activa de entrega por usuario)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.user_preferences (
+    user_id uuid PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+    delivery_mode text NOT NULL DEFAULT 'node' CHECK (delivery_mode IN ('node', 'home', 'NODE_PICKUP', 'HOME_DELIVERY')),
+    preferred_node_id uuid REFERENCES public.pickup_nodes(id) ON DELETE SET NULL,
+    preferred_address_id uuid REFERENCES public.delivery_addresses(id) ON DELETE SET NULL,
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.user_preferences ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permitir all user_preferences" ON public.user_preferences;
+CREATE POLICY "Permitir all user_preferences" ON public.user_preferences FOR ALL TO public USING (true) WITH CHECK (true);
+GRANT ALL ON TABLE public.user_preferences TO anon, authenticated, service_role;
 
 -- =============================================================================
 -- 14. TABLA: orders (Órdenes y pedidos confirmados en el marketplace)
@@ -300,14 +317,21 @@ CREATE TABLE IF NOT EXISTS public.orders (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     order_number text NOT NULL,
     user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    customer_name text,
+    customer_email text,
     items jsonb NOT NULL DEFAULT '[]'::jsonb,
     subtotal numeric(12,2) NOT NULL DEFAULT 0,
     delivery_fee numeric(12,2) NOT NULL DEFAULT 0,
     total_amount numeric(12,2) NOT NULL,
-    delivery_type text NOT NULL CHECK (delivery_type IN ('node', 'home')),
+    delivery_type text NOT NULL CHECK (delivery_type IN ('node', 'home', 'NODE_PICKUP', 'HOME_DELIVERY')),
+    delivery_location text,
+    delivery_estimated_date text,
+    preparation_time_estimate text,
     delivery_address_or_node_id uuid,
-    payment_method_type text NOT NULL CHECK (payment_method_type IN ('card', 'cash_on_delivery', 'pse')),
+    payment_method text DEFAULT 'CARD',
+    payment_method_type text NOT NULL DEFAULT 'card' CHECK (payment_method_type IN ('card', 'cash_on_delivery', 'pse', 'CARD', 'CASH_ON_DELIVERY')),
     payment_method_id uuid REFERENCES public.payment_methods(id) ON DELETE SET NULL,
+    payment_status text NOT NULL DEFAULT 'COMPLETED',
     payment_details jsonb DEFAULT '{}'::jsonb,
     delivery_details jsonb DEFAULT '{}'::jsonb,
     status text NOT NULL DEFAULT 'confirmed',

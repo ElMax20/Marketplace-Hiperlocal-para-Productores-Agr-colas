@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>¡Compra Confirmada! | Raíz & Barrio</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .font-serif { font-family: 'Playfair Display', serif; }
+  </style>
+</head>
+<body class="bg-[#f7f5f0] text-stone-800 antialiased min-h-screen flex flex-col justify-between selection:bg-[#1a3d2f] selection:text-white">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-stone-200/80 sticky top-0 z-30 shadow-xs">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <a href="mercado.html" class="flex items-center gap-2">
+        <span class="text-2xl">🌱</span>
+        <span class="font-serif font-black text-xl text-[#1a3d2f] tracking-tight">
+          raíz & barrio
+        </span>
+      </a>
+      <a href="pedidos.html" class="text-xs font-bold text-[#1a3d2f] hover:underline flex items-center gap-1">
+        <span>📦</span>
+        <span>Mis Pedidos</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Ticket de Compra Principal -->
+  <main class="max-w-2xl mx-auto px-4 py-10 w-full flex-1">
+    
+    <div class="bg-white rounded-3xl border border-stone-200 p-6 sm:p-10 shadow-xl relative overflow-hidden">
+      
+      <!-- Franja Superior Decorativa Verde -->
+      <div class="absolute top-0 inset-x-0 h-2 bg-[#1a3d2f]"></div>
+
+      <!-- Icono de Confirmación Animado -->
+      <div class="text-center mb-6">
+        <div class="w-16 h-16 rounded-full bg-emerald-100 text-emerald-800 mx-auto flex items-center justify-center text-3xl font-bold shadow-xs">
+          ✓
+        </div>
+        <span class="inline-block mt-3 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200">
+          Pago Aprobado y Orden Confirmada
+        </span>
+        <h1 class="font-serif text-3xl sm:text-4xl font-bold text-stone-900 mt-2">
+          ¡Gracias por tu compra!
+        </h1>
+        <p class="text-xs sm:text-sm text-stone-500 mt-1">
+          Tu apoyo llega directo a las familias campesinas y huertas de nuestra red.
+        </p>
+      </div>
+
+      <!-- BANNER OBLIGATORIO DE FACTURACIÓN N8N -->
+      <div class="my-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-950 flex items-start gap-3">
+        <span class="text-xl">📩</span>
+        <div class="leading-relaxed">
+          <p class="font-bold text-emerald-900 mb-0.5">Factura digital en camino</p>
+          <p id="success-invoice-notice" class="text-emerald-800">
+            Hemos procesado tu pago y enviado la factura digital con los tiempos de entrega a tu correo <strong id="success-customer-email">tu_correo@ejemplo.com</strong>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Datos del Ticket -->
+      <div class="border border-stone-200 rounded-2xl p-4 sm:p-5 bg-stone-50/60 divide-y divide-stone-200/80 text-xs">
+        
+        <!-- Fila 1: Código de Orden e ID de Transacción -->
+        <div class="grid grid-cols-2 gap-4 pb-3.5">
+          <div>
+            <span class="text-[10px] uppercase font-bold text-stone-400 block">Número de Pedido</span>
+            <span id="ticket-order-number" class="font-mono font-bold text-sm text-[#1a3d2f]">#RB-1718</span>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-bold text-stone-400 block">ID Transacción Bancaria</span>
+            <span id="ticket-txn-id" class="font-mono font-bold text-xs text-stone-700">TXN-REAL-8F29A</span>
+          </div>
+        </div>
+
+        <!-- Fila 2: Fecha y Método de Pago -->
+        <div class="grid grid-cols-2 gap-4 py-3.5">
+          <div>
+            <span class="text-[10px] uppercase font-bold text-stone-400 block">Fecha y Hora</span>
+            <span id="ticket-date" class="font-medium text-stone-800">Hoy · Justo ahora</span>
+          </div>
+          <div>
+            <span class="text-[10px] uppercase font-bold text-stone-400 block">Método de Pago</span>
+            <span id="ticket-payment-method" class="font-medium text-stone-800">Tarjeta de Crédito</span>
+          </div>
+        </div>
+
+        <!-- Fila 3: Lugar y Tiempo de Entrega -->
+        <div class="py-3.5">
+          <span class="text-[10px] uppercase font-bold text-[#c85a32] block">Lugar y Fecha de Entrega</span>
+          <p id="ticket-delivery-location" class="font-bold text-stone-900 text-xs sm:text-sm mt-0.5">
+            Nodo Central · La Perseverancia (Carrera 5 n.º 30A-10)
+          </p>
+          <p id="ticket-delivery-estimate" class="text-stone-500 text-[11px] mt-1 font-medium">
+            🌿 Estimación: Listo para retiro el Sábado de 8:00 a. m. a 12:00 p. m.
+          </p>
+        </div>
+
+        <!-- Fila 4: Total Abonado -->
+        <div class="pt-3.5 flex items-center justify-between text-sm">
+          <span class="font-bold text-stone-700">Total pagado:</span>
+          <span id="ticket-total-amount" class="font-serif font-black text-2xl text-[#1a3d2f]">$0</span>
+        </div>
+      </div>
+
+      <!-- Resumen de Productos de la Orden -->
+      <div class="mt-6">
+        <h4 class="font-bold text-xs text-stone-700 mb-2 uppercase tracking-wide">Productos incluidos en la canasta:</h4>
+        <div id="ticket-items-list" class="divide-y divide-stone-100 max-h-52 overflow-y-auto pr-1 text-xs">
+          <!-- Inyectado dinámicamente -->
+        </div>
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="mt-8 pt-6 border-t border-stone-100 flex flex-col sm:flex-row items-center justify-center gap-3">
+        <a 
+          href="pedidos.html" 
+          class="w-full sm:w-auto text-center bg-[#1a3d2f] hover:bg-[#255440] text-white px-6 py-3 rounded-xl font-bold text-xs shadow-md transition"
+        >
+          📦 Ver en Mis Pedidos
+        </a>
+        <a 
+          href="mercado.html" 
+          class="w-full sm:w-auto text-center border border-stone-300 hover:bg-stone-50 text-stone-700 px-6 py-3 rounded-xl font-bold text-xs transition"
+        >
+          Volver al mercado
+        </a>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="text-center py-6 text-xs text-stone-400 border-t border-stone-200/80">
+    Raíz & Barrio · Conectando huertas campesinas con mesas urbanas · Bogotá, D. C.
+  </footer>
+
+  <script src="js/supabase.js?v=4.6"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const params = new URLSearchParams(window.location.search);
+      const orderId = params.get('order_id');
+      const orderNumberParam = params.get('order_number');
+      const emailParam = params.get('email');
+
+      if (emailParam) {
+        const emailEl = document.getElementById('success-customer-email');
+        if (emailEl) emailEl.textContent = emailParam;
+      }
+
+      if (orderNumberParam) {
+        const numEl = document.getElementById('ticket-order-number');
+        if (numEl) numEl.textContent = orderNumberParam;
+      }
+
+      // Si viene con ID de orden, consultar Supabase para detalles completos
+      if (orderId && window.supabase) {
+        try {
+          const res = await window.supabase.fetchApi(`orders?id=eq.${orderId}&select=*`);
+          if (res && res.length > 0) {
+            renderOrderTicket(res[0]);
+            return;
+          }
+        } catch (_) {}
+      }
+
+      // Fallback a localStorage de última orden
+      try {
+        const lastOrder = localStorage.getItem('rb_last_order');
+        if (lastOrder) {
+          renderOrderTicket(JSON.parse(lastOrder));
+        }
+      } catch (_) {}
+    });
+
+    function renderOrderTicket(order) {
+      if (!order) return;
+
+      const numEl = document.getElementById('ticket-order-number');
+      if (numEl) numEl.textContent = order.order_number || '#RB-1718';
+
+      const txnEl = document.getElementById('ticket-txn-id');
+      if (txnEl) {
+        txnEl.textContent = order.payment_details?.transaction_id || `TXN-REAL-${order.id?.slice(0, 8).toUpperCase() || 'OK'}`;
+      }
+
+      const emailEl = document.getElementById('success-customer-email');
+      if (emailEl && order.customer_email) {
+        emailEl.textContent = order.customer_email;
+      }
+
+      const dateEl = document.getElementById('ticket-date');
+      if (dateEl) {
+        const dateObj = order.created_at ? new Date(order.created_at) : new Date();
+        dateEl.textContent = dateObj.toLocaleString('es-CO', { dateStyle: 'medium', timeStyle: 'short' });
+      }
+
+      const payEl = document.getElementById('ticket-payment-method');
+      if (payEl) {
+        if (order.payment_method === 'CARD' || order.payment_method_type === 'card') {
+          const brand = order.payment_details?.brand || 'VISA';
+          const last4 = order.payment_details?.last4 ? `•••• ${order.payment_details.last4}` : '';
+          payEl.textContent = `Tarjeta (${brand} ${last4})`.trim();
+        } else {
+          payEl.textContent = 'En Nodo / Contraentrega';
+        }
+      }
+
+      const locEl = document.getElementById('ticket-delivery-location');
+      if (locEl) {
+        locEl.textContent = order.delivery_location || (order.delivery_type === 'NODE_PICKUP' ? 'Nodo Central · La Perseverancia' : 'A Domicilio');
+      }
+
+      const estEl = document.getElementById('ticket-delivery-estimate');
+      if (estEl) {
+        estEl.textContent = `🌿 ${order.preparation_time_estimate || order.delivery_estimated_date || 'Sábado de cosecha'}`;
+      }
+
+      const totalEl = document.getElementById('ticket-total-amount');
+      if (totalEl) {
+        totalEl.textContent = `$${Number(order.total_amount || 0).toLocaleString('es-CO')}`;
+      }
+
+      const itemsContainer = document.getElementById('ticket-items-list');
+      if (itemsContainer && Array.isArray(order.items)) {
+        itemsContainer.innerHTML = order.items.map(it => `
+          <div class="py-2.5 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+              <span class="font-medium text-stone-800">${it.title}</span>
+              <span class="text-stone-400 text-[11px]">× ${it.quantity}</span>
+            </div>
+            <span class="font-bold text-stone-900">$${(it.subtotal || (it.price * it.quantity)).toLocaleString('es-CO')}</span>
+          </div>
+        `).join('');
+      }
+    }
+  </script>
+</body>
+</html>
