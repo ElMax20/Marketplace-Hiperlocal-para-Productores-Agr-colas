@@ -1428,7 +1428,7 @@ async function handleLogin(e) {
     try {
       dbUser = await window.supabase.login(inputVal, passVal);
     } catch(err) {
-      console.warn('Error al verificar login en Supabase:', err);
+      console.error('Error al verificar login en Supabase:', err);
     }
   }
 
@@ -1470,75 +1470,9 @@ async function handleLogin(e) {
     return;
   }
 
-  // 2. Fallback local si no hay conexión con Supabase
-  if (inputVal === 'admin') {
-    if (passVal && passVal !== 'admin123') {
-      alert('Contraseña incorrecta para Administrador (prueba: admin123)');
-      return;
-    }
-    const adminUser = { 
-      username: 'admin', 
-      role: 'admin', 
-      name: 'Lucía Torres', 
-      email: 'lucia@raizybarrio.co', 
-      avatar: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg',
-      loggedIn: true 
-    };
-    localStorage.setItem('rb_current_user', JSON.stringify(adminUser));
-    localStorage.setItem('raiz_user', JSON.stringify(adminUser));
-    window.location.href = 'admin.html';
-    return;
-  }
-
-  if (inputVal === 'maxp') {
-    if (passVal && passVal !== '123') {
-      alert('Contraseña incorrecta para Productor (prueba: 123)');
-      return;
-    }
-    const prodUser = { 
-      username: 'maxp', 
-      role: 'productor', 
-      name: 'Max Productor', 
-      finca: 'Huerta El Renacer', 
-      avatar: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg',
-      loggedIn: true 
-    };
-    localStorage.setItem('rb_current_user', JSON.stringify(prodUser));
-    localStorage.setItem('raiz_user', JSON.stringify(prodUser));
-    window.location.href = 'productor.html';
-    return;
-  }
-
-  let userName = inputVal.includes('@') ? inputVal.split('@')[0] : inputVal;
-  if (inputVal === 'max') {
-    userName = 'Elmaxi_09';
-    if (passVal && passVal !== '123') {
-      alert('Contraseña incorrecta para Cliente (prueba: 123)');
-      return;
-    }
-  }
-
-  const existingUser = {
-    name: userName,
-    email: inputVal.includes('@') ? inputVal : `${inputVal}@vecinos.com`,
-    phone: '0997766751',
-    preferredNode: 'Nodo Central · La Perseverancia',
-    avatar: '',
-    loggedIn: true,
-    role: 'cliente'
-  };
-
-  localStorage.setItem('raiz_user', JSON.stringify(existingUser));
-  localStorage.setItem('rb_current_user', JSON.stringify(existingUser));
-  closeAuthModal();
-  checkAuthStatus();
-  showToast(`Sesión iniciada correctamente. Bienvenido ${userName}.`);
-
-  if (cart.length > 0) {
-    setTimeout(() => {
-      openCheckoutModal(existingUser);
-    }, 400);
-  }
+  // Si no se encuentra en Supabase o contraseña errónea:
+  showToast('Usuario o contraseña incorrectos.', 'error');
+  alert('Usuario o contraseña incorrectos.');
 }
 
 // Cerrar Sesión (vuelve a ser invitado)

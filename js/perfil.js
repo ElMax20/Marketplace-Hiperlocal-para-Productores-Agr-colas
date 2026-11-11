@@ -26,20 +26,10 @@ async function initProfilePage() {
     console.warn('Error leyendo usuario:', e);
   }
 
-  // 2. Si no hay usuario en sesión, usar plantilla por defecto (Max)
-  if (!user) {
-    user = {
-      id: '00000000-0000-0000-0000-000000000001',
-      name: 'Max',
-      username: 'max',
-      email: 'max@vecinos.com',
-      phone: '0997766751',
-      role: 'cliente',
-      preferredNode: 'Nodo Central · La Perseverancia',
-      address: 'Carrera 7 n.º 32-16, apto. 402',
-      avatar: null,
-      registeredAt: '2026-09-15T00:00:00.000Z'
-    };
+  // 2. Si no hay usuario en sesión, redirigir al mercado para iniciar sesión real
+  if (!user || !user.loggedIn) {
+    window.location.replace('mercado.html?openLogin=true');
+    return;
   }
 
   currentUser = user;

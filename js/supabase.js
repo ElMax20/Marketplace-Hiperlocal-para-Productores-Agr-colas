@@ -88,7 +88,7 @@ class SupabaseService {
       }
       return null;
     } catch (e) {
-      console.warn('Fallo consulta login en Supabase, verificando offline...', e);
+      console.error('Error al consultar autenticación en Supabase:', e);
       return null;
     }
   }

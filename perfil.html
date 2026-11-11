@@ -28,8 +28,13 @@
       try {
         var raw = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
         if (raw) {
-          window.__PRELOADED_USER = JSON.parse(raw);
+          var u = JSON.parse(raw);
+          if (u && u.loggedIn) {
+            window.__PRELOADED_USER = u;
+            return;
+          }
         }
+        window.location.replace('mercado.html?openLogin=true');
       } catch(e) {}
     })();
   </script>
@@ -99,7 +104,7 @@
                 >
               </div>
               <div class="hidden sm:block text-left text-xs leading-tight">
-                <span id="nav-user-name" class="font-bold text-stone-900 block truncate max-w-[120px]">Max</span>
+                <span id="nav-user-name" class="font-bold text-stone-900 block truncate max-w-[120px]">Mi cuenta</span>
                 <span id="nav-user-role-label" class="text-[10px] text-stone-400 block">Mi cuenta · Comprador</span>
               </div>
             </button>
@@ -107,7 +112,7 @@
             <!-- Dropdown flotante al pulsar el avatar -->
             <div id="auth-user-dropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-stone-100 py-1.5 z-50 text-xs text-stone-700">
               <div class="px-4 py-2 border-b border-stone-100">
-                <p id="dropdown-user-name" class="font-bold text-stone-900 truncate">Max</p>
+                <p id="dropdown-user-name" class="font-bold text-stone-900 truncate">Mi cuenta</p>
                 <p id="dropdown-user-role" class="text-[10px] text-stone-500 capitalize">Comprador</p>
               </div>
               <a href="pedidos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
@@ -170,7 +175,7 @@
           Tu perfil, tu tranquilidad
         </h1>
         <p id="header-user-welcome" class="text-xs sm:text-sm text-stone-500 mt-1">
-          Max, cuida tus datos y deja todo listo para tu próxima cosecha.
+          Cuida tus datos y deja todo listo para tu próxima cosecha.
         </p>
       </div>
 
@@ -216,7 +221,7 @@
 
           <!-- Nombre y Rol -->
           <h3 id="profile-name-display" class="font-serif font-bold text-lg text-stone-900 mt-3">
-            Max
+            Cargando...
           </h3>
           <div class="mt-1">
             <span id="profile-role-pill" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
@@ -225,7 +230,7 @@
             </span>
           </div>
           <span id="profile-username-handle" class="text-xs text-stone-400 mt-1 block">
-            @max
+            @usuario
           </span>
 
           <!-- Botones de foto -->
@@ -320,7 +325,7 @@
                   type="text" 
                   id="input-full-name" 
                   required
-                  value="Max" 
+                  placeholder="Nombre completo" 
                   class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
                 >
               </div>
@@ -331,7 +336,7 @@
                   type="text" 
                   id="input-username" 
                   required
-                  value="max" 
+                  placeholder="nombre_usuario" 
                   class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
                 >
                 <div id="profile-username-feedback" class="text-[11px] font-medium mt-1 hidden"></div>
@@ -342,8 +347,7 @@
                 <input 
                   type="tel" 
                   id="input-phone" 
-                  value="0997766751" 
-                  placeholder="Ej. 099 123 4567 o 310 123 4567"
+                  placeholder="Ej. 099 123 4567 o 310 123 4567" 
                   class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
                 >
                 <div id="profile-phone-feedback" class="text-[11px] font-medium mt-1 hidden"></div>
@@ -355,7 +359,7 @@
                   type="email" 
                   id="input-current-email" 
                   readonly 
-                  value="max@vecinos.com" 
+                  placeholder="correo@ejemplo.com" 
                   class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-100 text-stone-600 focus:outline-none cursor-not-allowed"
                 >
                 <div class="mt-1.5">
@@ -865,7 +869,7 @@
               id="add-card-holder" 
               required
               autocomplete="cc-name"
-              placeholder="Ej. Max"
+              placeholder="Ej. Nombre Apellido"
               class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition uppercase"
             >
           </div>
@@ -1135,7 +1139,7 @@
             type="text" 
             id="address-label" 
             required 
-            placeholder="Ej: Casa, Oficina de Max..." 
+            placeholder="Ej: Casa, Oficina, Apartamento..." 
             class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
           >
         </div>
@@ -1206,7 +1210,7 @@
           <textarea 
             id="address-instructions" 
             rows="2" 
-            placeholder="Ej: Dejar en portería a nombre de Max, o timbrar en el 402..." 
+            placeholder="Ej: Dejar en portería, timbrar en el 402..." 
             class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition resize-none"
           ></textarea>
         </div>
@@ -1352,8 +1356,8 @@
   </aside>
 
   <!-- Scripts: Supabase y Lógica de Perfil -->
-  <script src="js/supabase.js?v=4.5"></script>
-  <script src="js/auth.js?v=4.5"></script>
-  <script src="js/perfil.js?v=4.5"></script>
+  <script src="js/supabase.js?v=4.6"></script>
+  <script src="js/auth.js?v=4.6"></script>
+  <script src="js/perfil.js?v=4.6"></script>
 </body>
 </html>

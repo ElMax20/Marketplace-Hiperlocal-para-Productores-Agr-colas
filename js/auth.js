@@ -1,10 +1,6 @@
 /**
  * Raíz & Barrio - Módulo de Autenticación y Control de Sesión
- * 
- * Usuarios de prueba:
- * - Cliente:      max   / 123
- * - Productor:    maxp  / 123
- * - Admin:        admin / admin123
+ * Autenticación 100% real conectada directamente a Supabase
  */
 
 window.DEFAULT_USER_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='32' fill='%23e7e5e4'/><path d='M32 32a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0 6c-8.84 0-20 4.48-20 12v4h40v-4c0-7.52-11.16-12-20-12z' fill='%23a8a29e'/></svg>";
@@ -25,37 +21,6 @@ window.normalizeAvatarUrl = function(url) {
   return url.replace('/assets/images/avatars/', '/assets/avatars/');
 };
 var normalizeAvatarUrl = window.normalizeAvatarUrl;
-
-const AUTH_ACCOUNTS = {
-  cliente: {
-    username: 'max',
-    password: '123',
-    role: 'cliente',
-    name: 'Max',
-    phone: '0997766751',
-    address: 'Carrera 7 n.º 32-16, apto. 402',
-    preferredNode: 'Nodo Central · La Perseverancia',
-    email: 'max@vecinos.com',
-    avatar: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/avatars/avatar_max_1794094307238.jpg'
-  },
-  productor: {
-    username: 'maxp',
-    password: '123',
-    role: 'productor',
-    name: 'Max Productor',
-    finca: 'Huerta El Renacer',
-    email: 'maxp@elrenacer.co',
-    avatar: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg'
-  },
-  admin: {
-    username: 'admin',
-    password: 'admin123',
-    role: 'admin',
-    name: 'Lucía Torres',
-    email: 'lucia@raizybarrio.co',
-    avatar: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg'
-  }
-};
 
 // Obtener usuario actualmente conectado (sincronizado con claves de sesión)
 function getCurrentUser() {
@@ -214,140 +179,99 @@ async function handleAuthSubmit(event) {
     }
   };
 
-  // 1. Consulta en Base de Datos Supabase
+  // 1. Consulta estricta y única en Base de Datos Supabase
   let dbUser = null;
   if (window.supabase && typeof window.supabase.login === 'function') {
     try {
       dbUser = await window.supabase.login(username, password);
     } catch (e) {
-      console.warn('Error en Supabase login:', e);
+      console.error('Error en Supabase login:', e);
     }
   }
 
-  // Si existe en Supabase
-  if (dbUser) {
-    const role = (dbUser.role || '').toLowerCase();
-
-    // A. Administrador (acceso universal)
-    if (role === 'administrador' || role === 'admin') {
-      const adminUser = {
-        id: dbUser.id,
-        username: dbUser.username,
-        role: 'admin',
-        name: dbUser.full_name || 'Lucía Torres',
-        phone: dbUser.phone || '',
-        address: dbUser.location_address || '',
-        email: dbUser.email || 'lucia@raizybarrio.co',
-        avatar: normalizeAvatarUrl(dbUser.avatar_url || ''),
-        loggedIn: true
-      };
-      setCurrentUser(adminUser);
-      closeLoginModal();
-      window.location.href = 'admin.html';
-      return false;
-    }
-
-    // B. Acceso CLIENTE
-    if (currentAuthType === 'cliente') {
-      if (role === 'productor') {
-        showAuthError('⚠️ Esta cuenta es de Productor. Por favor ingresa a través del botón "Soy Productor".');
-        resetBtn();
-        return false;
-      }
-      if (role === 'cliente') {
-        const clienteUser = {
-          id: dbUser.id,
-          username: dbUser.username,
-          role: 'cliente',
-          name: dbUser.full_name || dbUser.username,
-          phone: dbUser.phone || '',
-          address: dbUser.location_address || '',
-          preferredNode: dbUser.farm_name || 'Nodo Central · La Perseverancia',
-          email: dbUser.email || '',
-          avatar: normalizeAvatarUrl(dbUser.avatar_url || ''),
-          loggedIn: true
-        };
-        setCurrentUser(clienteUser);
-        closeLoginModal();
-        updateAuthUI();
-        window.location.replace('mercado.html');
-        return false;
-      }
-    }
-
-    // C. Acceso PRODUCTOR
-    if (currentAuthType === 'productor') {
-      if (role === 'cliente') {
-        showAuthError('⚠️ Esta cuenta es de Cliente / Comprador. Por favor ingresa a través del botón "Ingresar".');
-        resetBtn();
-        return false;
-      }
-      if (role === 'productor') {
-        const prodUser = {
-          id: dbUser.id,
-          username: dbUser.username,
-          role: 'productor',
-          name: dbUser.full_name || dbUser.username,
-          phone: dbUser.phone || '',
-          address: dbUser.location_address || '',
-          finca: dbUser.farm_name || 'Huerta El Renacer',
-          email: dbUser.email || '',
-          avatar: normalizeAvatarUrl(dbUser.avatar_url || ''),
-          loggedIn: true
-        };
-        setCurrentUser(prodUser);
-        closeLoginModal();
-        window.location.href = 'productor.html';
-        return false;
-      }
-    }
+  // Si no se encontró usuario o credenciales incorrectas en Supabase:
+  if (!dbUser) {
+    resetBtn();
+    showAuthError('Usuario o contraseña incorrectos.');
+    return false;
   }
 
-  // 2. Fallback de desarrollo local si no hay conexión a internet
-  const cleanLowerUser = username.toLowerCase();
-  if (cleanLowerUser === AUTH_ACCOUNTS.admin.username && password === AUTH_ACCOUNTS.admin.password) {
-    setCurrentUser({ ...AUTH_ACCOUNTS.admin, loggedIn: true });
+  const role = (dbUser.role || '').toLowerCase();
+
+  // A. Administrador (acceso universal)
+  if (role === 'administrador' || role === 'admin') {
+    const adminUser = {
+      id: dbUser.id,
+      username: dbUser.username,
+      role: 'admin',
+      name: dbUser.full_name || 'Lucía Torres',
+      phone: dbUser.phone || '',
+      address: dbUser.location_address || '',
+      email: dbUser.email || 'lucia@raizybarrio.co',
+      avatar: normalizeAvatarUrl(dbUser.avatar_url || ''),
+      loggedIn: true
+    };
+    setCurrentUser(adminUser);
     closeLoginModal();
     window.location.href = 'admin.html';
     return false;
   }
 
+  // B. Acceso CLIENTE
   if (currentAuthType === 'cliente') {
-    if (cleanLowerUser === AUTH_ACCOUNTS.productor.username) {
-      showAuthError('⚠️ Esta cuenta es de Productor. Por favor ingresa a través del botón "Soy Productor".');
+    if (role === 'productor') {
+      showAuthError('⚠️ Esta cuenta es de Productor. Por favor ingresa a través de la pestaña "Soy Productor".');
       resetBtn();
       return false;
     }
-    if (cleanLowerUser === AUTH_ACCOUNTS.cliente.username && password === AUTH_ACCOUNTS.cliente.password) {
-      const clienteUser = {
-        ...AUTH_ACCOUNTS.cliente,
-        loggedIn: true
-      };
-      setCurrentUser(clienteUser);
-      closeLoginModal();
-      updateAuthUI();
+    const clienteUser = {
+      id: dbUser.id,
+      username: dbUser.username,
+      role: 'cliente',
+      name: dbUser.full_name || dbUser.username,
+      phone: dbUser.phone || '',
+      address: dbUser.location_address || '',
+      preferredNode: dbUser.farm_name || 'Nodo Central · La Perseverancia',
+      email: dbUser.email || '',
+      avatar: normalizeAvatarUrl(dbUser.avatar_url || ''),
+      loggedIn: true
+    };
+    setCurrentUser(clienteUser);
+    closeLoginModal();
+    updateAuthUI();
+    if (window.location.pathname.includes('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/')) {
       window.location.replace('mercado.html');
-      return false;
     }
+    return false;
   }
 
+  // C. Acceso PRODUCTOR
   if (currentAuthType === 'productor') {
-    if (cleanLowerUser === AUTH_ACCOUNTS.cliente.username) {
-      showAuthError('⚠️ Esta cuenta es de Cliente / Comprador. Por favor ingresa a través del botón "Ingresar".');
+    if (role === 'cliente') {
+      showAuthError('⚠️ Esta cuenta es de Cliente / Comprador. Por favor ingresa a través de la pestaña "Ingresar como Cliente".');
       resetBtn();
       return false;
     }
-    if (cleanLowerUser === AUTH_ACCOUNTS.productor.username && password === AUTH_ACCOUNTS.productor.password) {
-      setCurrentUser({ ...AUTH_ACCOUNTS.productor, loggedIn: true });
-      closeLoginModal();
-      window.location.href = 'productor.html';
-      return false;
-    }
+    const prodUser = {
+      id: dbUser.id,
+      username: dbUser.username,
+      role: 'productor',
+      name: dbUser.full_name || dbUser.username,
+      phone: dbUser.phone || '',
+      address: dbUser.location_address || '',
+      finca: dbUser.farm_name || 'Huerta El Renacer',
+      email: dbUser.email || '',
+      avatar: normalizeAvatarUrl(dbUser.avatar_url || ''),
+      loggedIn: true
+    };
+    setCurrentUser(prodUser);
+    closeLoginModal();
+    window.location.href = 'productor.html';
+    return false;
   }
 
   resetBtn();
-  // Credenciales erróneas
-  showAuthError('Usuario o contraseña incorrectos en Supabase.');
+  showAuthError('Usuario o contraseña incorrectos.');
   return false;
 }
 
