@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Product, MarketFilterState } from '../../../types/products';
 
 interface MarketGridProps {
@@ -829,6 +829,8 @@ const DEFAULT_MARKET_PRODUCTS: Product[] = [
   }
 ];
 
+const ITEMS_PER_PAGE = 30;
+
 export const MarketGrid: React.FC<MarketGridProps> = ({
   supabaseClient,
   onAddToCart,
@@ -842,6 +844,13 @@ export const MarketGrid: React.FC<MarketGridProps> = ({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>(initialCategory);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const gridSectionRef = useRef<HTMLElement>(null);
+
+  // Reseteo automático a página 1 al cambiar de categoría, productor o búsqueda
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategory, selectedProducerId, searchQuery]);
 
   useEffect(() => {
     let isMounted = true;
@@ -973,8 +982,25 @@ export const MarketGrid: React.FC<MarketGridProps> = ({
     return true;
   });
 
+  // Cálculo de paginación reactiva (30 productos por página)
+  const totalPages = Math.max(1, Math.ceil(filteredProducts.length / ITEMS_PER_PAGE));
+  const validCurrentPage = Math.min(Math.max(1, currentPage), totalPages);
+  const startIndex = (validCurrentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
+
+  const startDisplay = filteredProducts.length > 0 ? startIndex + 1 : 0;
+  const endDisplay = Math.min(startIndex + ITEMS_PER_PAGE, filteredProducts.length);
+
+  const handlePageChange = (newPage: number) => {
+    setCurrentPage(newPage);
+    if (gridSectionRef.current) {
+      gridSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
-    <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8" ref={gridSectionRef}>
       {/* Barra de Filtros Rápidos */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-8">
         <div className="flex flex-wrap items-center gap-2">
@@ -1034,85 +1060,166 @@ export const MarketGrid: React.FC<MarketGridProps> = ({
               <p className="text-xs text-stone-500 mt-1">Prueba seleccionando otra categoría o limpiando la búsqueda.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredProducts.map((p, index) => {
-                const isFav = favoriteIds.includes(p.id) || (p.numericId && favoriteIds.includes(p.numericId));
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {paginatedProducts.map((p, index) => {
+                  const isFav = favoriteIds.includes(p.id) || (p.numericId && favoriteIds.includes(p.numericId));
 
-                return (
-                  <article
-                    key={p.id}
-                    className="bg-white rounded-2xl border border-stone-200 shadow-xs hover:shadow-md transition-shadow overflow-hidden flex flex-col justify-between group"
-                    style={{ contain: 'content' }}
-                  >
-                    <div>
-                      {/* Imagen y Badges */}
-                      <div className="relative aspect-4/3 overflow-hidden bg-stone-100">
-                        <img
-                          src={p.image}
-                          alt={p.title}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading={index < 4 ? "eager" : "lazy"}
-                          decoding="async"
-                        />
-                        <button
-                          onClick={() => onToggleFavorite && onToggleFavorite(p.id)}
-                          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center bg-white/95 border border-stone-200/80 shadow-xs transition ${
-                            isFav ? 'text-rose-500' : 'text-stone-400 hover:text-rose-400'
-                          }`}
-                          aria-label="Agregar a favoritos"
-                        >
-                          {isFav ? '❤️' : '🤍'}
-                        </button>
+                  return (
+                    <article
+                      key={p.id}
+                      className="bg-white rounded-2xl border border-stone-200 shadow-xs hover:shadow-md transition-shadow overflow-hidden flex flex-col justify-between group"
+                      style={{ contain: 'content' }}
+                    >
+                      <div>
+                        {/* Imagen y Badges */}
+                        <div className="relative aspect-4/3 overflow-hidden bg-stone-100">
+                          <img
+                            src={p.image}
+                            alt={p.title}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                            loading={index < 4 ? "eager" : "lazy"}
+                            decoding="async"
+                          />
+                          <button
+                            onClick={() => onToggleFavorite && onToggleFavorite(p.id)}
+                            className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center bg-white/95 border border-stone-200/80 shadow-xs transition ${
+                              isFav ? 'text-rose-500' : 'text-stone-400 hover:text-rose-400'
+                            }`}
+                            aria-label="Agregar a favoritos"
+                          >
+                            {isFav ? '❤️' : '🤍'}
+                          </button>
 
-                        <span className="absolute bottom-3 left-3 bg-[#1a3d2f]/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                          {p.subtitle}
-                        </span>
-                      </div>
-
-                      {/* Detalles */}
-                      <div className="p-4">
-                        <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wider mb-1">
-                          {p.category}
-                        </p>
-                        <h3 className="font-serif text-base font-bold text-stone-900 group-hover:text-[#1a3d2f] transition-colors leading-snug">
-                          {p.title}
-                        </h3>
-                        <p className="text-xs text-stone-500 mt-1 line-clamp-2">
-                          {p.origin}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Precios y Acción */}
-                    <div className="p-4 pt-0">
-                      <div className="flex items-center justify-between pt-3 border-t border-stone-100">
-                        <div>
-                          <div className="flex items-baseline gap-1.5">
-                            <span className="text-base font-bold text-stone-900">
-                              ${p.price.toFixed(2)}
-                            </span>
-                            {p.originalPrice && p.originalPrice > p.price && (
-                              <span className="text-xs text-stone-400 line-through">
-                                ${p.originalPrice.toFixed(2)}
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-[10px] text-stone-400">USD por {p.unit || 'unidad'}</span>
+                          <span className="absolute bottom-3 left-3 bg-[#1a3d2f]/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                            {p.subtitle}
+                          </span>
                         </div>
 
-                        <button
-                          onClick={() => onAddToCart && onAddToCart(p, 1)}
-                          className="px-3.5 py-2 bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
-                        >
-                          <span>Agregar</span>
-                          <span>+</span>
-                        </button>
+                        {/* Detalles */}
+                        <div className="p-4">
+                          <p className="text-[11px] font-semibold text-emerald-800 uppercase tracking-wider mb-1">
+                            {p.category}
+                          </p>
+                          <h3 className="font-serif text-base font-bold text-stone-900 group-hover:text-[#1a3d2f] transition-colors leading-snug">
+                            {p.title}
+                          </h3>
+                          <p className="text-xs text-stone-500 mt-1 line-clamp-2">
+                            {p.origin}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+
+                      {/* Precios y Acción */}
+                      <div className="p-4 pt-0">
+                        <div className="flex items-center justify-between pt-3 border-t border-stone-100">
+                          <div>
+                            <div className="flex items-baseline gap-1.5">
+                              <span className="text-base font-bold text-stone-900">
+                                ${p.price.toFixed(2)}
+                              </span>
+                              {p.originalPrice && p.originalPrice > p.price && (
+                                <span className="text-xs text-stone-400 line-through">
+                                  ${p.originalPrice.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[10px] text-stone-400">USD por {p.unit || 'unidad'}</span>
+                          </div>
+
+                          <button
+                            onClick={() => onAddToCart && onAddToCart(p, 1)}
+                            className="px-3.5 py-2 bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer flex items-center gap-1.5"
+                          >
+                            <span>Agregar</span>
+                            <span>+</span>
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              {/* Controles Dinámicos de Paginación */}
+              <div className="mt-12 pt-6 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+                <span className="text-stone-500">
+                  Mostrando {startDisplay}–{endDisplay} de {filteredProducts.length} productos
+                </span>
+                <div className="flex items-center gap-1.5 font-medium">
+                  {totalPages <= 1 ? (
+                    <button
+                      type="button"
+                      disabled
+                      className="w-8 h-8 rounded-lg bg-[#1a3d2f] text-white font-bold opacity-90 cursor-default shadow-xs flex items-center justify-center text-xs"
+                      aria-current="page"
+                    >
+                      1
+                    </button>
+                  ) : (
+                    <>
+                      {/* Botón Anterior */}
+                      <button
+                        type="button"
+                        disabled={validCurrentPage <= 1}
+                        onClick={() => handlePageChange(validCurrentPage - 1)}
+                        className={`px-2.5 h-8 rounded-lg border border-stone-200 text-stone-700 flex items-center justify-center gap-1 transition ${
+                          validCurrentPage <= 1
+                            ? 'opacity-40 cursor-not-allowed pointer-events-none'
+                            : 'hover:bg-stone-50 cursor-pointer active:scale-95'
+                        }`}
+                        aria-label="Página anterior"
+                      >
+                        <span>‹</span>
+                        <span className="hidden sm:inline">Anterior</span>
+                      </button>
+
+                      {/* Botones numéricos de página */}
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                        const isCurrent = pageNum === validCurrentPage;
+                        return isCurrent ? (
+                          <button
+                            key={pageNum}
+                            type="button"
+                            disabled
+                            className="w-8 h-8 rounded-lg bg-[#1a3d2f] text-white font-bold shadow-xs cursor-default flex items-center justify-center text-xs"
+                            aria-current="page"
+                          >
+                            {pageNum}
+                          </button>
+                        ) : (
+                          <button
+                            key={pageNum}
+                            type="button"
+                            onClick={() => handlePageChange(pageNum)}
+                            className="w-8 h-8 rounded-lg border border-stone-200 text-stone-700 hover:bg-stone-50 transition cursor-pointer font-medium flex items-center justify-center text-xs active:scale-95"
+                            aria-label={`Ir a página ${pageNum}`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+
+                      {/* Botón Siguiente */}
+                      <button
+                        type="button"
+                        disabled={validCurrentPage >= totalPages}
+                        onClick={() => handlePageChange(validCurrentPage + 1)}
+                        className={`px-2.5 h-8 rounded-lg border border-stone-200 text-stone-700 flex items-center justify-center gap-1 transition ${
+                          validCurrentPage >= totalPages
+                            ? 'opacity-40 cursor-not-allowed pointer-events-none'
+                            : 'hover:bg-stone-50 cursor-pointer active:scale-95'
+                        }`}
+                        aria-label="Página siguiente"
+                      >
+                        <span className="hidden sm:inline">Siguiente</span>
+                        <span>›</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </>
           )}
         </>
       )}

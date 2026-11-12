@@ -491,7 +491,7 @@
       </aside>
 
       <!-- RIGHT COLUMN: PRODUCT GRID -->
-      <section class="lg:col-span-9">
+      <section class="lg:col-span-9" id="market-catalog-section">
         
         <!-- Banner de Filtro de Productor Activo -->
         <div id="producer-filter-banner" class="hidden mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
@@ -516,18 +516,10 @@
         </div>
 
         <!-- Pagination -->
-        <div class="mt-12 pt-6 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <span class="text-stone-500" id="products-pagination-label">Mostrando 1-12 de 48 productos</span>
-          <div class="flex items-center gap-1.5 font-medium">
-            <button class="w-8 h-8 rounded-lg border border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700">‹</button>
-            <button class="w-8 h-8 rounded-lg bg-[#1a3d2f] text-white flex items-center justify-center font-bold">1</button>
-            <button class="w-8 h-8 rounded-lg border border-stone-200 flex items-center justify-center text-stone-700 hover:bg-stone-50">2</button>
-            <button class="w-8 h-8 rounded-lg border border-stone-200 flex items-center justify-center text-stone-700 hover:bg-stone-50">3</button>
-            <button class="w-8 h-8 rounded-lg border border-stone-200 flex items-center justify-center text-stone-700 hover:bg-stone-50">4</button>
-            <button class="px-2.5 h-8 rounded-lg border border-stone-200 flex items-center justify-center text-stone-700 hover:bg-stone-50 gap-1">
-              <span>Siguiente</span>
-              <span>›</span>
-            </button>
+        <div id="products-pagination-container" class="mt-12 pt-6 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+          <span class="text-stone-500" id="products-pagination-label">Mostrando 1–30 de 48 productos</span>
+          <div id="products-pagination-controls" class="flex items-center gap-1.5 font-medium">
+            <!-- Botones de paginación generados dinámicamente por market.js -->
           </div>
         </div>
 

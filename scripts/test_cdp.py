@@ -118,7 +118,7 @@ def run_test():
         res = cdp_call("Runtime.evaluate", {"expression": "document.querySelectorAll('#products-grid > div').length"})
         grid_items = res["result"]["result"].get("value")
         print("Rendered cards in grid:", grid_items)
-        assert grid_items == 48, f"Expected 48 cards, got {grid_items}"
+        assert grid_items == 30, f"Expected 30 cards on page 1, got {grid_items}"
         
         # Check images in grid: none are burger/pizza/broken
         res = cdp_call("Runtime.evaluate", {"expression": """(() => {
@@ -134,7 +134,7 @@ def run_test():
         print(f"Product images: total={img_info['totalImgs']}, badCount={img_info['badCount']}")
         print("Sample images:", img_info["samples"])
         assert img_info["badCount"] == 0, "Found bad images!"
-        assert img_info["totalImgs"] == 48, f"Expected 48 images, got {img_info['totalImgs']}"
+        assert img_info["totalImgs"] == 30, f"Expected 30 images on page 1, got {img_info['totalImgs']}"
         
         # Test Modal Open & Scroll Lock in mercado.html
         print("\n--- TEST: Modal Scroll in mercado.html ---")

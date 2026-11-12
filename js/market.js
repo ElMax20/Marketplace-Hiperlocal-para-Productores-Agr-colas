@@ -1024,6 +1024,18 @@ let farmingPractices = [];
 let favorites = [];
 let favoritesOnly = false;
 let currentProducer = null;
+const ITEMS_PER_PAGE = 30;
+let currentPage = 1;
+
+function goToPage(page) {
+  currentPage = page;
+  renderProducts();
+  const catalogHeader = document.getElementById('market-catalog-section') || document.getElementById('products-grid');
+  if (catalogHeader) {
+    catalogHeader.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+window.goToPage = goToPage;
 
 // =============================================================================
 // Helper: Manejo de Favoritos Persistentes
@@ -1312,6 +1324,7 @@ function parseUrlParams() {
 
 function clearProducerFilter() {
   currentProducer = null;
+  currentPage = 1;
   const url = new URL(window.location);
   url.searchParams.delete('productor');
   url.searchParams.delete('finca');
@@ -1456,14 +1469,33 @@ function renderProducts() {
     countLabel.textContent = `${filtered.length} productos para tu próxima entrega`;
   }
 
+  // 1. Cálculo de total de páginas en tiempo real
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  if (currentPage > totalPages) {
+    currentPage = totalPages;
+  }
+  if (currentPage < 1) {
+    currentPage = 1;
+  }
+
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginated = filtered.slice(startIndex, endIndex);
+
   // Actualizar etiqueta de paginación inferior
   const paginationLabel = document.getElementById('products-pagination-label');
   if (paginationLabel) {
-    const showingMax = Math.min(filtered.length, 12);
-    paginationLabel.textContent = filtered.length > 0 
-      ? `Mostrando 1–${showingMax} de ${filtered.length} productos` 
-      : 'Mostrando 0 de 0 productos';
+    if (filtered.length > 0) {
+      const startDisplay = startIndex + 1;
+      const endDisplay = Math.min(startIndex + ITEMS_PER_PAGE, filtered.length);
+      paginationLabel.textContent = `Mostrando ${startDisplay}–${endDisplay} de ${filtered.length} productos`;
+    } else {
+      paginationLabel.textContent = 'Mostrando 0 de 0 productos';
+    }
   }
+
+  // Renderizar controles dinámicos de paginación
+  renderPaginationControls(totalPages, currentPage, filtered.length);
 
   // Actualizar contadores de categorías en la barra lateral
   updateCategoryBadgesCounts();
@@ -1472,6 +1504,7 @@ function renderProducts() {
   updateActiveFiltersUI();
 
   if (filtered.length === 0) {
+    renderPaginationControls(0, 1, 0);
     if (favoritesOnly) {
       container.innerHTML = `
         <div class="col-span-full py-16 text-center">
@@ -1499,7 +1532,7 @@ function renderProducts() {
     return;
   }
 
-  container.innerHTML = filtered.map((p, index) => {
+  container.innerHTML = paginated.map((p, index) => {
     const itemInCart = cart.find(item => String(item.id) === String(p.id));
     const cartQty = itemInCart ? itemInCart.quantity : 0;
     const isFav = isProductFavorite(p.id);
@@ -1619,11 +1652,118 @@ function renderProducts() {
   }).join('');
 }
 
+/**
+ * Renderizado de Controles de Paginación Dinámica
+ * @param {number} totalPages Total de páginas calculadas
+ * @param {number} currPage Página activa actual
+ * @param {number} totalItems Total de productos filtrados
+ */
+function renderPaginationControls(totalPages, currPage, totalItems) {
+  const container = document.getElementById('products-pagination-container');
+  const controls = document.getElementById('products-pagination-controls');
+  if (!container || !controls) return;
+
+  // Si no hay productos, ocultar el contenedor
+  if (totalItems === 0) {
+    container.classList.add('hidden');
+    controls.innerHTML = '';
+    return;
+  }
+
+  container.classList.remove('hidden');
+
+  // Si solo hay una página, mostrar únicamente el botón 1 deshabilitado (sin botones adelante/atrás)
+  if (totalPages <= 1) {
+    controls.innerHTML = `
+      <button 
+        type="button" 
+        disabled 
+        class="w-8 h-8 rounded-lg bg-[#1a3d2f] text-white font-bold opacity-90 cursor-default shadow-xs flex items-center justify-center text-xs"
+        aria-current="page"
+      >
+        1
+      </button>
+    `;
+    return;
+  }
+
+  // Generación de botones para múltiples páginas
+  let html = '';
+
+  // Botón Anterior
+  const isFirstPage = currPage <= 1;
+  html += `
+    <button 
+      type="button" 
+      ${isFirstPage ? 'disabled' : `onclick="goToPage(${currPage - 1})"`} 
+      class="px-2.5 h-8 rounded-lg border border-stone-200 text-stone-700 flex items-center justify-center gap-1 transition ${
+        isFirstPage 
+          ? 'opacity-40 cursor-not-allowed pointer-events-none' 
+          : 'hover:bg-stone-50 cursor-pointer active:scale-95'
+      }"
+      aria-label="Página anterior"
+    >
+      <span>‹</span>
+      <span class="hidden sm:inline">Anterior</span>
+    </button>
+  `;
+
+  // Botones de número de página (1 .. totalPages)
+  for (let i = 1; i <= totalPages; i++) {
+    const isCurrent = i === currPage;
+    if (isCurrent) {
+      html += `
+        <button 
+          type="button" 
+          disabled 
+          class="w-8 h-8 rounded-lg bg-[#1a3d2f] text-white font-bold shadow-xs cursor-default flex items-center justify-center text-xs"
+          aria-current="page"
+        >
+          ${i}
+        </button>
+      `;
+    } else {
+      html += `
+        <button 
+          type="button" 
+          onclick="goToPage(${i})" 
+          class="w-8 h-8 rounded-lg border border-stone-200 text-stone-700 hover:bg-stone-50 transition cursor-pointer font-medium flex items-center justify-center text-xs active:scale-95"
+          aria-label="Ir a página ${i}"
+        >
+          ${i}
+        </button>
+      `;
+    }
+  }
+
+  // Botón Siguiente
+  const isLastPage = currPage >= totalPages;
+  html += `
+    <button 
+      type="button" 
+      ${isLastPage ? 'disabled' : `onclick="goToPage(${currPage + 1})"`} 
+      class="px-2.5 h-8 rounded-lg border border-stone-200 text-stone-700 flex items-center justify-center gap-1 transition ${
+        isLastPage 
+          ? 'opacity-40 cursor-not-allowed pointer-events-none' 
+          : 'hover:bg-stone-50 cursor-pointer active:scale-95'
+      }"
+      aria-label="Página siguiente"
+    >
+      <span class="hidden sm:inline">Siguiente</span>
+      <span>›</span>
+    </button>
+  `;
+
+  controls.innerHTML = html;
+}
+window.renderPaginationControls = renderPaginationControls;
+
 // =============================================================================
 // 5. Manejo de Filtros y Búsqueda Reactiva
 // =============================================================================
 function setCategoryFilter(category) {
   currentCategory = category;
+  currentPage = 1;
   highlightCategoryButton(category);
   renderProducts();
 }
@@ -1645,6 +1785,7 @@ function highlightCategoryButton(category) {
 function toggleOffersOnly() {
   const checkbox = document.getElementById('filter-offers');
   offersOnly = checkbox ? checkbox.checked : false;
+  currentPage = 1;
   renderProducts();
 }
 
@@ -1652,12 +1793,14 @@ function removeOffersFilter() {
   offersOnly = false;
   const checkbox = document.getElementById('filter-offers');
   if (checkbox) checkbox.checked = false;
+  currentPage = 1;
   renderProducts();
 }
 
 function toggleWeeklyOnly() {
   const checkbox = document.getElementById('filter-weekly');
   weeklyOnly = checkbox ? checkbox.checked : false;
+  currentPage = 1;
   renderProducts();
 }
 
@@ -1665,11 +1808,13 @@ function removeWeeklyFilter() {
   weeklyOnly = false;
   const checkbox = document.getElementById('filter-weekly');
   if (checkbox) checkbox.checked = false;
+  currentPage = 1;
   renderProducts();
 }
 
 function setDistanceFilter(dist) {
   maxDistance = parseInt(dist, 10) || 0;
+  currentPage = 1;
   const radios = document.querySelectorAll('input[name="distancia"]');
   radios.forEach(r => {
     r.checked = (parseInt(r.value, 10) || 0) === maxDistance;
@@ -1684,6 +1829,7 @@ function setPriceFilter() {
   const maxVal = (maxEl && maxEl.value !== '') ? parseFloat(maxEl.value) : null;
   priceMin = minVal;
   priceMax = maxVal;
+  currentPage = 1;
   renderProducts();
 }
 
@@ -1694,6 +1840,7 @@ function clearPriceFilter() {
   if (minEl) minEl.value = '';
   const maxEl = document.getElementById('filter-price-max');
   if (maxEl) maxEl.value = '';
+  currentPage = 1;
   renderProducts();
 }
 
@@ -1707,6 +1854,7 @@ function toggleFarmingPractice(practice) {
   const idMap = { 'agro': 'filter-agro', 'nochem': 'filter-nochem', 'artesanal': 'filter-artesanal' };
   const el = document.getElementById(idMap[practice]);
   if (el) el.checked = farmingPractices.includes(practice);
+  currentPage = 1;
   renderProducts();
 }
 
@@ -1714,6 +1862,7 @@ function clearSearchFilter() {
   searchQuery = '';
   const searchInput = document.getElementById('market-search');
   if (searchInput) searchInput.value = '';
+  currentPage = 1;
   renderProducts();
 }
 
@@ -1721,6 +1870,7 @@ function sortProducts() {
   const select = document.getElementById('sort-select');
   if (select) {
     currentSort = select.value;
+    currentPage = 1;
     renderProducts();
   }
 }
@@ -1733,6 +1883,7 @@ function removeFavoritesFilter() {
     url.searchParams.delete('fav');
     window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
   }
+  currentPage = 1;
   renderProducts();
 }
 window.removeFavoritesFilter = removeFavoritesFilter;
@@ -1747,6 +1898,7 @@ function resetFilters() {
   priceMin = null;
   priceMax = null;
   farmingPractices = [];
+  currentPage = 1;
 
   const searchInput = document.getElementById('market-search');
   if (searchInput) searchInput.value = '';
@@ -1975,6 +2127,7 @@ function setupSearchListener() {
     const val = e.target.value.trim();
     searchDebounceTimer = setTimeout(() => {
       searchQuery = val;
+      currentPage = 1;
       renderProducts();
     }, 250);
   });
