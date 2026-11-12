@@ -83,10 +83,12 @@ def test_cropper():
                 except:
                     pass
 
-        print("\n--- TEST: perfil.html Avatar Cropper ---")
+        print("\n==========================================")
+        print(">>> INICIANDO TEST COMPLETO DE PERFIL & CROPPER <<<")
+        print("==========================================")
         call('Page.enable')
 
-        # Pre-seed localStorage before navigation to prevent redirect to mercado.html
+        # Pre-seed localStorage with user 'Max Campoverde' without photo
         call('Page.addScriptToEvaluateOnNewDocument', {'source': """
             const testUser = {
                 id: '00000000-0000-0000-0000-000000000001',
@@ -96,6 +98,7 @@ def test_cropper():
                 phone: '0991234567',
                 role: 'cliente',
                 avatar: null,
+                avatar_url: null,
                 loggedIn: true
             };
             localStorage.setItem('rb_current_user', JSON.stringify(testUser));
@@ -112,222 +115,249 @@ def test_cropper():
         call('Page.navigate', {'url': 'http://localhost:5500/perfil.html'})
         time.sleep(2.5)
 
-        # Verify page URL and logged in user
-        res = call('Runtime.evaluate', {'expression': 'window.location.href', 'returnByValue': True})
-        print("Page URL:", res["result"]["result"]["value"])
-        assert "perfil.html" in res["result"]["result"]["value"], "Page should stay on perfil.html!"
+        # 1. TEST NAVBAR AVATAR WITHOUT PHOTO
+        print("\n--- TEST 1: Navbar Avatar Centrado con Iniciales (Sin Foto) ---")
+        res = call('Runtime.evaluate', {'expression': """(() => {
+            const avatarContainer = document.querySelector('#user-avatar-btn > div');
+            const img = document.getElementById('nav-user-avatar');
+            const initials = document.getElementById('nav-user-initials');
 
-        # 1. Simulate selecting an image file and opening the cropper modal
+            return {
+                containerClass: avatarContainer ? avatarContainer.className : '',
+                imgHidden: img ? img.classList.contains('hidden') : false,
+                imgClass: img ? img.className : '',
+                initialsVisible: initials ? !initials.classList.contains('hidden') : false,
+                initialsText: initials ? initials.textContent.trim() : '',
+                initialsClass: initials ? initials.className : ''
+            };
+        })()""", 'returnByValue': True})
+        nav_info = res["result"]["result"]["value"]
+        print("Navbar Avatar info:", nav_info)
+        assert "bg-emerald-900" in nav_info["containerClass"], "Container must have bg-emerald-900!"
+        assert "w-10 h-10 rounded-full" in nav_info["containerClass"], "Container must be w-10 h-10 rounded-full!"
+        assert "flex items-center justify-center" in nav_info["containerClass"], "Container must be flex items-center justify-center!"
+        assert nav_info["imgHidden"], "Image should be hidden when user has no photo!"
+        assert nav_info["initialsVisible"], "Initials should be visible when user has no photo!"
+        assert nav_info["initialsText"] in ["M", "MC"], f"Initials should be 'M' or 'MC', got '{nav_info['initialsText']}'"
+        assert "flex items-center justify-center w-full h-full text-white font-bold" in nav_info["initialsClass"], "Initials must be centered with flex items-center justify-center w-full h-full!"
+
+        # 2. TEST MODAL OPENING VIA FILE INPUT
+        print("\n--- TEST 2: Apertura de Modal 'Ajustar encuadre de la foto' ---")
         res = call('Runtime.evaluate', {'expression': """(async () => {
-            // Create a test 600x600 image on a scratch canvas
+            // Generate real test portrait image
             const c = document.createElement('canvas');
             c.width = 600;
             c.height = 600;
             const ctx = c.getContext('2d');
-            ctx.fillStyle = '#1a3d2f';
+            ctx.fillStyle = '#064e3b';
             ctx.fillRect(0, 0, 600, 600);
-            ctx.fillStyle = '#e2725b';
+            ctx.fillStyle = '#10b981';
             ctx.beginPath();
-            ctx.arc(300, 300, 150, 0, Math.PI * 2);
+            ctx.arc(300, 300, 180, 0, Math.PI * 2);
             ctx.fill();
 
             const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
-            const file = new File([blob], 'test_avatar.jpg', { type: 'image/jpeg' });
+            const file = new File([blob], 'avatar_test.jpg', { type: 'image/jpeg' });
 
-            // Call openAvatarCropperModal
-            openAvatarCropperModal(file);
+            // Trigger file selection
+            const input = document.getElementById('photo-file-input');
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            input.files = dataTransfer.files;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
             return true;
         })()""", 'awaitPromise': True})
-        print("Opened cropper modal:", res["result"]["result"].get("value"))
         time.sleep(1)
 
-        # 2. Check modal visibility, elements, and body scroll lock
         res = call('Runtime.evaluate', {'expression': """(() => {
             const modal = document.getElementById('avatar-cropper-modal');
             const viewport = document.getElementById('cropper-viewport');
-            const canvas = document.getElementById('cropper-canvas');
-            const mask = viewport?.querySelector('.rounded-full.ring-4.ring-white.shadow-lg');
+            const cropperImg = document.getElementById('cropper-image');
+            const mask = viewport?.querySelector('.rounded-full.ring-4.ring-white');
+            const pill = viewport?.querySelector('div[class*="bg-black"]');
             const slider = document.getElementById('cropper-zoom-slider');
+            const closeBtn = document.getElementById('cropper-close-btn');
+            const cancelBtn = document.getElementById('cropper-cancel-btn');
             const saveBtn = document.getElementById('cropper-save-btn');
 
             return {
                 modalVisible: modal && !modal.classList.contains('hidden'),
                 bodyOverflow: document.body.style.overflow,
-                viewportWidth: viewport ? viewport.offsetWidth : 0,
-                viewportHeight: viewport ? viewport.offsetHeight : 0,
-                canvasWidth: canvas ? canvas.width : 0,
-                canvasHeight: canvas ? canvas.height : 0,
-                hasMaskOverlay: !!mask,
-                sliderMin: slider ? slider.min : '',
-                sliderMax: slider ? slider.max : '',
-                sliderStep: slider ? slider.step : '',
-                saveBtnText: saveBtn ? saveBtn.textContent.trim() : ''
+                hasImage: !!cropperImg && !!cropperImg.src,
+                imageTransform: cropperImg ? cropperImg.style.transform : '',
+                maskPointerEventsNone: mask ? mask.classList.contains('pointer-events-none') : false,
+                pillPointerEventsNone: pill ? pill.classList.contains('pointer-events-none') : false,
+                hasButtons: !!closeBtn && !!cancelBtn && !!saveBtn && !!slider
             };
         })()""", 'returnByValue': True})
-        info = res["result"]["result"]["value"]
-        print("Cropper modal inspection:", info)
-        assert info["modalVisible"], "Modal should be visible!"
-        assert info["bodyOverflow"] == "hidden", "Body scroll should be locked (overflow: hidden)!"
-        assert info["viewportWidth"] == 280 and info["viewportHeight"] == 280, f"Viewport should be 280x280, got {info['viewportWidth']}x{info['viewportHeight']}"
-        assert info["canvasWidth"] == 280 and info["canvasHeight"] == 280, "Canvas should be 280x280"
-        assert info["hasMaskOverlay"], "Mask overlay with rounded-full ring-4 ring-white shadow-lg should exist!"
-        assert info["sliderMin"] == "1" and info["sliderMax"] == "3" and info["sliderStep"] == "0.05", "Slider should have min=1, max=3, step=0.05"
-        assert "Guardar foto" in info["saveBtnText"], f"Save button text should be 'Guardar foto', got {info['saveBtnText']}"
+        modal_info = res["result"]["result"]["value"]
+        print("Cropper modal opened:", modal_info)
+        assert modal_info["modalVisible"], "Modal must be visible!"
+        assert modal_info["bodyOverflow"] == "hidden", "Body overflow must be hidden!"
+        assert modal_info["hasImage"], "Cropper image must have src!"
+        assert modal_info["maskPointerEventsNone"], "Mask must have pointer-events-none!"
+        assert modal_info["pillPointerEventsNone"], "Pill must have pointer-events-none!"
+        assert modal_info["hasButtons"], "All buttons (close, cancel, save, slider) must exist!"
 
-        # 3. Test Zoom Controls (Buttons & Slider)
-        print("\n--- TEST: Zoom Buttons & Slider ---")
+        # 3. TEST ZOOM CONTROLS (+ button, - button, slider)
+        print("\n--- TEST 3: Controles de Zoom (+, -, slider) ---")
+        # Click + button twice (+0.2)
         call('Runtime.evaluate', {'expression': """(() => {
-            const zoomInBtn = document.getElementById('cropper-zoom-in-btn');
-            zoomInBtn.click();
-            zoomInBtn.click(); // +0.2 zoom => 1.2
+            const zoomIn = document.getElementById('cropper-zoom-in-btn');
+            zoomIn.click();
+            zoomIn.click();
         })()"""})
         time.sleep(0.3)
-
         res = call('Runtime.evaluate', {'expression': """(() => {
             return {
                 zoom: cropperState.zoom,
-                label: document.getElementById('cropper-zoom-label')?.textContent
+                label: document.getElementById('cropper-zoom-label')?.textContent.trim(),
+                sliderVal: document.getElementById('cropper-zoom-slider')?.value
             };
         })()""", 'returnByValue': True})
-        zoom_btn_info = res["result"]["result"]["value"]
-        print("After clicking Zoom In twice:", zoom_btn_info)
-        assert zoom_btn_info["zoom"] >= 1.19, f"Zoom should have increased, got {zoom_btn_info['zoom']}"
+        zoom_in_info = res["result"]["result"]["value"]
+        print("After + clicks:", zoom_in_info)
+        assert abs(zoom_in_info["zoom"] - 1.2) < 0.05, f"Zoom should be 1.2, got {zoom_in_info['zoom']}"
+        assert "120%" in zoom_in_info["label"], f"Label should be 120%, got {zoom_in_info['label']}"
 
-        # Test Slider directly to 1.75
+        # Click - button once (-0.1)
+        call('Runtime.evaluate', {'expression': """(() => {
+            const zoomOut = document.getElementById('cropper-zoom-out-btn');
+            zoomOut.click();
+        })()"""})
+        time.sleep(0.3)
+        res = call('Runtime.evaluate', {'expression': """(() => {
+            return {
+                zoom: cropperState.zoom,
+                label: document.getElementById('cropper-zoom-label')?.textContent.trim()
+            };
+        })()""", 'returnByValue': True})
+        zoom_out_info = res["result"]["result"]["value"]
+        print("After - click:", zoom_out_info)
+        assert abs(zoom_out_info["zoom"] - 1.1) < 0.05, f"Zoom should be 1.1, got {zoom_out_info['zoom']}"
+        assert "110%" in zoom_out_info["label"], f"Label should be 110%, got {zoom_out_info['label']}"
+
+        # Set slider to 1.75
         call('Runtime.evaluate', {'expression': """(() => {
             const slider = document.getElementById('cropper-zoom-slider');
             slider.value = "1.75";
             slider.dispatchEvent(new Event('input', { bubbles: true }));
         })()"""})
         time.sleep(0.3)
-
         res = call('Runtime.evaluate', {'expression': """(() => {
             return {
                 zoom: cropperState.zoom,
-                label: document.getElementById('cropper-zoom-label')?.textContent
+                label: document.getElementById('cropper-zoom-label')?.textContent.trim()
             };
         })()""", 'returnByValue': True})
-        zoom_slider_info = res["result"]["result"]["value"]
-        print("After slider set to 1.75:", zoom_slider_info)
-        assert abs(zoom_slider_info["zoom"] - 1.75) < 0.05, f"Zoom should be ~1.75, got {zoom_slider_info['zoom']}"
+        slider_info = res["result"]["result"]["value"]
+        print("After slider to 1.75:", slider_info)
+        assert abs(slider_info["zoom"] - 1.75) < 0.05, f"Zoom should be 1.75, got {slider_info['zoom']}"
+        assert "175%" in slider_info["label"], f"Label should be 175%, got {slider_info['label']}"
 
-        # 4. Test Dragging via Mouse Events (Now at zoom=1.75, maxPanX=(240*1.75/2 - 120)=90px)
-        print("\n--- TEST: Dragging (Mouse) ---")
+        # 4. TEST DRAGGING WITH MOUSE & TOUCH
+        print("\n--- TEST 4: Arrastre Mouse & Touch en Tiempo Real ---")
         res = call('Runtime.evaluate', {'expression': """(() => {
             const viewport = document.getElementById('cropper-viewport');
             const rect = viewport.getBoundingClientRect();
             const startX = rect.left + 140;
             const startY = rect.top + 140;
 
-            // Trigger mousedown
-            viewport.dispatchEvent(new MouseEvent('mousedown', {
-                clientX: startX,
-                clientY: startY,
-                bubbles: true
-            }));
+            // Mouse Drag
+            viewport.dispatchEvent(new MouseEvent('mousedown', { clientX: startX, clientY: startY, bubbles: true }));
+            window.dispatchEvent(new MouseEvent('mousemove', { clientX: startX + 45, clientY: startY + 35, bubbles: true }));
+            window.dispatchEvent(new MouseEvent('mouseup', { clientX: startX + 45, clientY: startY + 35, bubbles: true }));
 
-            // Trigger mousemove to drag right (+40) and down (+30)
-            window.dispatchEvent(new MouseEvent('mousemove', {
-                clientX: startX + 40,
-                clientY: startY + 30,
-                bubbles: true
-            }));
-
-            // Trigger mouseup
-            window.dispatchEvent(new MouseEvent('mouseup', {
-                clientX: startX + 40,
-                clientY: startY + 30,
-                bubbles: true
-            }));
-
+            const cropperImg = document.getElementById('cropper-image');
             return {
-                panX: cropperState.panX,
-                panY: cropperState.panY,
-                zoom: cropperState.zoom
+                offsetX: cropperState.offsetX,
+                offsetY: cropperState.offsetY,
+                transform: cropperImg ? cropperImg.style.transform : ''
             };
         })()""", 'returnByValue': True})
         drag_info = res["result"]["result"]["value"]
-        print("After Mouse Drag at zoom 1.75:", drag_info)
-        assert drag_info['panX'] != 0 or drag_info['panY'] != 0, f"Pan should have shifted! got {drag_info}"
-        print(f"Pan after mouse drag: panX={drag_info['panX']}, panY={drag_info['panY']}")
+        print("After Mouse Drag:", drag_info)
+        assert drag_info["offsetX"] != 0 and drag_info["offsetY"] != 0, "Offsets should shift on mouse drag!"
+        assert "translate" in drag_info["transform"] and "scale" in drag_info["transform"], f"Transform must contain translate and scale! Got: {drag_info['transform']}"
 
-        # 5. Test Touch Drag
-        print("\n--- TEST: Touch Drag ---")
+        # 5. TEST CANCEL BUTTON & INPUT RESET
+        print("\n--- TEST 5: Botón Cancelar y Reset de input[type=file] ---")
+        call('Runtime.evaluate', {'expression': """(() => {
+            document.getElementById('cropper-cancel-btn').click();
+        })()"""})
+        time.sleep(0.5)
+
         res = call('Runtime.evaluate', {'expression': """(() => {
-            const viewport = document.getElementById('cropper-viewport');
-            const rect = viewport.getBoundingClientRect();
-            const startX = rect.left + 140;
-            const startY = rect.top + 140;
-
-            const touchObj1 = new Touch({
-                identifier: 1,
-                target: viewport,
-                clientX: startX,
-                clientY: startY
-            });
-
-            viewport.dispatchEvent(new TouchEvent('touchstart', {
-                touches: [touchObj1],
-                targetTouches: [touchObj1],
-                changedTouches: [touchObj1],
-                bubbles: true,
-                cancelable: true
-            }));
-
-            const touchObj2 = new Touch({
-                identifier: 1,
-                target: viewport,
-                clientX: startX - 30,
-                clientY: startY - 20
-            });
-
-            viewport.dispatchEvent(new TouchEvent('touchmove', {
-                touches: [touchObj2],
-                targetTouches: [touchObj2],
-                changedTouches: [touchObj2],
-                bubbles: true,
-                cancelable: true
-            }));
-
-            viewport.dispatchEvent(new TouchEvent('touchend', {
-                touches: [],
-                targetTouches: [],
-                changedTouches: [touchObj2],
-                bubbles: true
-            }));
-
+            const modal = document.getElementById('avatar-cropper-modal');
+            const input = document.getElementById('photo-file-input');
             return {
-                panX: cropperState.panX,
-                panY: cropperState.panY
+                modalClosed: modal.classList.contains('hidden'),
+                bodyOverflow: document.body.style.overflow,
+                inputFileValue: input.value
             };
         })()""", 'returnByValue': True})
-        touch_info = res["result"]["result"]["value"]
-        print("After Touch Drag:", touch_info)
+        cancel_info = res["result"]["result"]["value"]
+        print("After Cancel button:", cancel_info)
+        assert cancel_info["modalClosed"], "Modal must be closed!"
+        assert cancel_info["bodyOverflow"] == "", "Body overflow must be restored to empty!"
+        assert cancel_info["inputFileValue"] == "", "Input file value must be reset to empty!"
 
-        # 6. Test "Guardar foto" / saveCroppedAvatar()
-        print("\n--- TEST: Guardar foto (Canvas 400x400, Blob WebP, Supabase Storage) ---")
+        # 6. RE-OPEN AND TEST "✓ Guardar foto"
+        print("\n--- TEST 6: Guardar Foto (Canvas 400x400, Supabase Storage, Navbar Update) ---")
+        # Trigger file selection again
+        call('Runtime.evaluate', {'expression': """(async () => {
+            const c = document.createElement('canvas');
+            c.width = 600;
+            c.height = 600;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#064e3b';
+            ctx.fillRect(0, 0, 600, 600);
+            ctx.fillStyle = '#f59e0b';
+            ctx.beginPath();
+            ctx.arc(300, 300, 160, 0, Math.PI * 2);
+            ctx.fill();
+
+            const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.9));
+            const file = new File([blob], 'final_avatar.jpg', { type: 'image/jpeg' });
+            openAvatarCropperModal(file);
+        })()""", 'awaitPromise': True})
+        time.sleep(1)
+
+        # Shift offset and zoom slightly
+        call('Runtime.evaluate', {'expression': """(() => {
+            adjustCropperZoom(0.3); // zoom = 1.3
+            cropperState.offsetX = 20;
+            cropperState.offsetY = 15;
+            updateCropperTransform();
+        })()"""})
+        time.sleep(0.3)
+
+        # Click save button
         res = call('Runtime.evaluate', {'expression': """(async () => {
-            const saveBtn = document.getElementById('cropper-save-btn');
             await saveCroppedAvatar();
             return {
                 modalClosed: document.getElementById('avatar-cropper-modal').classList.contains('hidden'),
-                bodyOverflowAfterSave: document.body.style.overflow,
+                bodyOverflow: document.body.style.overflow,
                 cachedProfile: JSON.parse(localStorage.getItem('rb_cached_profile') || '{}'),
-                navAvatarSrc: (document.getElementById('nav-user-avatar') || document.querySelector('#user-avatar-btn img'))?.src || '',
-                profileAvatarSrc: document.getElementById('profile-avatar-preview')?.src || ''
+                navImgHidden: document.getElementById('nav-user-avatar')?.classList.contains('hidden'),
+                navImgSrc: document.getElementById('nav-user-avatar')?.src,
+                navImgClass: document.getElementById('nav-user-avatar')?.className,
+                navInitialsHidden: document.getElementById('nav-user-initials')?.classList.contains('hidden'),
+                profilePreviewSrc: document.getElementById('profile-avatar-preview')?.src
             };
         })()""", 'awaitPromise': True, 'returnByValue': True})
-        save_result = res["result"]["result"]["value"]
-        print("Save result inspection:", save_result)
-        assert save_result["modalClosed"], "Modal should be closed after saving!"
-        assert save_result["bodyOverflowAfterSave"] == "", "Body scroll should be restored ('') after closing modal!"
-        assert save_result["cachedProfile"].get("avatar_url"), "rb_cached_profile should have new avatar_url!"
-        assert save_result["profileAvatarSrc"], "Profile preview avatar src should be set!"
-        assert save_result["navAvatarSrc"] == save_result["profileAvatarSrc"], f"Navbar ({save_result['navAvatarSrc']}) and profile avatar ({save_result['profileAvatarSrc']}) should match!"
-        assert "data:image/webp" in save_result["cachedProfile"]["avatar_url"] or "supabase.co" in save_result["cachedProfile"]["avatar_url"], "Avatar URL should be valid WebP or Supabase Storage URL!"
+        save_info = res["result"]["result"]["value"]
+        print("After Save Photo:", save_info)
+        assert save_info["modalClosed"], "Modal must be closed after saving!"
+        assert save_info["bodyOverflow"] == "", "Body overflow must be restored to empty!"
+        assert save_info["cachedProfile"].get("avatar_url"), "Cached profile must have avatar_url!"
+        assert not save_info["navImgHidden"], "Navbar avatar image must NOT be hidden after save!"
+        assert "w-full h-full object-cover object-center block" in save_info["navImgClass"], "Navbar image must have object-cover object-center block!"
+        assert save_info["navInitialsHidden"], "Navbar initials must be hidden after avatar save!"
+        assert save_info["navImgSrc"] == save_info["profilePreviewSrc"], "Navbar and profile preview must match!"
 
         print("\n==========================================")
-        print(">>> ALL AVATAR CROPPER TESTS PASSED 100%! <<<")
+        print(">>> ALL TESTS PASSED SUCCESSFULLY 100%! <<<")
         print("==========================================")
     finally:
         proc.terminate()

@@ -321,13 +321,27 @@ function renderProfileUI(u) {
   const dropRole = document.getElementById('dropdown-user-role');
   if (dropRole) dropRole.textContent = roleText;
 
-  const hasAvatar = !!(u.avatar && typeof u.avatar === 'string' && u.avatar.trim() !== '' && !u.avatar.includes('lucia_torres.jpg') && !u.avatar.includes('elena_moreno.jpg'));
-  const avatarSrc = hasAvatar ? normalizeAvatarUrl(u.avatar) : NEUTRAL_AVATAR_FALLBACK;
+  const rawAvatar = u.avatar || u.avatar_url || '';
+  const hasAvatar = Boolean(rawAvatar && typeof rawAvatar === 'string' && rawAvatar.trim() !== '' && !rawAvatar.includes('data:image/svg+xml') && !rawAvatar.includes('lucia_torres.jpg') && !rawAvatar.includes('elena_moreno.jpg'));
+  const avatarSrc = hasAvatar ? normalizeAvatarUrl(rawAvatar) : '';
 
   const navAvatar = document.getElementById('nav-user-avatar');
-  if (navAvatar) {
+  const navInitials = document.getElementById('nav-user-initials');
+  const displayName = u.name || 'Mi cuenta';
+  const initials = displayName.trim().split(/\s+/).slice(0, 2).map(s => s[0]?.toUpperCase() || '').join('') || 'U';
+
+  if (navInitials) navInitials.textContent = initials;
+
+  if (hasAvatar && navAvatar) {
     navAvatar.src = avatarSrc;
-    navAvatar.onerror = function() { this.src = NEUTRAL_AVATAR_FALLBACK; };
+    navAvatar.classList.remove('hidden');
+    if (navInitials) navInitials.classList.add('hidden');
+  } else {
+    if (navAvatar) navAvatar.classList.add('hidden');
+    if (navInitials) {
+      navInitials.classList.remove('hidden');
+      navInitials.classList.add('flex');
+    }
   }
 
   const navNode = document.getElementById('nav-user-node');
@@ -420,13 +434,23 @@ function handlePhotoFileSelected(e) {
   const file = e.target.files && e.target.files[0];
   if (!file) return;
 
-  if (!file.type.match(/^image\/(jpeg|png|webp)$/i)) {
-    showToast('Formato no válido. Solo se admiten archivos JPG o PNG.');
+  if (!file.type.startsWith('image/')) {
+    if (typeof showToast === 'function') {
+      showToast('Formato no válido. Por favor selecciona una imagen (JPG, PNG, WebP).');
+    } else {
+      alert('Formato no válido. Por favor selecciona una imagen (JPG, PNG, WebP).');
+    }
+    if (e.target) e.target.value = '';
     return;
   }
 
   if (file.size > 5 * 1024 * 1024) {
-    showToast('La imagen supera el límite de 5 MB. Por favor elige otra.');
+    if (typeof showToast === 'function') {
+      showToast('La imagen supera el límite de 5 MB. Por favor elige otra.');
+    } else {
+      alert('La imagen supera el límite de 5 MB. Por favor elige otra.');
+    }
+    if (e.target) e.target.value = '';
     return;
   }
 
@@ -443,7 +467,12 @@ function handlePhotoFileSelected(e) {
     if (preview) preview.src = finalAvatarUrl;
 
     const navAvatar = document.getElementById('nav-user-avatar');
-    if (navAvatar) navAvatar.src = finalAvatarUrl;
+    const navInitials = document.getElementById('nav-user-initials');
+    if (navAvatar) {
+      navAvatar.src = finalAvatarUrl;
+      navAvatar.classList.remove('hidden');
+    }
+    if (navInitials) navInitials.classList.add('hidden');
 
     const deleteBtn = document.getElementById('btn-delete-avatar');
     if (deleteBtn) {
@@ -468,6 +497,14 @@ function handleRemovePhoto() {
 
   const preview = document.getElementById('profile-avatar-preview');
   if (preview) preview.src = NEUTRAL_AVATAR_FALLBACK;
+
+  const navAvatar = document.getElementById('nav-user-avatar');
+  const navInitials = document.getElementById('nav-user-initials');
+  if (navAvatar) navAvatar.classList.add('hidden');
+  if (navInitials) {
+    navInitials.classList.remove('hidden');
+    navInitials.classList.add('flex');
+  }
 
   const deleteBtn = document.getElementById('btn-delete-avatar');
   if (deleteBtn) {

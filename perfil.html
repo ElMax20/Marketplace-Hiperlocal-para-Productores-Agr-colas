@@ -101,14 +101,15 @@
               class="flex items-center gap-2 p-1 rounded-full hover:bg-stone-50 transition cursor-pointer text-left"
               title="Opciones de usuario"
             >
-              <div class="w-8 h-8 rounded-full overflow-hidden border border-stone-200 bg-stone-100 shrink-0 shadow-2xs flex items-center justify-center">
+              <div class="relative w-10 h-10 rounded-full overflow-hidden flex items-center justify-center bg-emerald-900 shrink-0 border border-emerald-950/20 shadow-2xs">
                 <img 
                   id="nav-user-avatar" 
-                  src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='32' fill='%23e7e5e4'/><path d='M32 32a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0 6c-8.84 0-20 4.48-20 12v4h40v-4c0-7.52-11.16-12-20-12z' fill='%23a8a29e'/></svg>" 
+                  src="" 
                   alt="Avatar" 
-                  class="w-full h-full object-cover"
-                  onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 64 64\'><circle cx=\'32\' cy=\'32\' r=\'32\' fill=\'%23e7e5e4\'/><path d=\'M32 32a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0 6c-8.84 0-20 4.48-20 12v4h40v-4c0-7.52-11.16-12-20-12z\' fill=\'%23a8a29e\'/></svg>'"
+                  class="hidden w-full h-full object-cover object-center block"
+                  onerror="this.classList.add('hidden'); if(document.getElementById('nav-user-initials')) document.getElementById('nav-user-initials').classList.remove('hidden');"
                 >
+                <span id="nav-user-initials" class="flex items-center justify-center w-full h-full text-white font-bold text-sm select-none">M</span>
               </div>
               <div class="hidden sm:block text-left text-xs leading-tight">
                 <span id="nav-user-name" class="font-bold text-stone-900 block truncate max-w-[120px]">Mi cuenta</span>
@@ -148,6 +149,7 @@
                 if (p) {
                   var nameEl = document.getElementById('nav-user-name');
                   var avatarEl = document.getElementById('nav-user-avatar');
+                  var initialsEl = document.getElementById('nav-user-initials');
                   var roleEl = document.getElementById('nav-user-role-label');
                   var dropName = document.getElementById('dropdown-user-name');
                   var dropRole = document.getElementById('dropdown-user-role');
@@ -155,7 +157,20 @@
                   if (nameEl) nameEl.textContent = displayName;
                   if (dropName) dropName.textContent = displayName;
                   var avatar = p.avatar_url || p.avatar;
-                  if (avatar && avatarEl) avatarEl.src = (window.normalizeAvatarUrl ? window.normalizeAvatarUrl(avatar) : avatar);
+                  var hasRealPhoto = avatar && typeof avatar === 'string' && avatar.trim() !== '' && !avatar.includes('data:image/svg+xml');
+                  var initials = (displayName || 'U').trim().split(/\s+/).slice(0, 2).map(function(s) { return s[0] ? s[0].toUpperCase() : ''; }).join('') || 'U';
+                  if (initialsEl) initialsEl.textContent = initials;
+                  if (hasRealPhoto && avatarEl) {
+                    avatarEl.src = (window.normalizeAvatarUrl ? window.normalizeAvatarUrl(avatar) : avatar);
+                    avatarEl.classList.remove('hidden');
+                    if (initialsEl) initialsEl.classList.add('hidden');
+                  } else {
+                    if (avatarEl) avatarEl.classList.add('hidden');
+                    if (initialsEl) {
+                      initialsEl.classList.remove('hidden');
+                      initialsEl.classList.add('flex');
+                    }
+                  }
                   var roleName = (p.role === 'productor' ? 'Productor' : (p.role === 'admin' ? 'Admin' : 'Comprador'));
                   if (roleEl) roleEl.textContent = 'Mi cuenta · ' + roleName;
                   if (dropRole) dropRole.textContent = roleName;
@@ -697,7 +712,7 @@
             <p class="text-[10px] text-stone-500">Mueve y ajusta el zoom para que tu foto quede perfecta</p>
           </div>
         </div>
-        <button type="button" onclick="closeAvatarCropperModal(false)" class="w-8 h-8 rounded-full bg-white hover:bg-stone-200 text-stone-500 flex items-center justify-center text-sm font-bold transition shadow-xs cursor-pointer" title="Cancelar">
+        <button type="button" id="cropper-close-btn" onclick="closeAvatarCropperModal(false)" class="w-8 h-8 rounded-full bg-white hover:bg-stone-200 text-stone-500 flex items-center justify-center text-sm font-bold transition shadow-xs cursor-pointer" title="Cancelar">
           ✕
         </button>
       </div>
@@ -706,14 +721,22 @@
       <div class="p-4 sm:p-5 overflow-y-auto space-y-3.5 flex-1">
         <div class="relative mx-auto flex flex-col items-center">
           <div id="cropper-viewport" class="relative rounded-2xl overflow-hidden shadow-inner bg-stone-900 border border-stone-300 touch-none select-none flex items-center justify-center cursor-grab active:cursor-grabbing" style="width: 280px; height: 280px;">
-            <canvas id="cropper-canvas" width="280" height="280" class="block w-[280px] h-[280px] pointer-events-none" style="touch-action: none;"></canvas>
+            <!-- Imagen interactiva con CSS transform -->
+            <img 
+              id="cropper-image" 
+              src="" 
+              alt="Previsualización para encuadre" 
+              class="pointer-events-none select-none max-w-none absolute origin-center will-change-transform block" 
+              style="transform: translate(0px, 0px) scale(1);"
+            />
+            <canvas id="cropper-canvas" width="280" height="280" class="hidden pointer-events-none" style="touch-action: none;"></canvas>
             
             <!-- Máscara circular superpuesta requerida: rounded-full ring-4 ring-white shadow-lg -->
-            <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+            <div class="absolute inset-0 pointer-events-none flex items-center justify-center z-10">
               <div class="w-[240px] h-[240px] rounded-full ring-4 ring-white shadow-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] pointer-events-none"></div>
             </div>
 
-            <div class="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-black/70 text-white text-[10px] font-medium px-3 py-1 rounded-full pointer-events-none flex items-center gap-1.5 shadow-sm whitespace-nowrap z-10">
+            <div class="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-black/70 text-white text-[10px] font-medium px-3 py-1 rounded-full pointer-events-none flex items-center gap-1.5 shadow-sm whitespace-nowrap z-20">
               <span>✋ Arrastra para centrar</span>
               <span>•</span>
               <span>🔍 Zoom</span>
@@ -731,7 +754,7 @@
             <span id="cropper-zoom-label" class="text-[11px] font-mono text-[#1a3d2f] bg-white px-2 py-0.5 rounded-md border border-stone-200 font-bold">100%</span>
           </div>
           <div class="flex items-center gap-2">
-            <button type="button" id="cropper-zoom-out-btn" class="w-8 h-8 rounded-xl bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 flex items-center justify-center text-sm font-bold shadow-xs transition cursor-pointer select-none" title="Alejar">
+            <button type="button" id="cropper-zoom-out-btn" onclick="adjustCropperZoom(-0.1)" class="w-8 h-8 rounded-xl bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 flex items-center justify-center text-sm font-bold shadow-xs transition cursor-pointer select-none" title="Alejar">
               −
             </button>
             <input 
@@ -741,9 +764,10 @@
               max="3" 
               step="0.05" 
               value="1" 
+              oninput="handleCropperZoomInput(this.value)"
               class="flex-1 accent-[#1a3d2f] h-2 bg-stone-200 rounded-lg cursor-pointer"
             >
-            <button type="button" id="cropper-zoom-in-btn" class="w-8 h-8 rounded-xl bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 flex items-center justify-center text-sm font-bold shadow-xs transition cursor-pointer select-none" title="Acercar">
+            <button type="button" id="cropper-zoom-in-btn" onclick="adjustCropperZoom(0.1)" class="w-8 h-8 rounded-xl bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 flex items-center justify-center text-sm font-bold shadow-xs transition cursor-pointer select-none" title="Acercar">
               +
             </button>
           </div>
@@ -752,7 +776,7 @@
 
       <!-- Pie del Editor con botón "Guardar foto" -->
       <div class="bg-stone-50 border-t border-stone-200 px-5 py-3.5 flex items-center justify-between gap-3 shrink-0">
-        <button type="button" onclick="closeAvatarCropperModal(false)" class="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 rounded-xl transition cursor-pointer">
+        <button type="button" id="cropper-cancel-btn" onclick="closeAvatarCropperModal(false)" class="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 rounded-xl transition cursor-pointer">
           Cancelar
         </button>
         <button type="button" id="cropper-save-btn" onclick="saveCroppedAvatar()" class="px-5 py-2.5 bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer">
@@ -1393,9 +1417,7 @@
     <span id="toast-message" class="flex-1 font-medium">Cambios guardados</span>
   </aside>
 
-  <!-- Scripts: Supabase y Lógica de Perfil -->
-  <script src="js/supabase.js?v=5.0"></script>
-  <script src="js/auth.js?v=5.0"></script>
-  <script src="js/perfil.js?v=5.0"></script>
+  <!-- Scripts: Lógica de Perfil (Supabase y Auth cargados en head) -->
+  <script src="js/perfil.js?v=5.1"></script>
 </body>
 </html>
