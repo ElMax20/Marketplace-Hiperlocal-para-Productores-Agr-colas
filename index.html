@@ -63,6 +63,28 @@
   <!-- Supabase & Auth Zero-Flicker Hydration -->
   <script src="js/supabase.js?v=5.1"></script>
   <script src="js/auth.js?v=5.1"></script>
+
+  <!-- Estilos para scroll fluido en modales -->
+  <style>
+    .modal-scroll {
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f8fafc;
+    }
+    .modal-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .modal-scroll::-webkit-scrollbar-track {
+      background: #f8fafc;
+      border-radius: 9999px;
+    }
+    .modal-scroll::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    .modal-scroll::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
 </head>
 <body class="bg-[#FAF7F2] text-stone-800 antialiased selection:bg-[#c85a32] selection:text-white">
 
@@ -1421,8 +1443,8 @@
   <!-- =======================================================================
        13. MODAL DE INICIO DE SESIÓN SEGMENTADO (Cliente vs Productor vs Admin)
        ======================================================================= -->
-  <div id="login-auth-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 hidden">
-    <div class="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl relative border border-stone-200 animate-slide-up">
+  <div id="login-auth-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target === this) closeLoginModal()">
+    <div class="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 sm:p-8 shadow-xl my-auto z-10 animate-slide-up modal-scroll border border-stone-200">
       
       <!-- Botón Cerrar -->
       <button onclick="closeLoginModal()" class="absolute top-5 right-5 p-2 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100 transition">
@@ -1526,8 +1548,8 @@
   <!-- =======================================================================
        14. MODAL DE REGISTRO DE CLIENTES ("Crea tu cuenta para comprar")
        ======================================================================= -->
-  <div id="register-auth-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-    <div class="relative bg-white rounded-3xl max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden z-10 animate-slide-up my-auto">
+  <div id="register-auth-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target === this) closeRegisterModal()">
+    <div class="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl my-auto z-10 animate-slide-up modal-scroll border border-stone-200">
       
       <!-- Modal Header -->
       <div class="p-6 pb-4 bg-gradient-to-b from-[#FAF7F2] to-white border-b border-stone-200 text-center relative">
