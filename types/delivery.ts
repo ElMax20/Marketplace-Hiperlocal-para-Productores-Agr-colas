@@ -10,7 +10,11 @@ export interface PickupNode {
   name: string;
   address: string;
   city: string;
-  pickup_schedule: string;
+  pickup_schedule?: string;
+  schedule?: string;
+  latitude?: number;
+  longitude?: number;
+  assigned_baskets?: number;
   is_active: boolean;
   created_at?: string;
 }

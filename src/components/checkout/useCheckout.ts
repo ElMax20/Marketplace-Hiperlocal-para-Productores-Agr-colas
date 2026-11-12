@@ -63,11 +63,20 @@ export function useCheckout() {
     if (!window.supabase) return;
 
     try {
-      // 1. Cargar nodos comunitarios
-      const nodes = await window.supabase.fetchApi('pickup_nodes?is_active=eq.true&order=created_at.asc');
-      if (Array.isArray(nodes) && nodes.length > 0) {
-        setPickupNodes(nodes);
-        setSelectedNode(nodes[0]);
+      // 1. Cargar nodos comunitarios con Supabase Client
+      if (typeof window.supabase.from === 'function') {
+        const { data, error } = await window.supabase.from('pickup_nodes').select('*');
+        if (!error && Array.isArray(data) && data.length > 0) {
+          const activeNodes = data.filter((n: any) => n.is_active !== false);
+          setPickupNodes(activeNodes);
+          setSelectedNode(activeNodes[0]);
+        }
+      } else if (typeof window.supabase.fetchApi === 'function') {
+        const nodes = await window.supabase.fetchApi('pickup_nodes?is_active=eq.true&order=created_at.asc');
+        if (Array.isArray(nodes) && nodes.length > 0) {
+          setPickupNodes(nodes);
+          setSelectedNode(nodes[0]);
+        }
       }
 
       // 2. Obtener usuario autenticado

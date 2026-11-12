@@ -299,3 +299,4 @@ export const MarketGrid: React.FC<MarketGridProps> = ({
 };
 
 export default MarketGrid;
+

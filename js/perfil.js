@@ -1486,11 +1486,19 @@ async function loadDeliveryPreferences() {
         console.warn('Error al consultar perfil para entrega:', errP);
       }
 
-      // 2. Cargar nodos de recogida activos
+      // 2. Cargar nodos de recogida activos con Supabase Client
       try {
-        const nodes = await window.supabase.fetchApi('pickup_nodes?is_active=eq.true&order=created_at.asc');
-        if (nodes && nodes.length > 0) {
-          cachedPickupNodes = nodes;
+        if (typeof window.supabase.from === 'function') {
+          const { data, error } = await window.supabase.from('pickup_nodes').select('*');
+          if (!error && Array.isArray(data) && data.length > 0) {
+            cachedPickupNodes = data.filter(n => n.is_active !== false);
+          }
+        }
+        if (cachedPickupNodes.length === 0 && typeof window.supabase.fetchApi === 'function') {
+          const nodes = await window.supabase.fetchApi('pickup_nodes?is_active=eq.true&order=created_at.asc');
+          if (nodes && nodes.length > 0) {
+            cachedPickupNodes = nodes;
+          }
         }
       } catch (errN) {
         console.warn('Error al cargar pickup_nodes:', errN);

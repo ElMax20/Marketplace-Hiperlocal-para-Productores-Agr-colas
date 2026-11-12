@@ -44,3 +44,4 @@ export interface MarketFilterState {
   maxPrice: number | null;
   sortBy: 'destacados' | 'precio-menor' | 'precio-mayor' | 'calificacion';
 }
+

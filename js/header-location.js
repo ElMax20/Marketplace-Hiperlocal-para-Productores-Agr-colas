@@ -51,25 +51,32 @@ async function loadHeaderLocationData() {
   const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
   const userId = user?.id;
 
-  // A. Nodos comunitarios activos
-  if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+  // A. Nodos comunitarios activos con Supabase Client
+  if (window.supabase) {
     try {
-      const nodes = await window.supabase.fetchApi('pickup_nodes?is_active=eq.true&order=created_at.asc');
-      if (Array.isArray(nodes) && nodes.length > 0) {
-        headerPickupNodes = nodes;
+      // Consulta directa con Supabase Client según requerimiento:
+      const { data, error } = await window.supabase.from('pickup_nodes').select('*');
+      if (!error && Array.isArray(data) && data.length > 0) {
+        headerPickupNodes = data.filter(n => n.is_active !== false);
+      } else if (typeof window.supabase.fetchApi === 'function') {
+        const nodes = await window.supabase.fetchApi('pickup_nodes?select=*');
+        if (Array.isArray(nodes) && nodes.length > 0) {
+          headerPickupNodes = nodes.filter(n => n.is_active !== false);
+        }
       }
     } catch (err) {
       console.warn('Error cargando pickup_nodes para header:', err);
     }
   }
 
-  if (headerPickupNodes.length === 0) {
+  if (!headerPickupNodes || headerPickupNodes.length === 0) {
     headerPickupNodes = [
       {
         id: 'e0177a54-9cbc-4426-a538-1d630f852ac1',
         name: 'Sede Urdesa · Espacio Verde',
         address: 'Av. Víctor Emilio Estrada y Bálsamos',
         city: 'Guayaquil',
+        schedule: 'Miércoles y Viernes: 3:00 PM – 7:30 PM',
         pickup_schedule: 'Miércoles y Viernes: 3:00 PM – 7:30 PM',
         is_active: true
       },
@@ -78,6 +85,7 @@ async function loadHeaderLocationData() {
         name: 'Sede Puerto Santa Ana · Café del Río',
         address: 'Numa Pompilio Llona, Edificio The Point',
         city: 'Guayaquil',
+        schedule: 'Jueves y Sábado: 8:30 AM – 1:30 PM',
         pickup_schedule: 'Jueves y Sábado: 8:30 AM – 1:30 PM',
         is_active: true
       },
@@ -86,6 +94,7 @@ async function loadHeaderLocationData() {
         name: 'Sede Ceibos · Mercado Sostenible',
         address: 'Av. del Bombero Km 6.5, Plaza Ceibos',
         city: 'Guayaquil',
+        schedule: 'Sábados: 8:00 AM – 2:00 PM',
         pickup_schedule: 'Sábados: 8:00 AM – 2:00 PM',
         is_active: true
       }
@@ -116,7 +125,7 @@ async function loadHeaderLocationData() {
             type: 'home',
             id: prefAddr.id,
             name: `${prefAddr.label || 'Casa'} · ${prefAddr.street_address}`,
-            detail: `${prefAddr.neighborhood || ''} · ${prefAddr.city || 'Bogotá'}`
+            detail: `${prefAddr.neighborhood || ''} · ${prefAddr.city || 'Guayaquil'}`
           };
           updateHeaderLocationPillUI(activeDeliveryPreference.name);
         } else if (p.preferred_pickup_node_id && headerPickupNodes.length > 0) {
@@ -147,6 +156,9 @@ function toggleHeaderLocationDropdown(event) {
 
   const isHidden = dropdown.classList.contains('hidden');
   if (isHidden) {
+    if (!headerPickupNodes || headerPickupNodes.length === 0) {
+      loadHeaderLocationData();
+    }
     renderHeaderLocationDropdown();
     dropdown.classList.remove('hidden');
   } else {
@@ -171,14 +183,24 @@ function renderHeaderLocationDropdown() {
 
   // 1. Renderizar Nodos Comunitarios
   if (nodesContainer) {
-    if (headerPickupNodes.length === 0) {
-      nodesContainer.innerHTML = '<p class="text-[11px] text-stone-400 p-2">No hay nodos disponibles.</p>';
+    if (!headerPickupNodes || headerPickupNodes.length === 0) {
+      nodesContainer.innerHTML = `
+        <div class="p-3 text-center">
+          <p class="text-[11px] text-stone-500 mb-2">Cargando nodos comunitarios de Guayaquil...</p>
+          <button type="button" onclick="loadHeaderLocationData()" class="text-[11px] font-bold text-[#1a3d2f] hover:underline cursor-pointer">
+            🔄 Reintentar conexión
+          </button>
+        </div>
+      `;
+      loadHeaderLocationData();
     } else {
       nodesContainer.innerHTML = headerPickupNodes.map(node => {
         const isSelected = activeDeliveryPreference.type === 'node' && (
           activeDeliveryPreference.id === node.id || 
-          (!activeDeliveryPreference.id && node.name.includes('Nodo Central'))
+          (!activeDeliveryPreference.id && (node.name.includes('Urdesa') || node.name.includes('Nodo Central')))
         );
+
+        const nodeSched = node.schedule || node.pickup_schedule || 'Miércoles y Viernes: 3:00 PM – 7:30 PM';
 
         return `
           <button 
@@ -195,8 +217,8 @@ function renderHeaderLocationDropdown() {
                 <span class="text-xs">🏛️</span>
                 <span class="font-bold text-xs truncate ${isSelected ? 'text-[#1a3d2f]' : 'text-stone-800'}">${escapeHtml(node.name)}</span>
               </div>
-              <p class="text-[10px] text-stone-500 truncate mt-0.5 ml-4">${escapeHtml(node.address)} · ${escapeHtml(node.city || 'Bogotá')}</p>
-              <p class="text-[10px] text-emerald-700 font-medium ml-4">${escapeHtml(node.pickup_schedule || 'Sábados')}</p>
+              <p class="text-[10px] text-stone-500 truncate mt-0.5 ml-4">${escapeHtml(node.address)} · ${escapeHtml(node.city || 'Guayaquil')}</p>
+              <p class="text-[10px] text-emerald-700 font-medium ml-4">🕒 ${escapeHtml(nodeSched)}</p>
             </div>
             <div class="shrink-0 flex items-center gap-1.5">
               <span class="text-[10px] font-bold text-emerald-800 bg-emerald-100/80 px-2 py-0.5 rounded-full">Gratis</span>
@@ -220,7 +242,7 @@ function renderHeaderLocationDropdown() {
             onclick="closeHeaderLocationDropdown(); if (typeof openAuthModal === 'function') openAuthModal('login'); else if (typeof openLoginModal === 'function') openLoginModal('cliente');" 
             class="mt-1.5 text-[11px] font-bold text-[#1a3d2f] hover:underline cursor-pointer"
           >
-            Iniciar sesión →
+            Iniciar sesión aquí
           </button>
         </div>
       `;
@@ -240,6 +262,7 @@ function renderHeaderLocationDropdown() {
       addrsContainer.innerHTML = headerDeliveryAddresses.map(addr => {
         const isSelected = activeDeliveryPreference.type === 'home' && activeDeliveryPreference.id === addr.id;
         const displayName = `${addr.label || 'Domicilio'} · ${addr.street_address}`;
+        const feeDisplay = Number(addr.delivery_fee ?? 1.50).toFixed(2);
 
         return `
           <button 
@@ -257,10 +280,10 @@ function renderHeaderLocationDropdown() {
                 <span class="font-bold text-xs truncate ${isSelected ? 'text-[#1a3d2f]' : 'text-stone-800'}">${escapeHtml(addr.label || 'Casa')}</span>
               </div>
               <p class="text-[10px] text-stone-500 truncate mt-0.5 ml-4">${escapeHtml(addr.street_address)}</p>
-              <p class="text-[10px] text-stone-400 ml-4">${escapeHtml(addr.neighborhood ? addr.neighborhood + ' · ' : '')}${escapeHtml(addr.city || 'Bogotá')}</p>
+              <p class="text-[10px] text-stone-400 ml-4">${escapeHtml(addr.neighborhood ? addr.neighborhood + ' · ' : '')}${escapeHtml(addr.city || 'Guayaquil')}</p>
             </div>
             <div class="shrink-0 flex items-center gap-1.5">
-              <span class="text-[10px] font-bold text-stone-700 bg-stone-100 px-2 py-0.5 rounded-full">$8.000</span>
+              <span class="text-[10px] font-bold text-stone-700 bg-stone-100 px-2 py-0.5 rounded-full">$${feeDisplay}</span>
               ${isSelected ? '<span class="text-[#1a3d2f] font-bold text-xs">✓</span>' : ''}
             </div>
           </button>
@@ -298,7 +321,7 @@ async function selectHeaderLocation(type, id, name, detail) {
   const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
   const userId = user?.id;
 
-  if (userId && window.supabase && typeof window.supabase.fetchApi === 'function') {
+  if (userId && window.supabase) {
     try {
       const updateData = { active_delivery_mode: type };
       if (type === 'node') {
@@ -306,10 +329,14 @@ async function selectHeaderLocation(type, id, name, detail) {
       } else if (type === 'home') {
         updateData.preferred_delivery_address_id = id;
       }
-      await window.supabase.fetchApi(`profiles?id=eq.${userId}`, {
-        method: 'PATCH',
-        body: JSON.stringify(updateData)
-      });
+      if (typeof window.supabase.from === 'function') {
+        await window.supabase.from('profiles').update(updateData).eq('id', userId);
+      } else if (typeof window.supabase.fetchApi === 'function') {
+        await window.supabase.fetchApi(`profiles?id=eq.${userId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(updateData)
+        });
+      }
     } catch (errSupabase) {
       console.warn('Error guardando preferencia en Supabase profiles:', errSupabase);
     }
@@ -360,4 +387,14 @@ window.toggleHeaderLocationDropdown = toggleHeaderLocationDropdown;
 window.closeHeaderLocationDropdown = closeHeaderLocationDropdown;
 window.selectHeaderLocation = selectHeaderLocation;
 window.initHeaderLocationSelector = initHeaderLocationSelector;
+window.loadHeaderLocationData = loadHeaderLocationData;
+
+// Auto-inicialización inmediata para que el selector de ubicación cargue en todas las vistas
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    initHeaderLocationSelector();
+  });
+} else {
+  initHeaderLocationSelector();
+}
 

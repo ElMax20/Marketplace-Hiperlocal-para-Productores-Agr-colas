@@ -48,6 +48,76 @@ class SupabaseService {
     return text ? JSON.parse(text) : null;
   }
 
+  /**
+   * Supabase Client Query Builder compatible con la sintaxis de @supabase/supabase-js:
+   * const { data, error } = await supabase.from('pickup_nodes').select('*');
+   */
+  from(table) {
+    const service = this;
+    let selectedCols = '*';
+    const queryParams = [];
+    let method = 'GET';
+    let bodyData = null;
+
+    const builder = {
+      select(cols = '*') {
+        selectedCols = cols;
+        return builder;
+      },
+      eq(col, val) {
+        queryParams.push(`${col}=eq.${encodeURIComponent(val)}`);
+        return builder;
+      },
+      order(col, options = {}) {
+        const asc = (options && options.ascending === false) ? 'desc' : 'asc';
+        queryParams.push(`order=${col}.${asc}`);
+        return builder;
+      },
+      limit(n) {
+        queryParams.push(`limit=${n}`);
+        return builder;
+      },
+      insert(values) {
+        method = 'POST';
+        bodyData = values;
+        return builder;
+      },
+      update(values) {
+        method = 'PATCH';
+        bodyData = values;
+        return builder;
+      },
+      delete() {
+        method = 'DELETE';
+        return builder;
+      },
+      then(resolve, reject) {
+        const qs = [];
+        if (selectedCols && method === 'GET') qs.push(`select=${selectedCols}`);
+        if (queryParams.length) qs.push(...queryParams);
+        const endpoint = `${table}${qs.length ? '?' + qs.join('&') : ''}`;
+
+        return service.fetchApi(endpoint, {
+          method,
+          body: bodyData ? JSON.stringify(bodyData) : undefined
+        })
+          .then(data => {
+            const res = { data, error: null };
+            if (resolve) resolve(res);
+            return res;
+          })
+          .catch(error => {
+            console.error(`Error en supabase.from('${table}'):`, error);
+            const res = { data: null, error };
+            if (resolve) resolve(res);
+            return res;
+          });
+      }
+    };
+
+    return builder;
+  }
+
   // =========================================================================
   // AUTENTICACIÓN / USUARIOS (profiles)
   // =========================================================================
