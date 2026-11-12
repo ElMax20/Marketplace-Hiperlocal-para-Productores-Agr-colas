@@ -25,14 +25,18 @@
     }
   </style>
 
+  <!-- Supabase & Auth Zero-Flicker Hydration -->
+  <script src="js/supabase.js?v=5.1"></script>
+  <script src="js/auth.js?v=5.1"></script>
+
   <!-- Pre-cargar datos del usuario desde localStorage de forma inmediata para evitar cualquier parpadeo de otro usuario -->
   <script>
     (function() {
       try {
-        var raw = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
+        var raw = localStorage.getItem('rb_cached_profile') || localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
         if (raw) {
           var u = JSON.parse(raw);
-          if (u && u.loggedIn) {
+          if (u && (u.loggedIn || u.id)) {
             window.__PRELOADED_USER = u;
             return;
           }
@@ -136,6 +140,28 @@
                 <span>Cerrar sesión</span>
               </button>
             </div>
+
+            <!-- Hidratación síncrona inmediata de cabecera -->
+            <script>
+              (function() {
+                var p = (window.getCachedProfile && window.getCachedProfile()) || window.__PRELOADED_USER;
+                if (p) {
+                  var nameEl = document.getElementById('nav-user-name');
+                  var avatarEl = document.getElementById('nav-user-avatar');
+                  var roleEl = document.getElementById('nav-user-role-label');
+                  var dropName = document.getElementById('dropdown-user-name');
+                  var dropRole = document.getElementById('dropdown-user-role');
+                  var displayName = p.full_name || p.name || 'Mi cuenta';
+                  if (nameEl) nameEl.textContent = displayName;
+                  if (dropName) dropName.textContent = displayName;
+                  var avatar = p.avatar_url || p.avatar;
+                  if (avatar && avatarEl) avatarEl.src = (window.normalizeAvatarUrl ? window.normalizeAvatarUrl(avatar) : avatar);
+                  var roleName = (p.role === 'productor' ? 'Productor' : (p.role === 'admin' ? 'Admin' : 'Comprador'));
+                  if (roleEl) roleEl.textContent = 'Mi cuenta · ' + roleName;
+                  if (dropRole) dropRole.textContent = roleName;
+                }
+              })();
+            </script>
 
             <!-- Botón Canasta -->
             <a 

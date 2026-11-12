@@ -59,6 +59,10 @@
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Supabase & Auth Zero-Flicker Hydration -->
+  <script src="js/supabase.js?v=5.1"></script>
+  <script src="js/auth.js?v=5.1"></script>
 </head>
 <body class="bg-[#FAF7F2] text-stone-800 antialiased selection:bg-[#c85a32] selection:text-white">
 
@@ -167,21 +171,11 @@
         <div class="flex items-center gap-2.5 sm:gap-3">
           
           <div id="nav-auth-container" class="flex items-center gap-2 sm:gap-2.5">
-            <!-- Iniciar sesión / Perfil (Cliente) -->
-            <button onclick="openLoginModal('cliente')" class="text-stone-700 hover:text-[#1a3d2f] text-xs font-semibold px-2 py-2 sm:px-3 sm:py-2 transition hidden sm:inline-flex items-center gap-1.5">
-              <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-              </svg>
-              <span>Ingresar</span>
-            </button>
-
-            <!-- Botón "Soy Productor" (Terracotta) -->
-            <button onclick="openLoginModal('productor')" class="bg-[#c85a32] hover:bg-[#b04a25] text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-sm hover:shadow transition-all flex items-center gap-1.5">
-              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-              </svg>
-              <span>Soy Productor</span>
-            </button>
+            <script>
+              if (window.renderNavbarAuthSync) {
+                window.renderNavbarAuthSync('nav-auth-container', 'index');
+              }
+            </script>
           </div>
 
           <!-- Carrito de Compras -->
@@ -1741,9 +1735,7 @@
     </div>
   </div>
 
-  <!-- Scripts -->
-  <script src="js/supabase.js?v=5.0"></script>
-  <script src="js/auth.js?v=5.0"></script>
+  <!-- Scripts de componentes -->
   <script src="js/header-location.js?v=5.0"></script>
   <script src="js/hero-slider.js?v=5.0"></script>
   <script src="js/app.js?v=5.0"></script>

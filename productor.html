@@ -56,6 +56,10 @@
       color: #ffffff;
     }
   </style>
+
+  <!-- Supabase & Auth Zero-Flicker Hydration -->
+  <script src="js/supabase.js?v=5.1"></script>
+  <script src="js/auth.js?v=5.1"></script>
 </head>
 <body class="bg-[#FAF7F2] text-stone-800 antialiased min-h-screen flex font-sans">
 
@@ -138,7 +142,7 @@
       <div class="flex items-center justify-between pt-1">
         <div class="flex items-center gap-2.5 cursor-pointer" onclick="switchProducerTab('perfil-seguridad')">
           <div class="w-9 h-9 rounded-full overflow-hidden bg-[#e0ded8] border border-stone-200 shrink-0">
-            <img src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg" alt="Elena Moreno" class="w-full h-full object-cover">
+            <img id="producer-sidebar-avatar" src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg" alt="Elena Moreno" class="w-full h-full object-cover">
           </div>
           <div class="truncate">
             <span class="producer-name-display text-xs font-bold text-stone-800 block truncate">Elena Moreno</span>
@@ -152,6 +156,23 @@
           </svg>
         </button>
       </div>
+
+      <!-- Hidratación síncrona de la sesión en productor -->
+      <script>
+        (function() {
+          var p = window.getCachedProfile ? window.getCachedProfile() : null;
+          if (p) {
+            var nameEls = document.querySelectorAll('.producer-name-display');
+            var displayName = p.full_name || p.name;
+            if (displayName) nameEls.forEach(function(el) { el.textContent = displayName; });
+            var avatarEl = document.getElementById('producer-sidebar-avatar');
+            var avatarUrl = p.avatar_url || p.avatar;
+            if (avatarEl && avatarUrl) {
+              avatarEl.src = (window.normalizeAvatarUrl ? window.normalizeAvatarUrl(avatarUrl) : avatarUrl);
+            }
+          }
+        })();
+      </script>
 
     </div>
   </aside>
@@ -1059,8 +1080,6 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/supabase.js?v=5.0"></script>
-  <script src="js/auth.js?v=5.0"></script>
-  <script src="js/productor.js?v=5.0"></script>
+  <script src="js/productor.js?v=5.1"></script>
 </body>
 </html>

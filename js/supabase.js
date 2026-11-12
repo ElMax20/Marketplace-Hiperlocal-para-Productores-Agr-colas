@@ -21,6 +21,55 @@ class SupabaseService {
       'Content-Type': 'application/json',
       'Prefer': 'return=representation'
     };
+
+    // Sub-módulo auth compatible con Supabase Auth (@supabase/supabase-js)
+    this.auth = {
+      getSession: async () => {
+        try {
+          const tokenInfo = typeof getSupabaseAuthTokenInfo === 'function' 
+            ? getSupabaseAuthTokenInfo() 
+            : null;
+          if (!tokenInfo || !tokenInfo.session) {
+            return { data: { session: null }, error: null };
+          }
+          const session = tokenInfo.session;
+          if (session && session.expires_at && session.expires_at * 1000 < Date.now()) {
+            if (typeof clearAllAuthTokens === 'function') clearAllAuthTokens();
+            return { data: { session: null }, error: new Error('Session expired') };
+          }
+          return { data: { session }, error: null };
+        } catch (err) {
+          return { data: { session: null }, error: err };
+        }
+      },
+      getUser: async () => {
+        const res = await this.auth.getSession();
+        return { data: { user: res.data?.session?.user || null }, error: res.error };
+      },
+      signOut: async () => {
+        if (typeof clearAllAuthTokens === 'function') {
+          clearAllAuthTokens();
+        } else {
+          localStorage.removeItem('rb_cached_profile');
+          localStorage.removeItem('rb_current_user');
+          localStorage.removeItem('raiz_user');
+          try {
+            const keysToRemove = [];
+            for (let i = 0; i < localStorage.length; i++) {
+              const k = localStorage.key(i);
+              if (k && ((k.startsWith('sb-') && k.includes('auth-token')) || k === 'supabase.auth.token')) {
+                keysToRemove.push(k);
+              }
+            }
+            keysToRemove.forEach(k => localStorage.removeItem(k));
+          } catch (_) {}
+        }
+        return { error: null };
+      },
+      onAuthStateChange: (callback) => {
+        return { data: { subscription: { unsubscribe: () => {} } } };
+      }
+    };
   }
 
   async fetchApi(endpoint, options = {}) {

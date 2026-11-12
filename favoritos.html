@@ -18,13 +18,17 @@
   <script>
     (function preloadActiveUser() {
       try {
-        const raw = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
+        const raw = localStorage.getItem('rb_cached_profile') || localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
         if (raw) {
           window.__PRELOADED_USER = JSON.parse(raw);
         }
       } catch(e) {}
     })();
   </script>
+
+  <!-- Supabase & Auth Zero-Flicker Hydration -->
+  <script src="js/supabase.js?v=5.1"></script>
+  <script src="js/auth.js?v=5.1"></script>
 </head>
 <body class="bg-[#f7f5f0] min-h-screen text-stone-800 antialiased selection:bg-[#1a3d2f] selection:text-white flex flex-col justify-between">
 
@@ -60,7 +64,11 @@
 
         <!-- Contenedor de Autenticación y Perfil a la Derecha -->
         <div id="auth-buttons-container" class="flex items-center gap-3 sm:gap-4 shrink-0">
-          <!-- Inyectado dinámicamente por auth.js -->
+          <script>
+            if (window.renderNavbarAuthSync) {
+              window.renderNavbarAuthSync('auth-buttons-container', 'favoritos');
+            }
+          </script>
         </div>
 
       </div>
@@ -114,9 +122,6 @@
       </button>
     </div>
   </footer>
-
-  <script src="js/supabase.js"></script>
-  <script src="js/auth.js"></script>
 </body>
 </html>
 

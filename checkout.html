@@ -27,6 +27,10 @@
       margin: 0; 
     }
   </style>
+
+  <!-- Supabase & Auth Zero-Flicker Hydration -->
+  <script src="js/supabase.js?v=5.1"></script>
+  <script src="js/auth.js?v=5.1"></script>
 </head>
 <body class="bg-[#f7f5f0] text-stone-800 antialiased min-h-screen flex flex-col justify-between selection:bg-[#1a3d2f] selection:text-white">
 
@@ -642,9 +646,7 @@
     <span id="checkout-toast-msg" class="font-medium">Mensaje</span>
   </div>
 
-  <!-- Scripts: Supabase y Lógica de Checkout -->
-  <script src="js/supabase.js?v=5.0"></script>
-  <script src="js/auth.js?v=5.0"></script>
-  <script src="js/checkout.js?v=5.0"></script>
+  <!-- Scripts: Lógica de Checkout -->
+  <script src="js/checkout.js?v=5.1"></script>
 </body>
 </html>

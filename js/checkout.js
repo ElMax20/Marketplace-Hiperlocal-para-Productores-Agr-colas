@@ -29,6 +29,17 @@ async function initCheckout() {
     const rawUser = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
     if (rawUser) {
       checkoutUser = JSON.parse(rawUser);
+    } else if (typeof getCachedProfile === 'function') {
+      const cached = getCachedProfile();
+      if (cached && (cached.id || cached.full_name)) {
+        checkoutUser = {
+          id: cached.id,
+          name: cached.full_name,
+          role: cached.role,
+          avatar: cached.avatar_url,
+          loggedIn: true
+        };
+      }
     }
   } catch (e) {
     console.warn('Error leyendo usuario:', e);

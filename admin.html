@@ -67,6 +67,10 @@
       color: #b91c1c;
     }
   </style>
+
+  <!-- Supabase & Auth Zero-Flicker Hydration -->
+  <script src="js/supabase.js?v=5.1"></script>
+  <script src="js/auth.js?v=5.1"></script>
 </head>
 <body class="bg-[#FAF7F2] text-stone-800 antialiased min-h-screen flex font-sans">
 
@@ -160,18 +164,35 @@
       <!-- Tarjeta de Administrador Conectado -->
       <div class="flex items-center justify-between pt-1">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-full bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs">
+          <div id="admin-sidebar-avatar" class="w-8 h-8 rounded-full bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs">
             LT
           </div>
           <div>
-            <span class="text-xs font-bold text-stone-800 block leading-tight">Lucía Torres</span>
-            <span class="text-[10px] text-stone-500 block">Administrador</span>
+            <span id="admin-sidebar-name" class="text-xs font-bold text-stone-800 block leading-tight">Lucía Torres</span>
+            <span id="admin-sidebar-role" class="text-[10px] text-stone-500 block">Administrador</span>
           </div>
         </div>
         <button onclick="logoutUser()" class="p-1.5 text-stone-400 hover:text-red-600 rounded-lg hover:bg-stone-100 transition" title="Cerrar sesión">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
         </button>
       </div>
+
+      <!-- Hidratación síncrona de la sesión en admin -->
+      <script>
+        (function() {
+          var p = window.getCachedProfile ? window.getCachedProfile() : null;
+          if (p) {
+            var nameEl = document.getElementById('admin-sidebar-name');
+            var avatarEl = document.getElementById('admin-sidebar-avatar');
+            var displayName = p.full_name || p.name;
+            if (nameEl && displayName) nameEl.textContent = displayName;
+            if (avatarEl && displayName) {
+              var initials = displayName.split(' ').slice(0, 2).map(function(s){return s[0]}).join('').toUpperCase();
+              if (initials) avatarEl.textContent = initials;
+            }
+          }
+        })();
+      </script>
 
     </div>
   </aside>
@@ -1784,9 +1805,7 @@
 
   </div>
 
-  <script src="js/supabase.js?v=5.0"></script>
-  <script src="js/auth.js?v=5.0"></script>
-  <script src="js/admin.js?v=5.0"></script>
+  <script src="js/admin.js?v=5.1"></script>
 </body>
 </html>
 

@@ -580,6 +580,7 @@ async function saveSettingsChanges() {
   try {
     localStorage.setItem('rb_current_user', JSON.stringify(currentUser));
     localStorage.setItem('raiz_user', JSON.stringify(currentUser));
+    if (typeof setCurrentUser === 'function') setCurrentUser(currentUser);
   } catch (e) {
     console.warn('Error guardando en localStorage:', e);
   }
@@ -1411,6 +1412,7 @@ async function confirmEmailVerification(token, explicitEmail) {
       if (originalUserData) originalUserData.email = targetEmail;
       localStorage.setItem('rb_current_user', JSON.stringify(currentUser));
       localStorage.setItem('raiz_user', JSON.stringify(currentUser));
+      if (typeof setCurrentUser === 'function') setCurrentUser(currentUser);
     }
 
     // 4. Actualizar vista en perfil.html

@@ -22,37 +22,435 @@ window.normalizeAvatarUrl = function(url) {
 };
 var normalizeAvatarUrl = window.normalizeAvatarUrl;
 
+// =============================================================================
+// CACHÉ INSTANTÁNEA Y CONTROL DE SESIÓN SUPABASE (Zero-Flicker)
+// =============================================================================
+
+/**
+ * Inspecciona síncronamente localStorage en busca de tokens de sesión Supabase
+ * Soporta claves estándar sb-*-auth-token o supabase.auth.token
+ */
+function getSupabaseAuthTokenInfo() {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && ((key.startsWith('sb-') && key.includes('auth-token')) || key === 'supabase.auth.token')) {
+        const val = localStorage.getItem(key);
+        if (val) {
+          try {
+            return { key, session: JSON.parse(val) };
+          } catch (_) {
+            return { key, session: { access_token: val } };
+          }
+        }
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+window.getSupabaseAuthTokenInfo = getSupabaseAuthTokenInfo;
+
+/**
+ * Retorna true si existe un token de sesión de Supabase en localStorage
+ */
+function hasSupabaseAuthToken() {
+  return getSupabaseAuthTokenInfo() !== null;
+}
+window.hasSupabaseAuthToken = hasSupabaseAuthToken;
+
+/**
+ * Garantiza que exista un token de Supabase en localStorage para la sesión activa
+ */
+function ensureSupabaseAuthToken(user) {
+  try {
+    if (!hasSupabaseAuthToken() && user) {
+      const tokenKey = 'sb-hvjqgvplbmshpucnuzfy-auth-token';
+      const tokenPayload = {
+        access_token: 'sb-token-' + (user.id || 'user-' + Date.now()),
+        token_type: 'bearer',
+        expires_at: Math.floor(Date.now() / 1000) + (3600 * 24 * 7),
+        expires_in: 3600 * 24 * 7,
+        refresh_token: 'sb-refresh-' + (user.id || 'user-' + Date.now()),
+        user: {
+          id: user.id || 'usr-1',
+          aud: 'authenticated',
+          role: 'authenticated',
+          email: user.email || '',
+          user_metadata: {
+            full_name: user.full_name || user.name || '',
+            avatar_url: user.avatar_url || user.avatar || '',
+            role: user.role || 'cliente'
+          }
+        }
+      };
+      localStorage.setItem(tokenKey, JSON.stringify(tokenPayload));
+    }
+  } catch (e) {}
+}
+window.ensureSupabaseAuthToken = ensureSupabaseAuthToken;
+
+/**
+ * Limpia todas las claves de sesión y caché de perfil al cerrar sesión
+ */
+function clearAllAuthTokens() {
+  try {
+    localStorage.removeItem('rb_cached_profile');
+    localStorage.removeItem('rb_current_user');
+    localStorage.removeItem('raiz_user');
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && ((k.startsWith('sb-') && k.includes('auth-token')) || k === 'supabase.auth.token')) {
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+  } catch (e) {
+    console.error('Error limpiando sesión en localStorage:', e);
+  }
+}
+window.clearAllAuthTokens = clearAllAuthTokens;
+
+/**
+ * Lee síncronamente el perfil en caché bajo 'rb_cached_profile'
+ * Retorna { id, full_name, avatar_url, role } o null
+ */
+function getCachedProfile() {
+  try {
+    const raw = localStorage.getItem('rb_cached_profile');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && (parsed.id || parsed.full_name)) {
+        return parsed;
+      }
+    }
+    // Fallback de retrocompatibilidad con rb_current_user / raiz_user
+    const rawUser = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
+    if (rawUser) {
+      const user = JSON.parse(rawUser);
+      if (user && (user.loggedIn || user.id)) {
+        const profile = {
+          id: user.id || '',
+          full_name: user.full_name || user.name || '',
+          avatar_url: normalizeAvatarUrl(user.avatar_url || user.avatar || ''),
+          role: user.role || 'cliente'
+        };
+        localStorage.setItem('rb_cached_profile', JSON.stringify(profile));
+        ensureSupabaseAuthToken(user);
+        return profile;
+      }
+    }
+  } catch (e) {}
+  return null;
+}
+window.getCachedProfile = getCachedProfile;
+
 // Obtener usuario actualmente conectado (sincronizado con claves de sesión)
 function getCurrentUser() {
   try {
     const raw = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (parsed) {
-      parsed.loggedIn = true;
-      return parsed;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && (parsed.loggedIn || parsed.id)) {
+        parsed.loggedIn = true;
+        return parsed;
+      }
+    }
+    const cached = getCachedProfile();
+    if (cached && (cached.id || cached.full_name)) {
+      return {
+        id: cached.id,
+        name: cached.full_name,
+        full_name: cached.full_name,
+        avatar: cached.avatar_url,
+        avatar_url: cached.avatar_url,
+        role: cached.role,
+        loggedIn: true
+      };
     }
   } catch (e) {
     return null;
   }
   return null;
 }
+window.getCurrentUser = getCurrentUser;
 
-// Guardar sesión persistente
+// Guardar sesión persistente con rb_cached_profile y token Supabase
 function setCurrentUser(user) {
   if (user) {
     user.loggedIn = true;
     localStorage.setItem('rb_current_user', JSON.stringify(user));
     localStorage.setItem('raiz_user', JSON.stringify(user));
+
+    // Caché instantánea de perfil para lectura síncrona
+    const cachedProfile = {
+      id: user.id || '',
+      full_name: user.full_name || user.name || '',
+      avatar_url: normalizeAvatarUrl(user.avatar_url || user.avatar || ''),
+      role: user.role || 'cliente'
+    };
+    localStorage.setItem('rb_cached_profile', JSON.stringify(cachedProfile));
+
+    // Sincronizar token Supabase en localStorage
+    ensureSupabaseAuthToken(user);
   }
 }
+window.setCurrentUser = setCurrentUser;
 
-// Cerrar sesión
-function logoutUser() {
-  localStorage.removeItem('rb_current_user');
-  localStorage.removeItem('raiz_user');
-  window.location.href = 'index.html';
+// Cerrar sesión con limpieza total de Supabase y rb_cached_profile
+async function logoutUser() {
+  try {
+    if (window.supabase && window.supabase.auth && typeof window.supabase.auth.signOut === 'function') {
+      try { await window.supabase.auth.signOut(); } catch (_) {}
+    }
+  } finally {
+    clearAllAuthTokens();
+    window.location.href = 'index.html';
+  }
 }
+window.logoutUser = logoutUser;
+window.signOut = logoutUser;
+
+// =============================================================================
+// RENDERIZADO ZERO-FLICKER DEL NAVBAR (HTML Generado)
+// =============================================================================
+
+function renderProfileHTML(profile) {
+  const avatarSrc = (profile.avatar_url && profile.avatar_url.trim() !== '') 
+    ? normalizeAvatarUrl(profile.avatar_url) 
+    : window.DEFAULT_USER_AVATAR;
+  
+  const userName = profile.full_name || 'Mi cuenta';
+  const role = (profile.role || 'cliente').toLowerCase();
+  
+  let profileLink = '#';
+  let profileLabel = 'Mi perfil';
+  if (role === 'admin' || role === 'administrador') {
+    profileLink = 'admin.html';
+    profileLabel = 'Panel de Administración';
+  } else if (role === 'productor') {
+    profileLink = 'productor.html';
+    profileLabel = 'Espacio de Productor';
+  }
+
+  const roleLabelDesc = role === 'productor' 
+    ? 'Mi cuenta · Productor' 
+    : (role === 'admin' || role === 'administrador' ? 'Mi cuenta · Admin' : 'Mi cuenta · Comprador');
+
+  const roleBadge = (role === 'admin' || role === 'administrador' || role === 'productor') ? `
+    <a href="${profileLink}" class="flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition">
+      <span>📊</span>
+      <span>${profileLabel}</span>
+    </a>
+  ` : '';
+
+  return `
+    <div class="relative flex items-center gap-2">
+      <!-- Usuario con foto y nombre -->
+      <button 
+        id="user-avatar-btn" 
+        onclick="toggleAuthDropdown(event)" 
+        type="button"
+        class="flex items-center gap-2 hover:bg-stone-50 py-1 px-1.5 rounded-xl transition border border-transparent hover:border-stone-200 cursor-pointer text-left shrink-0"
+        title="${userName}"
+      >
+        <div class="w-8 h-8 rounded-full overflow-hidden border border-stone-200 bg-stone-100 shrink-0 shadow-2xs">
+          <img 
+            src="${avatarSrc}" 
+            alt="Perfil" 
+            class="w-full h-full object-cover"
+            onerror="this.onerror=null; this.src=window.DEFAULT_USER_AVATAR;"
+          >
+        </div>
+        <div class="hidden sm:block leading-tight text-xs">
+          <span class="font-bold text-stone-900 block truncate max-w-[110px]">${userName}</span>
+          <span class="text-[10px] text-stone-400 block">${roleLabelDesc}</span>
+        </div>
+      </button>
+
+      <!-- Dropdown flotante al pulsar el avatar -->
+      <div id="auth-user-dropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-stone-100 py-1.5 z-50 text-xs text-stone-700">
+        <div class="px-4 py-2 border-b border-stone-100">
+          <p class="font-bold text-stone-900 truncate">${userName}</p>
+          <p class="text-[10px] text-stone-500 capitalize">${role}</p>
+        </div>
+        ${roleBadge}
+        <a href="pedidos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+          <span>📦</span>
+          <span>Mis pedidos</span>
+        </a>
+        <a href="favoritos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+          <span>❤️</span>
+          <span>Mis favoritos</span>
+        </a>
+        <a href="perfil.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+          <span>⚙️</span>
+          <span>Configuración</span>
+        </a>
+        <div class="my-1 border-t border-stone-100"></div>
+        <button onclick="logoutUser()" class="w-full text-left flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 transition cursor-pointer font-medium">
+          <span>🚪</span>
+          <span>Cerrar sesión</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+window.renderProfileHTML = renderProfileHTML;
+
+function renderGuestHTML(pageType = 'index') {
+  if (pageType === 'mercado') {
+    return `
+      <button onclick="openAuthModal('login')" class="text-xs font-semibold text-stone-700 hover:text-[#1a3d2f] px-2 py-1.5 transition">
+        Iniciar sesión
+      </button>
+      <button onclick="openAuthModal('register')" class="text-xs font-bold text-[#1a3d2f] border border-[#1a3d2f] hover:bg-[#1a3d2f] hover:text-white px-3.5 py-1.5 rounded-full transition shadow-sm">
+        Registrarse
+      </button>
+    `;
+  } else if (pageType === 'favoritos' || pageType === 'pedidos') {
+    return `
+      <button onclick="if(typeof openAuthModal==='function'){openAuthModal('login');}else{window.location.href='mercado.html?openLogin=true';}" class="text-xs font-semibold text-stone-700 hover:text-[#1a3d2f] px-2 py-1.5 transition">
+        Iniciar sesión
+      </button>
+      <button onclick="if(typeof openAuthModal==='function'){openAuthModal('register');}else{window.location.href='mercado.html?openRegister=true';}" class="text-xs font-bold text-[#1a3d2f] border border-[#1a3d2f] hover:bg-[#1a3d2f] hover:text-white px-3.5 py-1.5 rounded-full transition shadow-sm">
+        Registrarse
+      </button>
+    `;
+  }
+  // index.html por defecto
+  return `
+    <button onclick="openLoginModal('cliente')" class="text-stone-700 hover:text-[#1a3d2f] text-xs font-semibold px-2 py-2 sm:px-3 sm:py-2 transition hidden sm:inline-flex items-center gap-1.5">
+      <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+      </svg>
+      <span>Ingresar</span>
+    </button>
+
+    <button onclick="openLoginModal('productor')" class="bg-[#c85a32] hover:bg-[#b04a25] text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-sm hover:shadow transition-all flex items-center gap-1.5">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+      </svg>
+      <span>Soy Productor</span>
+    </button>
+  `;
+}
+window.renderGuestHTML = renderGuestHTML;
+
+function renderNeutralSkeletonHTML() {
+  return `
+    <div class="flex items-center gap-2 animate-pulse py-1 px-1.5 opacity-60 pointer-events-none" aria-busy="true">
+      <div class="w-8 h-8 rounded-full bg-stone-200"></div>
+      <div class="hidden sm:block space-y-1">
+        <div class="w-16 h-2.5 bg-stone-200 rounded"></div>
+        <div class="w-12 h-2 bg-stone-100 rounded"></div>
+      </div>
+    </div>
+  `;
+}
+window.renderNeutralSkeletonHTML = renderNeutralSkeletonHTML;
+
+/**
+ * Función síncrona instantánea ejecutada en el parseo del HTML
+ * Evita el parpadeo visual (FOUC) pintando directamente antes del primer render
+ */
+function renderNavbarAuthSync(containerOrId, pageType) {
+  const container = (typeof containerOrId === 'string') 
+    ? document.getElementById(containerOrId) 
+    : (containerOrId || document.getElementById('nav-auth-container') || document.getElementById('auth-buttons-container'));
+
+  if (!container) return;
+
+  const path = (window.location && window.location.pathname) ? window.location.pathname.toLowerCase() : '';
+  const type = pageType || (container.id === 'auth-buttons-container' 
+    ? (path.includes('favoritos') ? 'favoritos' : (path.includes('pedidos') ? 'pedidos' : 'mercado')) 
+    : 'index');
+
+  const hasToken = hasSupabaseAuthToken();
+  const cached = getCachedProfile();
+
+  if (hasToken && cached) {
+    // 1. Ambos existen: pintado síncrono instantáneo del perfil
+    container.innerHTML = renderProfileHTML(cached);
+    container.style.visibility = 'visible';
+  } else if (hasToken && !cached) {
+    // 2. Token presente pero sin caché: estado neutro invisible o esqueleto
+    container.innerHTML = renderNeutralSkeletonHTML();
+    container.style.visibility = 'visible';
+  } else {
+    // 3. Usuario invitado sin sesión
+    container.innerHTML = renderGuestHTML(type);
+    container.style.visibility = 'visible';
+  }
+}
+window.renderNavbarAuthSync = renderNavbarAuthSync;
+window.rbInitNavbarAuth = renderNavbarAuthSync;
+
+/**
+ * Validación y sincronización asíncrona en segundo plano con Supabase
+ */
+async function validateAndSyncSession() {
+  const hasToken = hasSupabaseAuthToken();
+  const cached = getCachedProfile();
+
+  if (!hasToken && !cached) return;
+
+  try {
+    let session = null;
+    if (window.supabase && window.supabase.auth && typeof window.supabase.auth.getSession === 'function') {
+      const res = await window.supabase.auth.getSession();
+      session = res?.data?.session;
+    } else {
+      const tokenInfo = getSupabaseAuthTokenInfo();
+      session = tokenInfo?.session;
+    }
+
+    // Si la sesión expiró o es nula (logout en otra pestaña o caducada)
+    if (!session && !getCurrentUser()) {
+      clearAllAuthTokens();
+      updateAuthUI();
+      return;
+    }
+
+    const userId = cached?.id || session?.user?.id || (getCurrentUser()?.id);
+    if (!userId) return;
+
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      const res = await window.supabase.fetchApi(`profiles?id=eq.${userId}&select=*`);
+      if (res && res.length > 0) {
+        const db = res[0];
+        const updatedProfile = {
+          id: db.id,
+          full_name: db.full_name || cached?.full_name || '',
+          avatar_url: normalizeAvatarUrl(db.avatar_url || ''),
+          role: db.role || cached?.role || 'cliente'
+        };
+
+        const changed = !cached || 
+          cached.full_name !== updatedProfile.full_name || 
+          cached.avatar_url !== updatedProfile.avatar_url || 
+          cached.role !== updatedProfile.role;
+
+        if (changed) {
+          localStorage.setItem('rb_cached_profile', JSON.stringify(updatedProfile));
+          const u = getCurrentUser() || {};
+          u.id = updatedProfile.id;
+          u.name = updatedProfile.full_name;
+          u.avatar = updatedProfile.avatar_url;
+          u.role = updatedProfile.role;
+          u.loggedIn = true;
+          localStorage.setItem('rb_current_user', JSON.stringify(u));
+          localStorage.setItem('raiz_user', JSON.stringify(u));
+
+          updateAuthUI();
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Validación de sesión en segundo plano silenciosa:', err);
+  }
+}
+window.validateAndSyncSession = validateAndSyncSession;
 
 // Estado actual del modal de login ('cliente' | 'productor')
 let currentAuthType = 'cliente';
@@ -1007,114 +1405,17 @@ function normalizeAvatarUrl(url) {
 
 /**
  * Actualiza la barra de navegación para mostrar el usuario activo o botones de inicio.
- * REGLA: Al lado del botón de la canasta SOLO se muestra la foto de usuario (sin texto con el nombre).
+ * Utiliza renderNavbarAuthSync para consistencia y cero parpadeo.
  */
 function updateAuthUI() {
-  const user = getCurrentUser();
-  const authContainer = document.getElementById('nav-auth-container') || document.getElementById('auth-buttons-container');
-  if (!authContainer) return;
+  const containers = [
+    document.getElementById('nav-auth-container'),
+    document.getElementById('auth-buttons-container')
+  ].filter(Boolean);
 
-  if (user) {
-    const avatarSrc = (user.avatar && user.avatar.trim() !== '') ? normalizeAvatarUrl(user.avatar) : window.DEFAULT_USER_AVATAR;
-    let profileLink = '#';
-    let profileLabel = 'Mi perfil';
-
-    if (user.role === 'admin') {
-      profileLink = 'admin.html';
-      profileLabel = 'Panel de Administración';
-    } else if (user.role === 'productor') {
-      profileLink = 'productor.html';
-      profileLabel = 'Espacio de Productor';
-    }
-
-    const roleLabelDesc = user.role === 'productor' ? 'Mi cuenta · Productor' : (user.role === 'admin' ? 'Mi cuenta · Admin' : 'Mi cuenta · Comprador');
-
-    authContainer.innerHTML = `
-      <div class="relative flex items-center gap-2">
-        <!-- Usuario con foto y nombre -->
-        <button 
-          id="user-avatar-btn" 
-          onclick="toggleAuthDropdown(event)" 
-          type="button"
-          class="flex items-center gap-2 hover:bg-stone-50 py-1 px-1.5 rounded-xl transition border border-transparent hover:border-stone-200 cursor-pointer text-left shrink-0"
-          title="${user.name || 'Mi cuenta'}"
-        >
-          <div class="w-8 h-8 rounded-full overflow-hidden border border-stone-200 bg-stone-100 shrink-0 shadow-2xs">
-            <img 
-              src="${avatarSrc}" 
-              alt="Perfil" 
-              class="w-full h-full object-cover"
-              onerror="this.onerror=null; this.src=window.DEFAULT_USER_AVATAR;"
-            >
-          </div>
-          <div class="hidden sm:block leading-tight text-xs">
-            <span class="font-bold text-stone-900 block truncate max-w-[110px]">${user.name}</span>
-            <span class="text-[10px] text-stone-400 block">${roleLabelDesc}</span>
-          </div>
-        </button>
-
-        <!-- Dropdown flotante al pulsar el avatar -->
-        <div id="auth-user-dropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-stone-100 py-1.5 z-50 text-xs text-stone-700">
-          <div class="px-4 py-2 border-b border-stone-100">
-            <p class="font-bold text-stone-900 truncate">${user.name}</p>
-            <p class="text-[10px] text-stone-500 capitalize">${user.role || 'Cliente'}</p>
-          </div>
-          ${(user.role === 'admin' || user.role === 'productor') ? `
-            <a href="${profileLink}" class="flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition">
-              <span>📊</span>
-              <span>${profileLabel}</span>
-            </a>
-          ` : ''}
-          <a href="pedidos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
-            <span>📦</span>
-            <span>Mis pedidos</span>
-          </a>
-          <a href="favoritos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
-            <span>❤️</span>
-            <span>Mis favoritos</span>
-          </a>
-          <a href="perfil.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
-            <span>⚙️</span>
-            <span>Configuración</span>
-          </a>
-          <div class="my-1 border-t border-stone-100"></div>
-          <button onclick="logoutUser()" class="w-full text-left flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 transition cursor-pointer font-medium">
-            <span>🚪</span>
-            <span>Cerrar sesión</span>
-          </button>
-        </div>
-      </div>
-    `;
-  } else {
-    // Si estamos en mercado.html pero no hay usuario conectado
-    if (document.getElementById('auth-buttons-container') && !document.getElementById('nav-auth-container')) {
-      authContainer.innerHTML = `
-        <button onclick="openAuthModal('login')" class="text-xs font-semibold text-stone-700 hover:text-[#1a3d2f] px-2 py-1.5 transition">
-          Iniciar sesión
-        </button>
-        <button onclick="openAuthModal('register')" class="text-xs font-bold text-[#1a3d2f] border border-[#1a3d2f] hover:bg-[#1a3d2f] hover:text-white px-3.5 py-1.5 rounded-full transition shadow-sm">
-          Registrarse
-        </button>
-      `;
-    } else {
-      // Estamos en index.html
-      authContainer.innerHTML = `
-        <button onclick="openLoginModal('cliente')" class="text-stone-700 hover:text-[#1a3d2f] text-xs font-semibold px-2 py-2 sm:px-3 sm:py-2 transition hidden sm:inline-flex items-center gap-1.5">
-          <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
-          </svg>
-          <span>Ingresar</span>
-        </button>
-
-        <button onclick="openLoginModal('productor')" class="bg-[#c85a32] hover:bg-[#b04a25] text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-sm hover:shadow transition-all flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-          </svg>
-          <span>Soy Productor</span>
-        </button>
-      `;
-    }
-  }
+  containers.forEach(container => {
+    renderNavbarAuthSync(container);
+  });
 }
 
 function toggleAuthDropdown(event) {
@@ -1124,6 +1425,7 @@ function toggleAuthDropdown(event) {
     dropdown.classList.toggle('hidden');
   }
 }
+window.toggleAuthDropdown = toggleAuthDropdown;
 
 document.addEventListener('click', (e) => {
   const dropdown = document.getElementById('auth-user-dropdown');
@@ -1172,6 +1474,7 @@ async function syncCurrentUserFromSupabase() {
 // Iniciar al cargar
 document.addEventListener('DOMContentLoaded', () => {
   updateAuthUI();
+  validateAndSyncSession();
   syncCurrentUserFromSupabase();
 });
 

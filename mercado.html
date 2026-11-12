@@ -38,6 +38,10 @@
 
   <!-- Custom CSS -->
   <link rel="stylesheet" href="css/styles.css">
+
+  <!-- Supabase & Auth Zero-Flicker Hydration -->
+  <script src="js/supabase.js?v=5.1"></script>
+  <script src="js/auth.js?v=5.1"></script>
   <style>
     .filter-badge {
       transition: all 0.2s ease;
@@ -168,13 +172,11 @@
 
           <!-- Auth Status Container (Guest vs Logged In) -->
           <div id="auth-buttons-container" class="flex items-center gap-2">
-            <!-- Rendered by JS: Iniciar sesión & Registrarse OR User Profile -->
-            <button onclick="openAuthModal('login')" class="text-xs font-semibold text-stone-700 hover:text-[#1a3d2f] px-2 py-1.5 transition">
-              Iniciar sesión
-            </button>
-            <button onclick="openAuthModal('register')" class="text-xs font-bold text-[#1a3d2f] border border-[#1a3d2f] hover:bg-[#1a3d2f] hover:text-white px-3.5 py-1.5 rounded-full transition shadow-sm">
-              Registrarse
-            </button>
+            <script>
+              if (window.renderNavbarAuthSync) {
+                window.renderNavbarAuthSync('auth-buttons-container', 'mercado');
+              }
+            </script>
           </div>
 
           <!-- Cart Trigger Button -->
@@ -888,8 +890,6 @@
   </div>
 
   <!-- Market JavaScript Logic -->
-  <script src="js/supabase.js?v=5.0"></script>
-  <script src="js/auth.js?v=5.0"></script>
   <script src="js/header-location.js?v=5.0"></script>
   <script src="js/market.js?v=5.0"></script>
 </body>
