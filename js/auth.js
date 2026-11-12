@@ -454,15 +454,19 @@ window.validateAndSyncSession = validateAndSyncSession;
 
 // Helper para sincronizar pausa de slider y capas cuando hay modales abiertos
 function syncModalPauseState() {
-  const openModal = document.querySelector(
-    '#login-auth-modal:not(.hidden), #register-auth-modal:not(.hidden), #producer-technical-modal:not(.hidden), #client-settings-modal:not(.hidden), #avatar-cropper-modal:not(.hidden), #modal-new-address:not(.hidden), #banking-processing-overlay:not(.hidden), #modal-otp-password:not(.hidden), #modal-add-card:not(.hidden), #modal-edit-card:not(.hidden), #modal-delete-card:not(.hidden), #modal-address:not(.hidden), #modal-delete-address:not(.hidden), #modal-node-selector:not(.hidden)'
-  );
-  if (openModal) {
-    document.body.classList.add('modal-open');
-    if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
-  } else {
-    document.body.classList.remove('modal-open');
-    if (typeof window.resumeHeroSliderFromModal === 'function') window.resumeHeroSliderFromModal();
+  try {
+    const openModal = document.querySelector(
+      '#login-auth-modal:not(.hidden), #register-auth-modal:not(.hidden), #producer-technical-modal:not(.hidden), #client-settings-modal:not(.hidden), #avatar-cropper-modal:not(.hidden), #modal-new-address:not(.hidden), #banking-processing-overlay:not(.hidden), #modal-otp-password:not(.hidden), #modal-add-card:not(.hidden), #modal-edit-card:not(.hidden), #modal-delete-card:not(.hidden), #modal-address:not(.hidden), #modal-delete-address:not(.hidden), #modal-node-selector:not(.hidden)'
+    );
+    if (openModal) {
+      document.body.classList.add('modal-open');
+      if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
+    } else {
+      document.body.classList.remove('modal-open');
+      if (typeof window.resumeHeroSliderFromModal === 'function') window.resumeHeroSliderFromModal();
+    }
+  } catch (e) {
+    console.warn('syncModalPauseState error:', e);
   }
 }
 
@@ -558,6 +562,8 @@ function closeLoginModal() {
     syncModalPauseState();
   }
 }
+window.openLoginModal = openLoginModal;
+window.closeLoginModal = closeLoginModal;
 
 /**
  * Valida las credenciales ingresadas contra Supabase (con fallback local)
@@ -1360,6 +1366,10 @@ function closeProducerTechnicalModal() {
     syncModalPauseState();
   }
 }
+window.openRegisterModal = openRegisterModal;
+window.closeRegisterModal = closeRegisterModal;
+window.openProducerTechnicalModal = openProducerTechnicalModal;
+window.closeProducerTechnicalModal = closeProducerTechnicalModal;
 
 async function handleProducerTechnicalSubmit(e) {
   if (e) {
@@ -1496,9 +1506,9 @@ async function syncCurrentUserFromSupabase() {
 
 // Iniciar al cargar
 document.addEventListener('DOMContentLoaded', () => {
-  updateAuthUI();
-  validateAndSyncSession();
-  syncCurrentUserFromSupabase();
+  try { updateAuthUI(); } catch (e) { console.warn('Error en updateAuthUI:', e); }
+  try { validateAndSyncSession(); } catch (e) { console.warn('Error en validateAndSyncSession:', e); }
+  try { syncCurrentUserFromSupabase(); } catch (e) { console.warn('Error en syncCurrentUserFromSupabase:', e); }
 });
 
 /**

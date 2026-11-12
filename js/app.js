@@ -4,14 +4,16 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  initCountdown();
-  initCart();
-  if (window.google && window.google.maps) {
-    initGoogleMap();
-  }
-  initQuantitySteppers();
-  initRoleModal();
-  initSmoothScroll();
+  try { initCountdown(); } catch (e) { console.warn('Error initCountdown:', e); }
+  try { initCart(); } catch (e) { console.warn('Error initCart:', e); }
+  try {
+    if (window.google && window.google.maps) {
+      initGoogleMap();
+    }
+  } catch (e) { console.warn('Error initGoogleMap:', e); }
+  try { initQuantitySteppers(); } catch (e) { console.warn('Error initQuantitySteppers:', e); }
+  try { initRoleModal(); } catch (e) { console.warn('Error initRoleModal:', e); }
+  try { initSmoothScroll(); } catch (e) { console.warn('Error initSmoothScroll:', e); }
 });
 
 /* ==========================================================================
@@ -73,56 +75,78 @@ function saveCartToStorage() {
 }
 
 function initCart() {
-  if (document.body.dataset.cartInitialized === 'true') return;
-  document.body.dataset.cartInitialized = 'true';
-
   const cartBtn = document.getElementById('cart-toggle-btn');
   const cartDrawer = document.getElementById('cart-drawer');
   const closeCartBtn = document.getElementById('cart-close-btn');
   const cartBackdrop = document.getElementById('cart-backdrop');
 
-  if (cartBtn && cartDrawer && closeCartBtn && cartBackdrop) {
-    cartBtn.addEventListener('click', () => openCart());
-    closeCartBtn.addEventListener('click', () => closeCart());
-    cartBackdrop.addEventListener('click', () => closeCart());
+  if (cartBtn && !cartBtn.dataset.listenerAttached) {
+    cartBtn.dataset.listenerAttached = 'true';
+    cartBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openCart();
+    });
+  }
+  if (closeCartBtn && !closeCartBtn.dataset.listenerAttached) {
+    closeCartBtn.dataset.listenerAttached = 'true';
+    closeCartBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeCart();
+    });
+  }
+  if (cartBackdrop && !cartBackdrop.dataset.listenerAttached) {
+    cartBackdrop.dataset.listenerAttached = 'true';
+    cartBackdrop.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeCart();
+    });
   }
 
   // Delivery toggle inside cart
-  const deliveryOptions = document.querySelectorAll('input[name="cart-delivery"]');
-  deliveryOptions.forEach(opt => {
-    opt.addEventListener('change', updateCartUI);
-  });
+  try {
+    const deliveryOptions = document.querySelectorAll('input[name="cart-delivery"]');
+    deliveryOptions.forEach(opt => {
+      opt.addEventListener('change', updateCartUI);
+    });
+  } catch (e) {}
 
-  cart = loadCartFromStorage();
-  renderCartItems();
-  updateCartBadge();
+  try {
+    cart = loadCartFromStorage();
+    renderCartItems();
+    updateCartBadge();
+  } catch (e) {}
 }
 
 function openCart() {
   const drawer = document.getElementById('cart-drawer');
   const backdrop = document.getElementById('cart-backdrop');
-  if (drawer && backdrop) {
-    drawer.classList.remove('translate-x-full');
-    backdrop.classList.remove('hidden');
-    document.body.classList.add('modal-open');
-    if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
-    document.body.style.overflow = 'hidden';
+  if (drawer) {
+    drawer.classList.remove('translate-x-full', 'pointer-events-none');
+    drawer.classList.add('pointer-events-auto');
   }
+  if (backdrop) {
+    backdrop.classList.remove('hidden', 'pointer-events-none');
+    backdrop.classList.add('pointer-events-auto');
+  }
+  document.body.classList.add('modal-open');
+  if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
+  document.body.style.overflow = 'hidden';
 }
 
 function closeCart() {
   const drawer = document.getElementById('cart-drawer');
   const backdrop = document.getElementById('cart-backdrop');
-  if (drawer && backdrop) {
-    drawer.classList.add('translate-x-full');
-    backdrop.classList.add('hidden');
-    const otherModal = document.querySelector('#login-auth-modal:not(.hidden), #register-auth-modal:not(.hidden), #producer-technical-modal:not(.hidden), #client-settings-modal:not(.hidden)');
-    if (!otherModal) {
-      document.body.classList.remove('modal-open');
-      if (typeof window.resumeHeroSliderFromModal === 'function') window.resumeHeroSliderFromModal();
-    }
-    document.body.style.overflow = '';
+  if (drawer) {
+    drawer.classList.add('translate-x-full', 'pointer-events-none');
+    drawer.classList.remove('pointer-events-auto');
   }
+  if (backdrop) {
+    backdrop.classList.add('hidden', 'pointer-events-none');
+    backdrop.classList.remove('pointer-events-auto');
+  }
+  document.body.classList.remove('modal-open');
+  if (typeof window.resumeHeroSliderFromModal === 'function') window.resumeHeroSliderFromModal();
+  document.body.style.overflow = '';
 }
 
 function addToCart(product) {
@@ -567,6 +591,14 @@ function initRoleModal() {
   });
 }
 
+// Exportar utilidades del carrito globalmente para handlers inline y módulos
+window.openCart = openCart;
+window.closeCart = closeCart;
+window.addToCart = addToCart;
+window.updateCartQuantity = updateCartQuantity;
+window.removeCartItem = removeCartItem;
+window.showToast = showToast;
+
 /* ==========================================================================
    6. Notificaciones Toast Flotantes
    ========================================================================== */
@@ -614,3 +646,11 @@ function initSmoothScroll() {
     });
   });
 }
+
+// Exportar utilidades del carrito globalmente para handlers inline y módulos
+window.openCart = openCart;
+window.closeCart = closeCart;
+window.addToCart = addToCart;
+window.updateCartQuantity = updateCartQuantity;
+window.removeCartItem = removeCartItem;
+window.showToast = showToast;

@@ -74,9 +74,9 @@ class SupabaseService {
           } catch (err) {
             return { data: { session: null }, error: err };
           } finally {
-            setTimeout(() => { window.__rbSessionPromise = null; }, 500);
+            setTimeout(() => { window.__rbSessionPromise = null; }, 300);
           }
-        })();
+        })().catch(err => ({ data: { session: null }, error: err }));
         return window.__rbSessionPromise;
       },
       getUser: async () => {

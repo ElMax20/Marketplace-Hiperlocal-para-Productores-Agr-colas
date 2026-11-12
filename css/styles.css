@@ -127,10 +127,8 @@ body {
 
 /* Aislamiento de capas (CSS Containment) para evitar recalcular la página trasera */
 .product-card,
-.card-hover,
-.farm-card,
-#products-grid {
-  contain: content;
+.farm-card {
+  contain: layout paint;
 }
 
 /* Modal and Drawer Backdrop rápido sin sobrecarga de GPU */

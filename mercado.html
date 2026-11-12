@@ -51,7 +51,6 @@
     }
     .product-card {
       transition: transform 0.2s ease, box-shadow 0.2s ease;
-      contain: content;
     }
     .product-card:hover {
       transform: translateY(-3px);
@@ -608,9 +607,9 @@
   <!-- =======================================================================
        7. OFF-CANVAS CART (Carrito Lateral)
        ======================================================================= -->
-  <div id="cart-drawer" class="fixed inset-0 z-50 pointer-events-none transition-all duration-300">
+  <div id="cart-drawer" class="fixed inset-0 z-50 pointer-events-none transition-all duration-300 hidden">
     <div id="cart-backdrop" class="absolute inset-0 bg-black/40 opacity-0 pointer-events-none transition-opacity duration-300"></div>
-    <div id="cart-panel" class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl translate-x-full pointer-events-auto transition-transform duration-300 flex flex-col">
+    <div id="cart-panel" class="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white shadow-2xl translate-x-full pointer-events-none transition-transform duration-300 flex flex-col">
       
       <!-- Drawer Header -->
       <div class="p-5 border-b border-stone-200 flex items-center justify-between bg-stone-50">

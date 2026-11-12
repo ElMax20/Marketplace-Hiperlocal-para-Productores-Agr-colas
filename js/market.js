@@ -1430,20 +1430,36 @@ function setupCartDrawerListeners() {
   const panel = document.getElementById('cart-panel');
 
   function openCart() {
-    drawer.classList.remove('pointer-events-none');
-    backdrop.classList.remove('opacity-0', 'pointer-events-none');
-    backdrop.classList.add('opacity-100', 'pointer-events-auto');
-    panel.classList.remove('translate-x-full');
+    if (drawer) {
+      drawer.classList.remove('hidden', 'pointer-events-none');
+      drawer.classList.add('pointer-events-auto');
+    }
+    if (backdrop) {
+      backdrop.classList.remove('opacity-0', 'pointer-events-none');
+      backdrop.classList.add('opacity-100', 'pointer-events-auto');
+    }
+    if (panel) {
+      panel.classList.remove('translate-x-full', 'pointer-events-none');
+      panel.classList.add('pointer-events-auto');
+    }
     document.body.classList.add('modal-open');
     if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
   }
 
   function closeCart() {
-    backdrop.classList.add('opacity-0', 'pointer-events-none');
-    backdrop.classList.remove('opacity-100', 'pointer-events-auto');
-    panel.classList.add('translate-x-full');
+    if (backdrop) {
+      backdrop.classList.add('opacity-0', 'pointer-events-none');
+      backdrop.classList.remove('opacity-100', 'pointer-events-auto');
+    }
+    if (panel) {
+      panel.classList.add('translate-x-full', 'pointer-events-none');
+      panel.classList.remove('pointer-events-auto');
+    }
     setTimeout(() => {
-      drawer.classList.add('pointer-events-none');
+      if (drawer) {
+        drawer.classList.add('hidden', 'pointer-events-none');
+        drawer.classList.remove('pointer-events-auto');
+      }
       const otherModals = document.querySelectorAll('#auth-modal:not(.hidden), #login-auth-modal:not(.hidden), #register-auth-modal:not(.hidden), #producer-technical-modal:not(.hidden)');
       if (otherModals.length === 0) {
         document.body.classList.remove('modal-open');
@@ -1456,6 +1472,8 @@ function setupCartDrawerListeners() {
   if (closeBtn) closeBtn.onclick = closeCart;
   if (backdrop) backdrop.onclick = closeCart;
 
+  window.openCart = openCart;
+  window.closeCart = closeCart;
   window.openCartDrawer = openCart;
   window.closeCartDrawer = closeCart;
 }
