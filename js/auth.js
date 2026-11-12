@@ -452,6 +452,20 @@ async function validateAndSyncSession() {
 }
 window.validateAndSyncSession = validateAndSyncSession;
 
+// Helper para sincronizar pausa de slider y capas cuando hay modales abiertos
+function syncModalPauseState() {
+  const openModal = document.querySelector(
+    '#login-auth-modal:not(.hidden), #register-auth-modal:not(.hidden), #producer-technical-modal:not(.hidden), #client-settings-modal:not(.hidden), #avatar-cropper-modal:not(.hidden), #modal-new-address:not(.hidden), #banking-processing-overlay:not(.hidden), #modal-otp-password:not(.hidden), #modal-add-card:not(.hidden), #modal-edit-card:not(.hidden), #modal-delete-card:not(.hidden), #modal-address:not(.hidden), #modal-delete-address:not(.hidden), #modal-node-selector:not(.hidden)'
+  );
+  if (openModal) {
+    document.body.classList.add('modal-open');
+    if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
+  } else {
+    document.body.classList.remove('modal-open');
+    if (typeof window.resumeHeroSliderFromModal === 'function') window.resumeHeroSliderFromModal();
+  }
+}
+
 // Estado actual del modal de login ('cliente' | 'productor')
 let currentAuthType = 'cliente';
 
@@ -530,6 +544,8 @@ function openLoginModal(type = 'cliente') {
   }
 
   modal.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
   document.body.style.overflow = 'hidden';
   if (userInput) userInput.focus();
 }
@@ -539,6 +555,7 @@ function closeLoginModal() {
   if (modal) {
     modal.classList.add('hidden');
     document.body.style.overflow = '';
+    syncModalPauseState();
   }
 }
 
@@ -1300,6 +1317,8 @@ function openRegisterModal() {
   const regModal = document.getElementById('register-auth-modal');
   if (regModal) {
     regModal.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+    if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
     document.body.style.overflow = 'hidden';
     const firstInput = document.getElementById('reg-name');
     if (firstInput) firstInput.focus();
@@ -1313,6 +1332,7 @@ function closeRegisterModal() {
   if (regModal) {
     regModal.classList.add('hidden');
     document.body.style.overflow = '';
+    syncModalPauseState();
   }
 }
 
@@ -1324,6 +1344,8 @@ function openProducerTechnicalModal() {
   const modal = document.getElementById('producer-technical-modal');
   if (modal) {
     modal.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+    if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
     document.body.style.overflow = 'hidden';
     const first = document.getElementById('pt-farm-name');
     if (first) first.focus();
@@ -1335,6 +1357,7 @@ function closeProducerTechnicalModal() {
   if (modal) {
     modal.classList.add('hidden');
     document.body.style.overflow = '';
+    syncModalPauseState();
   }
 }
 
@@ -1490,7 +1513,7 @@ function ensureClientSettingsModalExists() {
 
   const wrapper = document.createElement('div');
   wrapper.id = 'client-settings-modal';
-  wrapper.className = 'hidden fixed inset-0 z-[60] bg-stone-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 overflow-y-auto';
+  wrapper.className = 'hidden fixed inset-0 z-[60] bg-black/50 flex items-center justify-center p-3 sm:p-6 overflow-y-auto';
   wrapper.innerHTML = `
     <div class="bg-[#faf8f5] w-full max-w-4xl rounded-3xl shadow-2xl border border-stone-200 overflow-hidden my-auto max-h-[92vh] flex flex-col">
       <!-- Cabecera del Modal -->
@@ -1810,6 +1833,8 @@ async function openClientSettingsModal() {
   if (fileInput) fileInput.value = '';
 
   modal.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
   document.body.style.overflow = 'hidden';
 
   // Consultar directamente a la base de datos Supabase para verificar los datos más frescos
@@ -1867,6 +1892,7 @@ function closeClientSettingsModal() {
   if (modal) {
     modal.classList.add('hidden');
     document.body.style.overflow = '';
+    syncModalPauseState();
   }
 }
 
@@ -2170,7 +2196,7 @@ function ensureAvatarCropperModalExists() {
 
   modal = document.createElement('div');
   modal.id = 'avatar-cropper-modal';
-  modal.className = 'hidden fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-xs select-none';
+  modal.className = 'hidden fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/50 select-none';
 
   modal.innerHTML = `
     <div class="bg-white rounded-3xl max-w-sm sm:max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95 duration-150">
@@ -2197,7 +2223,7 @@ function ensureAvatarCropperModalExists() {
           <div class="relative rounded-2xl overflow-hidden shadow-inner bg-stone-900 border border-stone-300 touch-none select-none flex items-center justify-center" style="width: 320px; height: 320px;">
             <canvas id="cropper-canvas" width="320" height="320" class="cursor-grab active:cursor-grabbing block" style="touch-action: none;"></canvas>
             
-            <div class="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-xs text-white text-[10px] font-medium px-3 py-1 rounded-full pointer-events-none flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+            <div class="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-black/70 text-white text-[10px] font-medium px-3 py-1 rounded-full pointer-events-none flex items-center gap-1.5 shadow-sm whitespace-nowrap">
               <span>✋ Arrastra para centrar</span>
               <span>•</span>
               <span>🔍 Rueda para zoom</span>
@@ -2591,6 +2617,8 @@ function openAvatarCropperModal(file, onConfirm, onCancel) {
       updateCropperBaseScale();
       clampCropperPan();
       modal.classList.remove('hidden');
+      document.body.classList.add('modal-open');
+      if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
       renderCropper();
     };
     img.src = e.target.result;
@@ -2602,6 +2630,7 @@ function closeAvatarCropperModal(confirmed = false) {
   const modal = document.getElementById('avatar-cropper-modal');
   if (modal) {
     modal.classList.add('hidden');
+    syncModalPauseState();
   }
   if (!confirmed && typeof cropperState.onCancel === 'function') {
     cropperState.onCancel();

@@ -92,8 +92,10 @@ export const FarmersSection: React.FC<FarmersSectionProps> = ({ onSelectProducer
                   src={producer.imageUrl}
                   alt={producer.name}
                   className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                  loading="lazy"
+                  decoding="async"
                 />
-                <span className="absolute top-4 left-4 bg-white/95 backdrop-blur-sm text-[#1a3d2f] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+                <span className="absolute top-4 left-4 bg-white/95 border border-stone-200/80 text-[#1a3d2f] text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow">
                   {producer.locationTag}
                 </span>
               </div>

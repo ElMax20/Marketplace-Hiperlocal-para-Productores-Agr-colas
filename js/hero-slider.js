@@ -50,6 +50,7 @@ const HERO_INTERVAL = 6000; // ms por diapositiva (6 segundos continuos)
 
 let heroTimer = null;
 let heroTouchStartX = null;
+let isHeroPausedForModal = false;
 
 /**
  * Inicialización al cargar la página
@@ -64,7 +65,10 @@ function initHeroSlider() {
   // 2. Iniciar autoplay continuo de 6 segundos
   startHeroTimer();
 
-  // 3. Soporte para gestos táctiles (Swipe en móviles/tablets)
+  // 3. Observador para pausar slider e idle de GPU al abrir cualquier modal
+  setupModalPauseObserver();
+
+  // 4. Soporte para gestos táctiles (Swipe en móviles/tablets)
   sliderSection.addEventListener('touchstart', (e) => {
     heroTouchStartX = e.touches[0].clientX;
   }, { passive: true });
@@ -96,6 +100,7 @@ function initHeroSlider() {
  */
 function startHeroTimer() {
   stopHeroTimer();
+  if (isHeroPausedForModal) return;
   heroTimer = setInterval(() => {
     nextHeroSlide();
   }, HERO_INTERVAL);
@@ -108,6 +113,76 @@ function stopHeroTimer() {
   if (heroTimer) {
     clearInterval(heroTimer);
     heroTimer = null;
+  }
+}
+
+/**
+ * Pausa las transiciones y el temporizador mientras un modal esté abierto
+ */
+function pauseHeroSliderForModal() {
+  isHeroPausedForModal = true;
+  stopHeroTimer();
+  document.body.classList.add('modal-open');
+}
+
+/**
+ * Reanuda las transiciones y el temporizador al cerrarse los modales
+ */
+function resumeHeroSliderFromModal() {
+  isHeroPausedForModal = false;
+  document.body.classList.remove('modal-open');
+  startHeroTimer();
+}
+
+/**
+ * Observador global que detecta apertura/cierre de modales para pausar animaciones
+ */
+function setupModalPauseObserver() {
+  const modalSelectors = [
+    '#login-auth-modal',
+    '#register-auth-modal',
+    '#producer-technical-modal',
+    '#client-settings-modal',
+    '#auth-modal',
+    '#cart-drawer',
+    '#modal-new-address',
+    '#banking-processing-overlay',
+    '#avatar-cropper-modal',
+    '#modal-node-selector'
+  ];
+
+  const checkModals = () => {
+    let anyOpen = false;
+    for (const sel of modalSelectors) {
+      const el = document.querySelector(sel);
+      if (el) {
+        const isHiddenClass = el.classList.contains('hidden');
+        const isDisplayNone = el.style.display === 'none';
+        const isCartClosed = sel === '#cart-drawer' && (el.classList.contains('translate-x-full') || el.classList.contains('pointer-events-none'));
+        if (!isHiddenClass && !isDisplayNone && !isCartClosed) {
+          anyOpen = true;
+          break;
+        }
+      }
+    }
+    if (anyOpen) {
+      pauseHeroSliderForModal();
+    } else if (isHeroPausedForModal) {
+      resumeHeroSliderFromModal();
+    }
+  };
+
+  try {
+    const observer = new MutationObserver(() => {
+      checkModals();
+    });
+    observer.observe(document.body, {
+      attributes: true,
+      subtree: true,
+      attributeFilter: ['class', 'style']
+    });
+  } catch (e) {
+    console.warn('MutationObserver no disponible para modales:', e);
   }
 }
 
@@ -200,4 +275,6 @@ document.addEventListener('DOMContentLoaded', () => {
 window.nextHeroSlide = nextHeroSlide;
 window.prevHeroSlide = prevHeroSlide;
 window.goToHeroSlide = goToHeroSlide;
+window.pauseHeroSliderForModal = pauseHeroSliderForModal;
+window.resumeHeroSliderFromModal = resumeHeroSliderFromModal;
 window.HERO_SLIDES = HERO_SLIDES;

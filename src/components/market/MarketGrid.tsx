@@ -440,13 +440,14 @@ export const MarketGrid: React.FC<MarketGridProps> = ({
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredProducts.map((p) => {
+              {filteredProducts.map((p, index) => {
                 const isFav = favoriteIds.includes(p.id) || (p.numericId && favoriteIds.includes(p.numericId));
 
                 return (
                   <article
                     key={p.id}
                     className="bg-white rounded-2xl border border-stone-200 shadow-xs hover:shadow-md transition-shadow overflow-hidden flex flex-col justify-between group"
+                    style={{ contain: 'content' }}
                   >
                     <div>
                       {/* Imagen y Badges */}
@@ -455,11 +456,12 @@ export const MarketGrid: React.FC<MarketGridProps> = ({
                           src={p.image}
                           alt={p.title}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
+                          loading={index < 4 ? "eager" : "lazy"}
+                          decoding="async"
                         />
                         <button
                           onClick={() => onToggleFavorite && onToggleFavorite(p.id)}
-                          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center bg-white/90 backdrop-blur-xs shadow-xs transition ${
+                          className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center bg-white/95 border border-stone-200/80 shadow-xs transition ${
                             isFav ? 'text-rose-500' : 'text-stone-400 hover:text-rose-400'
                           }`}
                           aria-label="Agregar a favoritos"
@@ -467,7 +469,7 @@ export const MarketGrid: React.FC<MarketGridProps> = ({
                           {isFav ? '❤️' : '🤍'}
                         </button>
 
-                        <span className="absolute bottom-3 left-3 bg-[#1a3d2f]/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full backdrop-blur-xs">
+                        <span className="absolute bottom-3 left-3 bg-[#1a3d2f]/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                           {p.subtitle}
                         </span>
                       </div>

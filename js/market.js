@@ -255,6 +255,17 @@ function normalizeProductImageUrl(url) {
     if (clean.includes('canasta_agroecologica.jpg')) {
       return clean.replace('canasta_agroecologica.jpg', 'canasta_esencial.jpg');
     }
+    if (clean.includes('images.unsplash.com')) {
+      try {
+        const u = new URL(clean);
+        u.searchParams.set('w', '600');
+        u.searchParams.set('q', '75');
+        u.searchParams.set('auto', 'format');
+        return u.toString();
+      } catch (e) {
+        return clean;
+      }
+    }
     return clean;
   }
   if (clean.startsWith('assets/images/')) {
@@ -762,7 +773,7 @@ function renderProducts() {
     return;
   }
 
-  container.innerHTML = filtered.map(p => {
+  container.innerHTML = filtered.map((p, index) => {
     const itemInCart = cart.find(item => String(item.id) === String(p.id));
     const cartQty = itemInCart ? itemInCart.quantity : 0;
     const isFav = isProductFavorite(p.id);
@@ -771,6 +782,7 @@ function renderProducts() {
     return `
       <div 
         class="product-card bg-white rounded-2xl border ${isFav ? 'border-[#c85a32]/40 ring-1 ring-[#c85a32]/20' : 'border-stone-200'} overflow-hidden flex flex-col justify-between group cursor-pointer transition-all duration-300 hover:shadow-md hover:border-stone-300 relative"
+        style="contain: content;"
         onclick="openProductDetailPage('${p.id}', event)"
       >
         
@@ -780,6 +792,8 @@ function renderProducts() {
             src="${normalizeProductImageUrl(p.image)}" 
             alt="${p.title || 'Producto'}" 
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="${index < 4 ? 'eager' : 'lazy'}"
+            decoding="async"
             onerror="this.src='https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/hero_basket.jpg'"
           >
 
@@ -790,7 +804,7 @@ function renderProducts() {
                 <span>❤️</span><span>Fijado</span>
               </span>
             ` : ''}
-            <span class="bg-white/95 backdrop-blur-sm text-[#1a3d2f] text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
+            <span class="bg-white/95 border border-stone-200/80 text-[#1a3d2f] text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
               ${p.tag || 'Cosecha fresca'}
             </span>
           </div>
@@ -802,7 +816,7 @@ function renderProducts() {
             class="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all duration-200 z-20 cursor-pointer ${
               isFav 
                 ? 'bg-white text-[#c85a32] ring-2 ring-[#c85a32]/30 scale-105 hover:scale-115' 
-                : 'bg-white/95 backdrop-blur-sm text-stone-400 hover:text-[#c85a32] hover:bg-white hover:scale-110'
+                : 'bg-white/95 border border-stone-200/80 text-stone-400 hover:text-[#c85a32] hover:bg-white hover:scale-110'
             }"
             title="${isFav ? 'Quitar de favoritos' : 'Fijar en el primer espacio de favoritos'}"
             aria-label="${isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}"
@@ -1223,14 +1237,21 @@ function updateCategoryBadgesCounts() {
 }
 window.updateCategoryBadgesCounts = updateCategoryBadgesCounts;
 
+let searchDebounceTimer = null;
 function setupSearchListener() {
   const input = document.getElementById('market-search');
-  if (input) {
-    input.addEventListener('input', (e) => {
-      searchQuery = e.target.value.trim();
+  if (!input) return;
+  if (input.dataset.listenerAttached === 'true') return;
+  input.dataset.listenerAttached = 'true';
+
+  input.addEventListener('input', (e) => {
+    clearTimeout(searchDebounceTimer);
+    const val = e.target.value.trim();
+    searchDebounceTimer = setTimeout(() => {
+      searchQuery = val;
       renderProducts();
-    });
-  }
+    }, 250);
+  });
 }
 
 /**
@@ -1413,6 +1434,8 @@ function setupCartDrawerListeners() {
     backdrop.classList.remove('opacity-0', 'pointer-events-none');
     backdrop.classList.add('opacity-100', 'pointer-events-auto');
     panel.classList.remove('translate-x-full');
+    document.body.classList.add('modal-open');
+    if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
   }
 
   function closeCart() {
@@ -1421,6 +1444,11 @@ function setupCartDrawerListeners() {
     panel.classList.add('translate-x-full');
     setTimeout(() => {
       drawer.classList.add('pointer-events-none');
+      const otherModals = document.querySelectorAll('#auth-modal:not(.hidden), #login-auth-modal:not(.hidden), #register-auth-modal:not(.hidden), #producer-technical-modal:not(.hidden)');
+      if (otherModals.length === 0) {
+        document.body.classList.remove('modal-open');
+        if (typeof window.resumeHeroSliderFromModal === 'function') window.resumeHeroSliderFromModal();
+      }
     }, 300);
   }
 
@@ -1514,12 +1542,20 @@ function handleProceedToCheckout() {
 function openAuthModal(mode = 'register') {
   const modal = document.getElementById('auth-modal');
   if (modal) modal.classList.remove('hidden');
+  document.body.classList.add('modal-open');
+  if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
   switchAuthTab(mode);
 }
 
 function closeAuthModal() {
   const modal = document.getElementById('auth-modal');
   if (modal) modal.classList.add('hidden');
+  const cartDrawer = document.getElementById('cart-drawer');
+  const cartOpen = cartDrawer && !cartDrawer.classList.contains('pointer-events-none') && document.getElementById('cart-panel') && !document.getElementById('cart-panel').classList.contains('translate-x-full');
+  if (!cartOpen) {
+    document.body.classList.remove('modal-open');
+    if (typeof window.resumeHeroSliderFromModal === 'function') window.resumeHeroSliderFromModal();
+  }
 }
 
 function switchAuthTab(tab) {

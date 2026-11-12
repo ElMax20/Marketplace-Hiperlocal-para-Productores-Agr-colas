@@ -73,6 +73,9 @@ function saveCartToStorage() {
 }
 
 function initCart() {
+  if (document.body.dataset.cartInitialized === 'true') return;
+  document.body.dataset.cartInitialized = 'true';
+
   const cartBtn = document.getElementById('cart-toggle-btn');
   const cartDrawer = document.getElementById('cart-drawer');
   const closeCartBtn = document.getElementById('cart-close-btn');
@@ -101,6 +104,8 @@ function openCart() {
   if (drawer && backdrop) {
     drawer.classList.remove('translate-x-full');
     backdrop.classList.remove('hidden');
+    document.body.classList.add('modal-open');
+    if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
     document.body.style.overflow = 'hidden';
   }
 }
@@ -111,6 +116,11 @@ function closeCart() {
   if (drawer && backdrop) {
     drawer.classList.add('translate-x-full');
     backdrop.classList.add('hidden');
+    const otherModal = document.querySelector('#login-auth-modal:not(.hidden), #register-auth-modal:not(.hidden), #producer-technical-modal:not(.hidden), #client-settings-modal:not(.hidden)');
+    if (!otherModal) {
+      document.body.classList.remove('modal-open');
+      if (typeof window.resumeHeroSliderFromModal === 'function') window.resumeHeroSliderFromModal();
+    }
     document.body.style.overflow = '';
   }
 }
@@ -443,6 +453,9 @@ window.selectPickupNode = function(nodeId) {
    4. Selectores de Cantidad en Tarjetas de Productos
    ========================================================================== */
 function initQuantitySteppers() {
+  if (document.body.dataset.steppersInitialized === 'true') return;
+  document.body.dataset.steppersInitialized = 'true';
+
   document.querySelectorAll('.qty-stepper').forEach(stepper => {
     const input = stepper.querySelector('input');
     const minusBtn = stepper.querySelector('.btn-minus');

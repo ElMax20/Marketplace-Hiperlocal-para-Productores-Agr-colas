@@ -121,10 +121,30 @@ body {
   box-shadow: 0 6px 16px rgba(200, 90, 50, 0.4);
 }
 
-/* Modal and Drawer Backdrop */
+/* ==========================================================================
+   Optimizaciones de GPU, Aislamiento de Capas y Control de Modales
+   ========================================================================== */
+
+/* Aislamiento de capas (CSS Containment) para evitar recalcular la página trasera */
+.product-card,
+.card-hover,
+.farm-card,
+#products-grid {
+  contain: content;
+}
+
+/* Modal and Drawer Backdrop rápido sin sobrecarga de GPU */
 .drawer-backdrop {
-  background-color: rgba(18, 42, 32, 0.45);
-  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.5);
+  /* Eliminado backdrop-filter: blur() para prevenir caídas de FPS */
+}
+
+/* Pausar transiciones e intervalos de fondo cuando un modal esté abierto */
+body.modal-open #hero-slider-section *,
+body.modal-open .transition-opacity,
+body.modal-open .animate-pulse {
+  animation-play-state: paused !important;
+  transition: none !important;
 }
 
 /* Toast Animation */

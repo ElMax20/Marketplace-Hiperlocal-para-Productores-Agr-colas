@@ -210,7 +210,7 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({
 
                           {/* Floating Badge sobre la imagen */}
                           {slide.floatingBadge && (
-                            <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-md border border-white/60 shadow-lg rounded-2xl px-3.5 py-2 flex items-center gap-2.5">
+                            <div className="absolute bottom-4 left-4 bg-white/95 border border-white/60 shadow-lg rounded-2xl px-3.5 py-2 flex items-center gap-2.5">
                               <span className="text-xl">{slide.floatingBadge.icon}</span>
                               <div>
                                 <p className="text-xs font-bold text-stone-900 leading-tight">
@@ -224,7 +224,7 @@ export const HeroSlider: React.FC<HeroSliderProps> = ({
                           )}
 
                           {/* Tag de Categoría Superior */}
-                          <div className="absolute top-4 right-4 bg-black/60 backdrop-blur-xs text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+                          <div className="absolute top-4 right-4 bg-black/60 text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider">
                             {slide.id === 'canastas' ? '🧺 Semanal' : '🥕 Bajo Demanda'}
                           </div>
                         </div>

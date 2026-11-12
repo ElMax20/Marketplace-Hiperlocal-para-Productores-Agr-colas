@@ -12,7 +12,7 @@ export const ProcessingOverlay: React.FC<ProcessingOverlayProps> = ({
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-900/70 backdrop-blur-sm p-4 transition-all">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 transition-all">
       <div className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl text-center border border-stone-100 flex flex-col items-center">
         {/* Spinner animado con branding */}
         <div className="relative w-20 h-20 mb-6 flex items-center justify-center">

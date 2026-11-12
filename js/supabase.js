@@ -9,6 +9,34 @@ const SUPABASE_CONFIG = {
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2anFndnBsYm1zaHB1Y251emZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5OTcyMDgsImV4cCI6MjEwOTU3MzIwOH0.cEWJYxNjq04f8auZzK9PoGlQUa_EnRtORxT6z85LmLU'
 };
 
+// =============================================================================
+// CACHÉ EN MEMORIA Y SESSIONSTORAGE (TTL 5 minutos para pickup_nodes y categories)
+// =============================================================================
+const STATIC_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutos
+
+function getSessionDataCache(key) {
+  try {
+    const raw = sessionStorage.getItem(`rb_cache_${key}`);
+    if (!raw) return null;
+    const item = JSON.parse(raw);
+    if (item && item.expiry && Date.now() < item.expiry) {
+      return item.data;
+    }
+    sessionStorage.removeItem(`rb_cache_${key}`);
+  } catch (e) {}
+  return null;
+}
+
+function setSessionDataCache(key, data) {
+  try {
+    const item = {
+      data,
+      expiry: Date.now() + STATIC_CACHE_TTL_MS
+    };
+    sessionStorage.setItem(`rb_cache_${key}`, JSON.stringify(item));
+  } catch (e) {}
+}
+
 /**
  * Cliente REST ligero para Supabase (funciona sin dependencias externas)
  */
@@ -23,30 +51,40 @@ class SupabaseService {
     };
 
     // Sub-módulo auth compatible con Supabase Auth (@supabase/supabase-js)
+    // Centraliza la sesión en una única promesa compartida (window.__rbSessionPromise)
     this.auth = {
       getSession: async () => {
-        try {
-          const tokenInfo = typeof getSupabaseAuthTokenInfo === 'function' 
-            ? getSupabaseAuthTokenInfo() 
-            : null;
-          if (!tokenInfo || !tokenInfo.session) {
-            return { data: { session: null }, error: null };
-          }
-          const session = tokenInfo.session;
-          if (session && session.expires_at && session.expires_at * 1000 < Date.now()) {
-            if (typeof clearAllAuthTokens === 'function') clearAllAuthTokens();
-            return { data: { session: null }, error: new Error('Session expired') };
-          }
-          return { data: { session }, error: null };
-        } catch (err) {
-          return { data: { session: null }, error: err };
+        if (window.__rbSessionPromise) {
+          return window.__rbSessionPromise;
         }
+        window.__rbSessionPromise = (async () => {
+          try {
+            const tokenInfo = typeof getSupabaseAuthTokenInfo === 'function' 
+              ? getSupabaseAuthTokenInfo() 
+              : null;
+            if (!tokenInfo || !tokenInfo.session) {
+              return { data: { session: null }, error: null };
+            }
+            const session = tokenInfo.session;
+            if (session && session.expires_at && session.expires_at * 1000 < Date.now()) {
+              if (typeof clearAllAuthTokens === 'function') clearAllAuthTokens();
+              return { data: { session: null }, error: new Error('Session expired') };
+            }
+            return { data: { session }, error: null };
+          } catch (err) {
+            return { data: { session: null }, error: err };
+          } finally {
+            setTimeout(() => { window.__rbSessionPromise = null; }, 500);
+          }
+        })();
+        return window.__rbSessionPromise;
       },
       getUser: async () => {
         const res = await this.auth.getSession();
         return { data: { user: res.data?.session?.user || null }, error: res.error };
       },
       signOut: async () => {
+        window.__rbSessionPromise = null;
         if (typeof clearAllAuthTokens === 'function') {
           clearAllAuthTokens();
         } else {
@@ -73,6 +111,17 @@ class SupabaseService {
   }
 
   async fetchApi(endpoint, options = {}) {
+    const method = (options.method || 'GET').toUpperCase();
+    const isCacheable = (method === 'GET') && 
+      (endpoint.startsWith('pickup_nodes') || endpoint.startsWith('categories'));
+
+    if (isCacheable) {
+      const cached = getSessionDataCache(endpoint);
+      if (cached !== null) {
+        return cached;
+      }
+    }
+
     const url = `${this.baseUrl}/${endpoint}`;
     let body = options.body;
     if (body && typeof body === 'object' && !(body instanceof FormData) && !(body instanceof Blob)) {
@@ -94,7 +143,13 @@ class SupabaseService {
     }
 
     const text = await response.text();
-    return text ? JSON.parse(text) : null;
+    const result = text ? JSON.parse(text) : null;
+
+    if (isCacheable && result) {
+      setSessionDataCache(endpoint, result);
+    }
+
+    return result;
   }
 
   /**
@@ -414,6 +469,22 @@ class SupabaseService {
     } catch (e) {
       console.error(`Error al actualizar producto ${id}:`, e);
       throw e;
+    }
+  }
+
+  // =========================================================================
+  // NODOS DE RECOGIDA (pickup_nodes)
+  // =========================================================================
+
+  /**
+   * Obtiene los nodos de entrega activos con caché instantánea en sessionStorage
+   */
+  async getPickupNodes() {
+    try {
+      return await this.fetchApi('pickup_nodes?select=*&is_active=eq.true&order=created_at.asc');
+    } catch (e) {
+      console.warn('Error al obtener pickup_nodes de Supabase:', e);
+      return [];
     }
   }
 

@@ -51,6 +51,7 @@
     }
     .product-card {
       transition: transform 0.2s ease, box-shadow 0.2s ease;
+      contain: content;
     }
     .product-card:hover {
       transform: translateY(-3px);
@@ -653,7 +654,7 @@
        8. AUTH MODAL (CREAR CUENTA / INICIAR SESIÓN OBLIGATORIO PARA COMPRAR)
        ======================================================================= -->
   <div id="auth-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4">
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" onclick="closeAuthModal()"></div>
+    <div class="absolute inset-0 bg-black/50" onclick="closeAuthModal()"></div>
     
     <div class="relative bg-white rounded-3xl max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden z-10 animate-slide-up">
       
@@ -798,7 +799,7 @@
   <!-- =======================================================================
        MODAL DE SOLICITUD DE ALTA TÉCNICA PARA PRODUCTORES AGRÍCOLAS
        ======================================================================= -->
-  <div id="producer-technical-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+  <div id="producer-technical-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
     <div class="relative bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-stone-200 overflow-hidden z-10 animate-slide-up my-auto">
       
       <div class="p-6 pb-4 bg-gradient-to-b from-[#FAF7F2] to-white border-b border-stone-200 relative text-left">
