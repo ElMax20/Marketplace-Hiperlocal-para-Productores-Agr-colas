@@ -34,15 +34,15 @@ VALUES
     (5, 'Despensa', 'Miel, panela artesanal y café de origen')
 ON CONFLICT (id) DO NOTHING;
 
--- 5. Cuentas de Usuario de Prueba
+-- 5. Cuentas de Usuario de Prueba y Productores Locales de Guayas
 INSERT INTO public.profiles (id, username, password, email, full_name, role, farm_name, avatar_url)
 VALUES
-    ('00000000-0000-0000-0000-000000000001', 'max', '123', 'max.cliente@raizybarrio.co', 'Max Cliente', 'cliente', NULL, NULL),
-    ('00000000-0000-0000-0000-000000000002', 'maxp', '123', 'maxp.productor@raizybarrio.co', 'Max Productor', 'productor', 'Huerta El Renacer', 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg'),
+    ('00000000-0000-0000-0000-000000000001', 'max', '123', 'max@vecinos.com', 'Max Cliente', 'cliente', NULL, NULL),
+    ('00000000-0000-0000-0000-000000000002', 'maxp', '123', 'maxp@elrenacer.co', 'Max Productor', 'productor', 'Hacienda San José', 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/agricultor_1.jpg'),
     ('00000000-0000-0000-0000-000000000003', 'admin', 'admin123', 'lucia@raizybarrio.co', 'Lucía Torres', 'administrador', 'Administración Raíz & Barrio', 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/lucia_torres.jpg'),
-    ('00000000-0000-0000-0000-000000000004', 'elena', '123', 'elena@elrenacer.co', 'Elena Moreno', 'productor', 'Huerta El Renacer', 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg'),
-    ('00000000-0000-0000-0000-000000000005', 'carlos', '123', 'carlos@laesperanza.co', 'Carlos Ramírez', 'productor', 'Finca La Esperanza', 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/agricultor_1.jpg'),
-    ('00000000-0000-0000-0000-000000000006', 'daniel', '123', 'daniel@familiarojas.co', 'Daniel Rojas', 'productor', 'Familia Rojas', 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/agricultor_3.jpg')
+    ('00000000-0000-0000-0000-000000000004', 'elena', '123', 'elena@elguayacan.ec', 'Elena Moreno', 'productor', 'Huerta Agroecológica El Guayacán', 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg'),
+    ('00000000-0000-0000-0000-000000000005', 'carlos', '123', 'carlos@alvarado.ec', 'Carlos Alvarado', 'productor', 'Hacienda San José', 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/agricultor_1.jpg'),
+    ('00000000-0000-0000-0000-000000000006', 'jorge', '123', 'jorge@donjorge.ec', 'Don Jorge', 'productor', 'Asociación Don Jorge', 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/agricultor_3.jpg')
 ON CONFLICT (id) DO UPDATE SET
     username = EXCLUDED.username,
     password = EXCLUDED.password,
@@ -52,24 +52,26 @@ ON CONFLICT (id) DO UPDATE SET
     farm_name = EXCLUDED.farm_name,
     avatar_url = EXCLUDED.avatar_url;
 
--- 6. Sembrado de Productos del Catálogo con URLs de Supabase Storage
+-- 6. Sembrado de Productos del Catálogo con URLs de Supabase Storage y Precios en USD
 INSERT INTO public.products (id, producer_id, category_id, title, description, price, unit, stock_quantity, is_available, image_url)
 OVERRIDING SYSTEM VALUE
 VALUES
-    (1, '00000000-0000-0000-0000-000000000005', 2, 'Tomate de huerta', 'Finca La Esperanza · Choachí · a 32 km', 0.64, 'kg', 85, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg'),
-    (2, '00000000-0000-0000-0000-000000000006', 3, 'Aguacate Hass', 'Familia Rojas · La Vega · a 52 km', 0.85, 'kg', 42, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/aguacates.jpg'),
-    (3, '00000000-0000-0000-0000-000000000004', 2, 'Zanahoria de tierra', 'Huerta El Renacer · Subachoque · a 45 km', 0.40, 'kg', 60, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/zanahorias.jpg'),
-    (4, '00000000-0000-0000-0000-000000000004', 1, 'Canasta Huerto Familiar', 'Familias de Choachí · Selección de 8 a 10 productos', 0.95, 'canasta', 12, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_familiar.jpg'),
-    (5, '00000000-0000-0000-0000-000000000004', 1, 'Canasta Agroecológica Esencial', 'Huerta El Renacer · 5 a 6 variedades agroecológicas', 0.70, 'canasta', 8, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_esencial.jpg'),
-    (6, '00000000-0000-0000-0000-000000000004', 2, 'Acelga de la huerta', 'Huerta El Renacer · Cosechada en la madrugada', 0.35, 'manojo', 0, false, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/acelgas.jpg'),
-    (7, '00000000-0000-0000-0000-000000000004', 3, 'Fresas de temporada', 'Huerta El Renacer · Cultivo agroecológico dulce', 0.80, 'caja 500g', 35, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/fresas.jpg'),
-    (8, '00000000-0000-0000-0000-000000000005', 4, 'Huevos campesinos pastoriles', 'Finca La Esperanza · Gallinas libres de pastoreo', 0.85, 'cubeta 30 u', 25, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/huevos.jpg'),
-    (9, '00000000-0000-0000-0000-000000000005', 4, 'Queso campesino de hoja', 'Finca La Esperanza · Elaborado con leche fresca', 0.75, '500g', 18, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/queso.jpg'),
-    (10, '00000000-0000-0000-0000-000000000006', 5, 'Miel pura de abejas nativas', 'Familia Rojas · Cosechada en bosque nativo', 0.88, 'frasco 500g', 30, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/miel.jpg'),
-    (11, '00000000-0000-0000-0000-000000000006', 5, 'Café de origen arábica tostado', 'Familia Rojas · Tueste medio especial', 0.90, 'bolsa 500g', 40, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/cafe.jpg'),
-    (12, '00000000-0000-0000-0000-000000000006', 5, 'Panela pulverizada orgánica', 'Familia Rojas · Trapiche tradicional', 0.45, 'bolsa 1kg', 50, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/panela.jpg'),
-    (13, '00000000-0000-0000-0000-000000000004', 2, 'Rábanos de temporada', 'Huerta El Renacer · Subachoque', 0.28, 'manojo', 30, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/rabanos.jpg')
+    (1, '00000000-0000-0000-0000-000000000005', 2, 'Tomate de huerta', 'Hacienda San José · Daule · Tomate fresco de huerta campesina libre de químicos', 0.64, 'kg', 85, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg'),
+    (2, '00000000-0000-0000-0000-000000000004', 3, 'Aguacate Hass', 'Huerta Agroecológica El Guayacán · Milagro · Aguacates cremosos y madurados en el árbol', 0.85, 'kg', 42, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/aguacates.jpg'),
+    (3, '00000000-0000-0000-0000-000000000005', 2, 'Zanahoria de tierra', 'Hacienda San José · Daule · Zanahorias dulces cosechadas a mano con hojas verdes', 0.40, 'kg', 60, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/zanahorias.jpg'),
+    (4, '00000000-0000-0000-0000-000000000004', 3, 'Fresas de temporada', 'Huerta Agroecológica El Guayacán · Milagro · Fresas seleccionadas a mano cosechadas hoy', 0.80, '500g', 35, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/fresas.jpg'),
+    (5, '00000000-0000-0000-0000-000000000005', 2, 'Papa criolla nativa', 'Hacienda San José · Daule · Papa criolla seleccionada y lavada de cosecha local', 0.52, 'kg', 50, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/papa_criolla.jpg'),
+    (6, '00000000-0000-0000-0000-000000000004', 3, 'Banano criollo de ladera', 'Huerta Agroecológica El Guayacán · Milagro · Banano dulce de maduración natural', 0.38, 'kg', 40, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/banano_criollo.jpg'),
+    (7, '00000000-0000-0000-0000-000000000006', 4, 'Queso campesino artesanal', 'Asociación Don Jorge · Naranjal · Elaborado en finca con leche fresca de pastoreo', 0.75, '500g', 20, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/queso_campesino.jpg'),
+    (8, '00000000-0000-0000-0000-000000000006', 4, 'Yogur de pastoreo', 'Asociación Don Jorge · Naranjal · Yogur natural sin azúcar añadida ni conservantes', 0.65, '1L', 18, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/yogur_pastoreo.jpg'),
+    (9, '00000000-0000-0000-0000-000000000006', 5, 'Miel de abeja silvestre', 'Asociación Don Jorge · Naranjal · Miel 100% pura cosechada en bosque nativo', 0.88, '350g', 15, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/miel_silvestre.jpg'),
+    (10, '00000000-0000-0000-0000-000000000006', 5, 'Mermelada artesanal de mora', 'Asociación Don Jorge · Naranjal · Elaborada en paila con moras seleccionadas y panela', 0.60, '280g', 22, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/mermelada_mora.jpg'),
+    (11, '00000000-0000-0000-0000-000000000005', 1, 'Canasta Huerto Familiar', 'Hacienda San José · Daule · 8-10 hortalizas, 3 frutas y aromáticas para 3 a 5 personas', 0.95, 'canasta semanal', 12, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_familiar.jpg'),
+    (12, '00000000-0000-0000-0000-000000000004', 1, 'Canasta Agroecológica Esencial', 'Huerta Agroecológica El Guayacán · Milagro · 5-6 variedades básicas, frutas y huevos para parejas', 0.70, 'canasta semanal', 8, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_esencial.jpg'),
+    (13, '00000000-0000-0000-0000-000000000005', 2, 'Rábanos de temporada', 'Hacienda San José · Daule · Rábanos frescos y crujientes cosechados a mano', 0.28, 'manojo', 30, true, 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/rabanos.jpg')
 ON CONFLICT (id) DO UPDATE SET
+    producer_id = EXCLUDED.producer_id,
+    category_id = EXCLUDED.category_id,
     title = EXCLUDED.title,
     description = EXCLUDED.description,
     price = EXCLUDED.price,
@@ -232,6 +234,10 @@ CREATE TABLE IF NOT EXISTS public.pickup_nodes (
     name text NOT NULL,
     address text NOT NULL,
     city text NOT NULL DEFAULT 'Guayaquil',
+    schedule text NOT NULL,
+    assigned_baskets int DEFAULT 0,
+    latitude double precision NOT NULL,
+    longitude double precision NOT NULL,
     pickup_schedule text NOT NULL DEFAULT 'Miércoles y Viernes: 3:00 PM – 7:30 PM',
     is_active boolean NOT NULL DEFAULT true,
     created_at timestamptz NOT NULL DEFAULT now()
@@ -239,8 +245,11 @@ CREATE TABLE IF NOT EXISTS public.pickup_nodes (
 
 ALTER TABLE public.pickup_nodes ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Lectura pública de nodos activos" ON public.pickup_nodes;
 DROP POLICY IF EXISTS "Permitir select pickup_nodes" ON public.pickup_nodes;
-CREATE POLICY "Permitir select pickup_nodes" ON public.pickup_nodes FOR SELECT TO public USING (true);
+CREATE POLICY "Lectura pública de nodos activos"
+  ON public.pickup_nodes FOR SELECT
+  USING (is_active = true);
 
 DROP POLICY IF EXISTS "Permitir insert pickup_nodes" ON public.pickup_nodes;
 CREATE POLICY "Permitir insert pickup_nodes" ON public.pickup_nodes FOR INSERT TO public WITH CHECK (true);
@@ -252,6 +261,23 @@ DROP POLICY IF EXISTS "Permitir delete pickup_nodes" ON public.pickup_nodes;
 CREATE POLICY "Permitir delete pickup_nodes" ON public.pickup_nodes FOR DELETE TO public USING (true);
 
 GRANT ALL ON TABLE public.pickup_nodes TO anon, authenticated, service_role;
+
+-- Sembrado inicial de Nodos Estratégicos de Guayaquil
+INSERT INTO public.pickup_nodes (id, name, address, city, schedule, pickup_schedule, assigned_baskets, latitude, longitude, is_active)
+VALUES
+    ('e0177a54-9cbc-4426-a538-1d630f852ac1', 'Sede Urdesa · Espacio Verde', 'Av. Víctor Emilio Estrada y Bálsamos', 'Guayaquil', 'Miércoles y Viernes: 3:00 PM – 7:30 PM', 'Miércoles y Viernes: 3:00 PM – 7:30 PM', 14, -2.1698, -79.9142, true),
+    ('65925730-63b5-486f-9dd0-aaac13a0ffe9', 'Sede Puerto Santa Ana · Café del Río', 'Numa Pompilio Llona, Edificio The Point', 'Guayaquil', 'Jueves y Sábado: 8:30 AM – 1:30 PM', 'Jueves y Sábado: 8:30 AM – 1:30 PM', 18, -2.1804, -79.8767, true),
+    ('7a6f8f1f-ad1b-4f87-9d7f-58f1d3c5053c', 'Sede Ceibos · Mercado Sostenible', 'Av. del Bombero Km 6.5, Plaza Ceibos', 'Guayaquil', 'Sábados: 8:00 AM – 2:00 PM', 'Sábados: 8:00 AM – 2:00 PM', 22, -2.1729, -79.9546, true)
+ON CONFLICT (id) DO UPDATE SET
+    name = EXCLUDED.name,
+    address = EXCLUDED.address,
+    city = EXCLUDED.city,
+    schedule = EXCLUDED.schedule,
+    pickup_schedule = EXCLUDED.pickup_schedule,
+    assigned_baskets = EXCLUDED.assigned_baskets,
+    latitude = EXCLUDED.latitude,
+    longitude = EXCLUDED.longitude,
+    is_active = EXCLUDED.is_active;
 
 -- =============================================================================
 -- 13. Tabla de Direcciones de Domicilio ('public.delivery_addresses')

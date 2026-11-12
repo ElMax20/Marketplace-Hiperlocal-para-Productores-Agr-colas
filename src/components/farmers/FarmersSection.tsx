@@ -129,3 +129,4 @@ export const FarmersSection: React.FC<FarmersSectionProps> = ({ onSelectProducer
 };
 
 export default FarmersSection;
+
