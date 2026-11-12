@@ -431,15 +431,19 @@ function handlePhotoFileSelected(e) {
   }
 
   // Abrir cropper interactivo para ajustar encuadre y zoom
-  openAvatarCropperModal(file, (croppedFile, croppedDataUrl) => {
-    pendingPhotoDraft = {
-      file: croppedFile,
-      dataUrl: croppedDataUrl,
-      remove: false
-    };
+  openAvatarCropperModal(file, (croppedFile, finalAvatarUrl) => {
+    pendingPhotoDraft = null; // Ya persistido y subido a Supabase Storage
+
+    if (currentUser) {
+      currentUser.avatar = finalAvatarUrl;
+      currentUser.avatar_url = finalAvatarUrl;
+    }
 
     const preview = document.getElementById('profile-avatar-preview');
-    if (preview) preview.src = croppedDataUrl;
+    if (preview) preview.src = finalAvatarUrl;
+
+    const navAvatar = document.getElementById('nav-user-avatar');
+    if (navAvatar) navAvatar.src = finalAvatarUrl;
 
     const deleteBtn = document.getElementById('btn-delete-avatar');
     if (deleteBtn) {
@@ -448,9 +452,7 @@ function handlePhotoFileSelected(e) {
     }
 
     const badge = document.getElementById('photo-draft-badge');
-    if (badge) badge.classList.remove('hidden');
-
-    showToast('Foto encuadrada correctamente. Recuerda hacer clic en "Guardar cambios".');
+    if (badge) badge.classList.add('hidden');
   });
 
   // Limpiar input file para permitir seleccionar la misma foto si se desea

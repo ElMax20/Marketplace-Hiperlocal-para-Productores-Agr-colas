@@ -108,6 +108,75 @@ class SupabaseService {
         return { data: { subscription: { unsubscribe: () => {} } } };
       }
     };
+
+    // Sub-módulo storage compatible con Supabase Storage (@supabase/supabase-js)
+    this.storage = {
+      from: (bucket = 'avatars') => {
+        return {
+          upload: async (path, file, options = {}) => {
+            try {
+              const cleanPath = path.replace(/^\/+/, '');
+              let uploadUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/${bucket}/${cleanPath}`;
+              let resp = await fetch(uploadUrl, {
+                method: 'POST',
+                headers: {
+                  'apikey': SUPABASE_CONFIG.anonKey,
+                  'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+                  'Content-Type': file.type || 'image/webp',
+                  'x-upsert': 'true'
+                },
+                body: file
+              });
+
+              let usedBucket = bucket;
+              let usedPath = cleanPath;
+
+              // Fallback automático al bucket 'assets' con prefijo 'avatars/'
+              if (!resp.ok) {
+                usedBucket = 'assets';
+                usedPath = bucket === 'assets' ? cleanPath : `avatars/${cleanPath}`;
+                uploadUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/${usedBucket}/${usedPath}`;
+                resp = await fetch(uploadUrl, {
+                  method: 'POST',
+                  headers: {
+                    'apikey': SUPABASE_CONFIG.anonKey,
+                    'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+                    'Content-Type': file.type || 'image/webp',
+                    'x-upsert': 'true'
+                  },
+                  body: file
+                });
+              }
+
+              if (!resp.ok) {
+                const errTxt = await resp.text().catch(() => '');
+                return { data: null, error: new Error(`Error en storage.upload (${resp.status}): ${errTxt}`) };
+              }
+
+              return {
+                data: {
+                  path: usedPath,
+                  fullPath: `${usedBucket}/${usedPath}`
+                },
+                error: null
+              };
+            } catch (err) {
+              return { data: null, error: err };
+            }
+          },
+          getPublicUrl: (path) => {
+            const cleanPath = path.replace(/^\/+/, '');
+            const targetPath = cleanPath.startsWith('avatars/') ? cleanPath : `avatars/${cleanPath}`;
+            const pubUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/assets/${targetPath}`;
+            return {
+              data: {
+                publicUrl: `${pubUrl}?t=${Date.now()}`
+              }
+            };
+          }
+        };
+      }
+    };
   }
 
   async fetchApi(endpoint, options = {}) {

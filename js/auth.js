@@ -256,6 +256,7 @@ function renderProfileHTML(profile) {
       >
         <div class="w-8 h-8 rounded-full overflow-hidden border border-stone-200 bg-stone-100 shrink-0 shadow-2xs">
           <img 
+            id="nav-user-avatar" 
             src="${avatarSrc}" 
             alt="Perfil" 
             class="w-full h-full object-cover"
@@ -2172,23 +2173,19 @@ function requestClientEmailChange() {
   alert(`Hemos enviado un enlace de confirmación a ${email}. Hasta que lo verifiques, seguirás usando tu correo actual.`);
 }
 
-/**
- * ====================================================================
- * MODAL INTERACTIVO DE ENCUADRE Y RECORTE CIRCULAR DE FOTO DE PERFIL
- * ====================================================================
- * Permite al usuario ajustar la foto antes de aplicarla (pan, zoom, rotación)
- * con una guía circular en vivo, evitando descuadres y deformaciones.
- */
-
+// =============================================================================
+// MODAL DE ENCUADRE INTERACTIVO DE FOTO DE PERFIL (AVATAR CROPPER)
+// Arrastre libre (Mouse/Touch), Zoom continuo (1.0x - 3.0x), Exportación 400x400 WebP
+// =============================================================================
 const cropperState = {
   img: null,
   file: null,
-  fileName: 'avatar.jpg',
-  baseScale: 1.0,
-  zoom: 1.0,
-  rotation: 0,
+  fileName: '',
   panX: 0,
   panY: 0,
+  zoom: 1.0,
+  baseScale: 1.0,
+  rotation: 0,
   isDragging: false,
   startX: 0,
   startY: 0,
@@ -2202,23 +2199,27 @@ const cropperState = {
 
 function ensureAvatarCropperModalExists() {
   let modal = document.getElementById('avatar-cropper-modal');
-  if (modal) return modal;
+  if (modal) {
+    initCropperEvents(modal);
+    return modal;
+  }
 
   modal = document.createElement('div');
   modal.id = 'avatar-cropper-modal';
-  modal.className = 'hidden fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/50 select-none';
+  modal.className = 'hidden fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-4 bg-black/50 select-none overflow-y-auto';
+  modal.onclick = function(e) {
+    if (e.target === modal) closeAvatarCropperModal(false);
+  };
 
   modal.innerHTML = `
-    <div class="bg-white rounded-3xl max-w-sm sm:max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[95vh] animate-in fade-in zoom-in-95 duration-150">
+    <div class="relative bg-white rounded-3xl max-w-sm sm:max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col my-auto max-h-[95vh] modal-scroll animate-in fade-in zoom-in-95 duration-150">
       <!-- Encabezado -->
-      <div class="px-5 py-3.5 border-b border-stone-100 flex items-center justify-between shrink-0 bg-stone-50/70">
+      <div class="bg-stone-50 border-b border-stone-200 px-5 py-3.5 flex items-center justify-between shrink-0">
         <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-xl bg-[#1a3d2f]/10 text-[#1a3d2f] flex items-center justify-center text-sm font-bold shrink-0">
-            ✂️
-          </div>
+          <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-sm font-bold shadow-2xs">✂️</span>
           <div>
-            <h3 class="font-serif font-bold text-stone-900 text-sm sm:text-base leading-tight">Ajustar foto de perfil</h3>
-            <p class="text-[11px] text-stone-500 leading-tight mt-0.5">Encuadra tu foto dentro del círculo</p>
+            <h3 class="font-serif font-bold text-stone-900 text-sm">Ajustar encuadre de la foto</h3>
+            <p class="text-[10px] text-stone-500">Mueve y ajusta el zoom para que tu foto quede perfecta</p>
           </div>
         </div>
         <button type="button" onclick="closeAvatarCropperModal(false)" class="w-8 h-8 rounded-full bg-white hover:bg-stone-200 text-stone-500 flex items-center justify-center text-sm font-bold transition shadow-xs cursor-pointer" title="Cancelar">
@@ -2226,133 +2227,91 @@ function ensureAvatarCropperModalExists() {
         </button>
       </div>
 
-      <!-- Cuerpo del Editor -->
+      <!-- Canvas interactivo con máscara circular superpuesta (280px x 280px) -->
       <div class="p-4 sm:p-5 overflow-y-auto space-y-3.5 flex-1">
-        <!-- Canvas interactivo con marco circular -->
         <div class="relative mx-auto flex flex-col items-center">
-          <div class="relative rounded-2xl overflow-hidden shadow-inner bg-stone-900 border border-stone-300 touch-none select-none flex items-center justify-center" style="width: 320px; height: 320px;">
-            <canvas id="cropper-canvas" width="320" height="320" class="cursor-grab active:cursor-grabbing block" style="touch-action: none;"></canvas>
+          <div id="cropper-viewport" class="relative rounded-2xl overflow-hidden shadow-inner bg-stone-900 border border-stone-300 touch-none select-none flex items-center justify-center cursor-grab active:cursor-grabbing" style="width: 280px; height: 280px;">
+            <canvas id="cropper-canvas" width="280" height="280" class="block w-[280px] h-[280px] pointer-events-none" style="touch-action: none;"></canvas>
             
-            <div class="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-black/70 text-white text-[10px] font-medium px-3 py-1 rounded-full pointer-events-none flex items-center gap-1.5 shadow-sm whitespace-nowrap">
+            <!-- Máscara circular superpuesta requerida: rounded-full ring-4 ring-white shadow-lg -->
+            <div class="absolute inset-0 pointer-events-none flex items-center justify-center">
+              <div class="w-[240px] h-[240px] rounded-full ring-4 ring-white shadow-lg shadow-[0_0_0_9999px_rgba(0,0,0,0.55)] pointer-events-none"></div>
+            </div>
+
+            <div class="absolute bottom-2.5 left-1/2 -translate-x-1/2 bg-black/70 text-white text-[10px] font-medium px-3 py-1 rounded-full pointer-events-none flex items-center gap-1.5 shadow-sm whitespace-nowrap z-10">
               <span>✋ Arrastra para centrar</span>
               <span>•</span>
-              <span>🔍 Rueda para zoom</span>
+              <span>🔍 Zoom</span>
             </div>
           </div>
         </div>
 
-        <!-- Controles de Zoom y Rotación -->
-        <div class="bg-stone-50 border border-stone-200 rounded-2xl p-3.5 space-y-3">
-          <div>
-            <div class="flex items-center justify-between text-xs font-bold text-stone-700 mb-1.5">
-              <span class="flex items-center gap-1.5">
-                <span>🔍</span>
-                <span>Zoom / Acercamiento</span>
-              </span>
-              <span id="cropper-zoom-label" class="text-[11px] font-mono text-[#1a3d2f] bg-white px-2 py-0.5 rounded-md border border-stone-200">100%</span>
-            </div>
-            <div class="flex items-center gap-2">
-              <button type="button" id="cropper-zoom-out-btn" class="w-7 h-7 rounded-lg bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 flex items-center justify-center text-sm font-bold shadow-xs transition cursor-pointer" title="Alejar">
-                −
-              </button>
-              <input 
-                type="range" 
-                id="cropper-zoom-slider" 
-                min="1" 
-                max="3" 
-                step="0.01" 
-                value="1" 
-                class="flex-1 h-2 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-[#1a3d2f]"
-              >
-              <button type="button" id="cropper-zoom-in-btn" class="w-7 h-7 rounded-lg bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 flex items-center justify-center text-sm font-bold shadow-xs transition cursor-pointer" title="Acercar">
-                +
-              </button>
-            </div>
+        <!-- Controles deslizantes de Zoom con iconos - y + -->
+        <div class="bg-stone-50 p-3.5 rounded-2xl border border-stone-200 space-y-2">
+          <div class="flex items-center justify-between text-xs text-stone-700 font-bold">
+            <span class="flex items-center gap-1.5">
+              <span>🔍</span>
+              <span>Zoom / Acercamiento</span>
+            </span>
+            <span id="cropper-zoom-label" class="text-[11px] font-mono text-[#1a3d2f] bg-white px-2 py-0.5 rounded-md border border-stone-200 font-bold">100%</span>
           </div>
-
-          <!-- Acciones de rotación y recentrado -->
-          <div class="flex items-center justify-between gap-2 pt-1 border-t border-stone-200 text-xs">
-            <button type="button" id="cropper-rotate-btn" class="flex-1 py-1.5 px-2 bg-white hover:bg-stone-100 border border-stone-200 rounded-xl font-medium text-stone-700 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
-              <span>↺</span>
-              <span>Girar 90°</span>
+          <div class="flex items-center gap-2">
+            <button type="button" id="cropper-zoom-out-btn" class="w-8 h-8 rounded-xl bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 flex items-center justify-center text-sm font-bold shadow-xs transition cursor-pointer select-none" title="Alejar">
+              −
             </button>
-            <button type="button" id="cropper-reset-btn" class="flex-1 py-1.5 px-2 bg-white hover:bg-stone-100 border border-stone-200 rounded-xl font-medium text-stone-700 transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
-              <span>⟲</span>
-              <span>Restablecer</span>
+            <input 
+              type="range" 
+              id="cropper-zoom-slider" 
+              min="1" 
+              max="3" 
+              step="0.05" 
+              value="1" 
+              class="flex-1 accent-[#1a3d2f] h-2 bg-stone-200 rounded-lg cursor-pointer"
+            >
+            <button type="button" id="cropper-zoom-in-btn" class="w-8 h-8 rounded-xl bg-white border border-stone-200 hover:bg-stone-100 text-stone-700 flex items-center justify-center text-sm font-bold shadow-xs transition cursor-pointer select-none" title="Acercar">
+              +
             </button>
-          </div>
-        </div>
-
-        <!-- Vista previa en tiempo real -->
-        <div class="bg-white border border-stone-200 rounded-2xl p-3 flex items-center gap-3">
-          <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-[#1a3d2f] shrink-0 bg-stone-100 shadow-sm flex items-center justify-center">
-            <canvas id="cropper-preview-canvas" width="56" height="56" class="w-full h-full block rounded-full"></canvas>
-          </div>
-          <div class="text-xs">
-            <p class="font-bold text-stone-800 leading-tight">Vista previa en perfil</p>
-            <p class="text-[11px] text-stone-500 leading-snug mt-0.5">
-              Así se verá en la esquina superior derecha junto a tu canasta.
-            </p>
           </div>
         </div>
       </div>
 
-      <!-- Pie con Confirmación Obligatoria -->
-      <div class="p-3.5 sm:p-4 bg-stone-50 border-t border-stone-200 flex items-center justify-end gap-2.5 shrink-0">
-        <button 
-          type="button" 
-          onclick="closeAvatarCropperModal(false)" 
-          class="border border-stone-300 text-stone-700 bg-white hover:bg-stone-100 font-bold px-4 py-2 rounded-xl transition text-xs cursor-pointer shadow-xs"
-        >
+      <!-- Pie del Editor con botón "Guardar foto" -->
+      <div class="bg-stone-50 border-t border-stone-200 px-5 py-3.5 flex items-center justify-between gap-3 shrink-0">
+        <button type="button" onclick="closeAvatarCropperModal(false)" class="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 rounded-xl transition cursor-pointer">
           Cancelar
         </button>
-        <button 
-          type="button" 
-          id="cropper-confirm-btn"
-          class="bg-[#1a3d2f] hover:bg-[#255440] text-white font-bold px-5 py-2 rounded-xl shadow-md hover:shadow-lg transition text-xs flex items-center gap-2 cursor-pointer"
-        >
+        <button type="button" id="cropper-save-btn" onclick="saveCroppedAvatar()" class="px-5 py-2.5 bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center gap-1.5 cursor-pointer">
           <span>✓</span>
-          <span>Confirmar encuadre</span>
+          <span>Guardar foto</span>
         </button>
       </div>
     </div>
   `;
-
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) {
-      closeAvatarCropperModal(false);
-    }
-  });
 
   document.body.appendChild(modal);
   initCropperEvents(modal);
   return modal;
 }
 
-function getEffectiveDimensions() {
-  if (!cropperState.img) return { w: 1, h: 1 };
-  const isRotated = cropperState.rotation % 180 !== 0;
-  return {
-    w: isRotated ? cropperState.img.naturalHeight : cropperState.img.naturalWidth,
-    h: isRotated ? cropperState.img.naturalWidth : cropperState.img.naturalHeight
-  };
-}
-
 function updateCropperBaseScale() {
-  const { w, h } = getEffectiveDimensions();
-  const circleDiameter = 240; // Diámetro del círculo guía (2 * R, con R = 120)
-  cropperState.baseScale = Math.max(circleDiameter / w, circleDiameter / h);
+  if (!cropperState.img) return;
+  const nw = cropperState.img.naturalWidth;
+  const nh = cropperState.img.naturalHeight;
+  const circleD = 240; // Diámetro del círculo de encuadre en preview 280x280
+  cropperState.baseScale = Math.max(circleD / nw, circleD / nh);
 }
 
 function clampCropperPan() {
-  const { w, h } = getEffectiveDimensions();
-  const scale = cropperState.baseScale * cropperState.zoom;
-  const halfW = (w * scale) / 2;
-  const halfH = (h * scale) / 2;
-  const R = 120;
+  if (!cropperState.img) return;
+  const nw = cropperState.img.naturalWidth;
+  const nh = cropperState.img.naturalHeight;
+  const currentScale = cropperState.baseScale * cropperState.zoom;
+  const dispW = nw * currentScale;
+  const dispH = nh * currentScale;
 
-  const maxPanX = Math.max(0, halfW - R);
-  const maxPanY = Math.max(0, halfH - R);
+  const R = 120; // Radio del círculo de recorte
+  const maxPanX = Math.max(0, (dispW / 2) - R);
+  const maxPanY = Math.max(0, (dispH / 2) - R);
 
   cropperState.panX = Math.max(-maxPanX, Math.min(maxPanX, cropperState.panX));
   cropperState.panY = Math.max(-maxPanY, Math.min(maxPanY, cropperState.panY));
@@ -2362,111 +2321,45 @@ function renderCropper() {
   const canvas = document.getElementById('cropper-canvas');
   if (!canvas || !cropperState.img) return;
   const ctx = canvas.getContext('2d');
-  const W = 320;
-  const H = 320;
-  const cx = 160;
-  const cy = 160;
-  const R = 120;
+  const W = 280;
+  const H = 280;
+  const cx = 140;
+  const cy = 140;
   const scale = cropperState.baseScale * cropperState.zoom;
+  const nw = cropperState.img.naturalWidth * scale;
+  const nh = cropperState.img.naturalHeight * scale;
 
   ctx.clearRect(0, 0, W, H);
-
-  // 1. Dibujar la imagen transformada
   ctx.save();
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
   ctx.translate(cx + cropperState.panX, cy + cropperState.panY);
   ctx.rotate((cropperState.rotation * Math.PI) / 180);
-  const nw = cropperState.img.naturalWidth * scale;
-  const nh = cropperState.img.naturalHeight * scale;
   ctx.drawImage(cropperState.img, -nw / 2, -nh / 2, nw, nh);
   ctx.restore();
 
-  // 2. Viñeta oscura exterior
-  ctx.save();
-  ctx.fillStyle = 'rgba(15, 23, 42, 0.65)';
-  ctx.beginPath();
-  ctx.rect(0, 0, W, H);
-  ctx.arc(cx, cy, R, 0, Math.PI * 2, true);
-  ctx.fill('evenodd');
-
-  // 3. Anillo circular blanco guía
-  ctx.beginPath();
-  ctx.arc(cx, cy, R, 0, Math.PI * 2);
-  ctx.lineWidth = 2.5;
-  ctx.strokeStyle = '#ffffff';
-  ctx.stroke();
-
-  // 4. Guías sutiles de composición dentro del círculo
-  const dThird = (2 * R) / 3;
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(cx, cy, R - 1, 0, Math.PI * 2);
-  ctx.clip();
-
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-  ctx.lineWidth = 1;
-  ctx.setLineDash([4, 4]);
-
-  ctx.beginPath();
-  ctx.moveTo(cx - R + dThird, cy - R);
-  ctx.lineTo(cx - R + dThird, cy + R);
-  ctx.moveTo(cx - R + 2 * dThird, cy - R);
-  ctx.lineTo(cx - R + 2 * dThird, cy + R);
-  ctx.moveTo(cx - R, cy - R + dThird);
-  ctx.lineTo(cx + R, cy - R + dThird);
-  ctx.moveTo(cx - R, cy - R + 2 * dThird);
-  ctx.lineTo(cx + R, cy - R + 2 * dThird);
-  ctx.stroke();
-  ctx.restore();
-
-  ctx.restore();
-
-  // 5. Vista previa miniatura en vivo
-  renderCropperPreview();
-
-  // 6. Actualizar etiqueta de zoom
+  // Actualizar slider y label de zoom
+  const slider = document.getElementById('cropper-zoom-slider');
+  if (slider && Math.abs(parseFloat(slider.value) - cropperState.zoom) > 0.01) {
+    slider.value = cropperState.zoom.toFixed(2);
+  }
   const zoomLabel = document.getElementById('cropper-zoom-label');
   if (zoomLabel) {
     zoomLabel.textContent = `${Math.round(cropperState.zoom * 100)}%`;
   }
 }
 
-function renderCropperPreview() {
-  const pCanvas = document.getElementById('cropper-preview-canvas');
-  if (!pCanvas || !cropperState.img) return;
-  const pCtx = pCanvas.getContext('2d');
-  const pSize = 56;
-  const pRadius = 28;
-  const R = 120;
-  const factor = pSize / (2 * R);
-  const scale = cropperState.baseScale * cropperState.zoom;
-
-  pCtx.clearRect(0, 0, pSize, pSize);
-  pCtx.save();
-  pCtx.imageSmoothingEnabled = true;
-  pCtx.imageSmoothingQuality = 'high';
-  pCtx.beginPath();
-  pCtx.arc(pRadius, pRadius, pRadius, 0, Math.PI * 2);
-  pCtx.clip();
-
-  pCtx.translate(pRadius + cropperState.panX * factor, pRadius + cropperState.panY * factor);
-  pCtx.rotate((cropperState.rotation * Math.PI) / 180);
-  const nw = cropperState.img.naturalWidth * scale * factor;
-  const nh = cropperState.img.naturalHeight * scale * factor;
-  pCtx.drawImage(cropperState.img, -nw / 2, -nh / 2, nw, nh);
-  pCtx.restore();
-}
-
 function initCropperEvents(modal) {
-  const canvas = modal.querySelector('#cropper-canvas');
+  if (modal._cropperEventsInitialized) return;
+  modal._cropperEventsInitialized = true;
+
+  const viewport = modal.querySelector('#cropper-viewport') || modal.querySelector('#cropper-canvas')?.parentElement;
   const slider = modal.querySelector('#cropper-zoom-slider');
   const zoomInBtn = modal.querySelector('#cropper-zoom-in-btn');
   const zoomOutBtn = modal.querySelector('#cropper-zoom-out-btn');
-  const rotateBtn = modal.querySelector('#cropper-rotate-btn');
-  const resetBtn = modal.querySelector('#cropper-reset-btn');
-  const confirmBtn = modal.querySelector('#cropper-confirm-btn');
+  const saveBtn = modal.querySelector('#cropper-save-btn') || modal.querySelector('#cropper-confirm-btn');
 
+  // Slider de Zoom
   if (slider) {
     slider.addEventListener('input', (e) => {
       cropperState.zoom = parseFloat(e.target.value);
@@ -2475,61 +2368,45 @@ function initCropperEvents(modal) {
     });
   }
 
+  // Botón Acercar (+)
   if (zoomInBtn) {
     zoomInBtn.addEventListener('click', () => {
-      cropperState.zoom = Math.min(3.0, cropperState.zoom + 0.15);
-      if (slider) slider.value = cropperState.zoom;
+      cropperState.zoom = Math.min(3.0, Math.round((cropperState.zoom + 0.1) * 100) / 100);
+      if (slider) slider.value = cropperState.zoom.toFixed(2);
       clampCropperPan();
       renderCropper();
     });
   }
 
+  // Botón Alejar (-)
   if (zoomOutBtn) {
     zoomOutBtn.addEventListener('click', () => {
-      cropperState.zoom = Math.max(1.0, cropperState.zoom - 0.15);
-      if (slider) slider.value = cropperState.zoom;
+      cropperState.zoom = Math.max(1.0, Math.round((cropperState.zoom - 0.1) * 100) / 100);
+      if (slider) slider.value = cropperState.zoom.toFixed(2);
       clampCropperPan();
       renderCropper();
     });
   }
 
-  if (rotateBtn) {
-    rotateBtn.addEventListener('click', () => {
-      cropperState.rotation = (cropperState.rotation + 90) % 360;
-      updateCropperBaseScale();
-      clampCropperPan();
-      renderCropper();
+  // Botón Guardar foto
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      saveCroppedAvatar();
     });
   }
 
-  if (resetBtn) {
-    resetBtn.addEventListener('click', () => {
-      cropperState.panX = 0;
-      cropperState.panY = 0;
-      cropperState.zoom = 1.0;
-      cropperState.rotation = 0;
-      if (slider) slider.value = 1.0;
-      updateCropperBaseScale();
-      renderCropper();
-    });
-  }
-
-  if (confirmBtn) {
-    confirmBtn.addEventListener('click', () => {
-      confirmAvatarCrop();
-    });
-  }
-
-  if (canvas) {
-    // Arrastre con ratón
-    canvas.addEventListener('mousedown', (e) => {
+  // Arrastre con Mouse y Touch en el Viewport
+  if (viewport) {
+    // 1. Mouse Drag
+    viewport.addEventListener('mousedown', (e) => {
+      e.preventDefault();
       cropperState.isDragging = true;
       cropperState.startX = e.clientX;
       cropperState.startY = e.clientY;
       cropperState.startPanX = cropperState.panX;
       cropperState.startPanY = cropperState.panY;
-      canvas.classList.remove('cursor-grab');
-      canvas.classList.add('cursor-grabbing');
+      viewport.classList.remove('cursor-grab');
+      viewport.classList.add('cursor-grabbing');
     });
 
     window.addEventListener('mousemove', (e) => {
@@ -2543,23 +2420,23 @@ function initCropperEvents(modal) {
     window.addEventListener('mouseup', () => {
       if (cropperState.isDragging) {
         cropperState.isDragging = false;
-        canvas.classList.remove('cursor-grabbing');
-        canvas.classList.add('cursor-grab');
+        viewport.classList.remove('cursor-grabbing');
+        viewport.classList.add('cursor-grab');
       }
     });
 
-    // Zoom con rueda de ratón
-    canvas.addEventListener('wheel', (e) => {
+    // 2. Mouse Wheel Zoom
+    viewport.addEventListener('wheel', (e) => {
       e.preventDefault();
-      const delta = e.deltaY < 0 ? 0.1 : -0.1;
-      cropperState.zoom = Math.max(1.0, Math.min(3.0, cropperState.zoom + delta));
-      if (slider) slider.value = cropperState.zoom;
+      const delta = e.deltaY < 0 ? 0.05 : -0.05;
+      cropperState.zoom = Math.max(1.0, Math.min(3.0, Math.round((cropperState.zoom + delta) * 100) / 100));
+      if (slider) slider.value = cropperState.zoom.toFixed(2);
       clampCropperPan();
       renderCropper();
     }, { passive: false });
 
-    // Gestos táctiles en pantallas táctiles y móviles
-    canvas.addEventListener('touchstart', (e) => {
+    // 3. Touch Drag & Pinch-Zoom
+    viewport.addEventListener('touchstart', (e) => {
       if (e.touches.length === 1) {
         cropperState.isDragging = true;
         cropperState.startX = e.touches[0].clientX;
@@ -2576,8 +2453,8 @@ function initCropperEvents(modal) {
       }
     }, { passive: false });
 
-    canvas.addEventListener('touchmove', (e) => {
-      e.preventDefault();
+    viewport.addEventListener('touchmove', (e) => {
+      e.preventDefault(); // Evita scroll de la página en móvil durante el arrastre
       if (e.touches.length === 1 && cropperState.isDragging) {
         cropperState.panX = cropperState.startPanX + (e.touches[0].clientX - cropperState.startX);
         cropperState.panY = cropperState.startPanY + (e.touches[0].clientY - cropperState.startY);
@@ -2589,15 +2466,21 @@ function initCropperEvents(modal) {
           e.touches[0].clientY - e.touches[1].clientY
         );
         const factor = currentDist / cropperState.touchDist;
-        cropperState.zoom = Math.max(1.0, Math.min(3.0, cropperState.startZoom * factor));
-        if (slider) slider.value = cropperState.zoom;
+        cropperState.zoom = Math.max(1.0, Math.min(3.0, Math.round(cropperState.startZoom * factor * 100) / 100));
+        if (slider) slider.value = cropperState.zoom.toFixed(2);
         clampCropperPan();
         renderCropper();
       }
     }, { passive: false });
 
-    canvas.addEventListener('touchend', () => {
+    viewport.addEventListener('touchend', () => {
       cropperState.isDragging = false;
+      cropperState.touchDist = 0;
+    });
+
+    viewport.addEventListener('touchcancel', () => {
+      cropperState.isDragging = false;
+      cropperState.touchDist = 0;
     });
   }
 }
@@ -2616,8 +2499,8 @@ function openAvatarCropperModal(file, onConfirm, onCancel) {
   cropperState.rotation = 0;
   cropperState.isDragging = false;
 
-  const slider = document.getElementById('cropper-zoom-slider');
-  if (slider) slider.value = 1.0;
+  const slider = modal.querySelector('#cropper-zoom-slider');
+  if (slider) slider.value = "1.00";
 
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -2628,6 +2511,7 @@ function openAvatarCropperModal(file, onConfirm, onCancel) {
       clampCropperPan();
       modal.classList.remove('hidden');
       document.body.classList.add('modal-open');
+      document.body.style.overflow = 'hidden';
       if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
       renderCropper();
     };
@@ -2640,6 +2524,7 @@ function closeAvatarCropperModal(confirmed = false) {
   const modal = document.getElementById('avatar-cropper-modal');
   if (modal) {
     modal.classList.add('hidden');
+    document.body.style.overflow = '';
     syncModalPauseState();
   }
   if (!confirmed && typeof cropperState.onCancel === 'function') {
@@ -2647,43 +2532,170 @@ function closeAvatarCropperModal(confirmed = false) {
   }
 }
 
-function confirmAvatarCrop() {
+async function saveCroppedAvatar() {
   if (!cropperState.img) return;
-  const outSize = 400;
-  const outCanvas = document.createElement('canvas');
-  outCanvas.width = outSize;
-  outCanvas.height = outSize;
-  const outCtx = outCanvas.getContext('2d');
 
-  const R = 120;
-  const factor = outSize / (2 * R); // 400 / 240
-  const scale = cropperState.baseScale * cropperState.zoom;
+  const saveBtn = document.getElementById('cropper-save-btn') || document.getElementById('cropper-confirm-btn');
+  const originalHtml = saveBtn ? saveBtn.innerHTML : 'Guardar foto';
+  if (saveBtn) {
+    saveBtn.setAttribute('disabled', 'true');
+    saveBtn.classList.add('opacity-75', 'cursor-not-allowed');
+    saveBtn.innerHTML = `
+      <svg class="animate-spin h-3.5 w-3.5 text-white inline mr-1" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+      </svg>
+      <span>Guardando...</span>
+    `;
+  }
 
-  outCtx.save();
-  outCtx.imageSmoothingEnabled = true;
-  outCtx.imageSmoothingQuality = 'high';
-  outCtx.translate(200 + cropperState.panX * factor, 200 + cropperState.panY * factor);
-  outCtx.rotate((cropperState.rotation * Math.PI) / 180);
-  const nw = cropperState.img.naturalWidth * scale * factor;
-  const nh = cropperState.img.naturalHeight * scale * factor;
-  outCtx.drawImage(cropperState.img, -nw / 2, -nh / 2, nw, nh);
-  outCtx.restore();
+  try {
+    const outSize = 400;
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = outSize;
+    outCanvas.height = outSize;
+    const outCtx = outCanvas.getContext('2d');
 
-  outCanvas.toBlob((blob) => {
-    if (!blob) {
-      alert('Error al generar la imagen recortada.');
-      return;
+    const R = 120;
+    const factor = outSize / (2 * R); // 400 / 240 = 1.666667
+    const scale = cropperState.baseScale * cropperState.zoom * factor;
+
+    outCtx.save();
+    outCtx.imageSmoothingEnabled = true;
+    outCtx.imageSmoothingQuality = 'high';
+    outCtx.translate(200 + cropperState.panX * factor, 200 + cropperState.panY * factor);
+    outCtx.rotate((cropperState.rotation * Math.PI) / 180);
+    const nw = cropperState.img.naturalWidth * scale;
+    const nh = cropperState.img.naturalHeight * scale;
+    outCtx.drawImage(cropperState.img, -nw / 2, -nh / 2, nw, nh);
+    outCtx.restore();
+
+    // Exportar como Blob (image/webp, 0.85 con fallback a image/jpeg)
+    const blob = await new Promise((resolve) => {
+      outCanvas.toBlob((b) => {
+        if (b) resolve(b);
+        else {
+          outCanvas.toBlob((fb) => resolve(fb), 'image/jpeg', 0.85);
+        }
+      }, 'image/webp', 0.85);
+    });
+
+    if (!blob) throw new Error('No se pudo generar el archivo de imagen.');
+
+    const user = (typeof getCurrentUser === 'function' ? getCurrentUser() : null) || {};
+    const username = user.username || (user.name ? user.name.toLowerCase().replace(/\s+/g, '_') : 'usuario');
+    const timestamp = Date.now();
+    const fileName = `avatar_${username}_${timestamp}.webp`;
+    const croppedFile = new File([blob], fileName, { type: blob.type || 'image/webp' });
+    const localDataUrl = outCanvas.toDataURL('image/webp', 0.85);
+
+    let publicUrl = null;
+
+    // Subir a Supabase Storage: supabase.storage.from('avatars').upload(...)
+    if (window.supabase) {
+      try {
+        if (window.supabase.storage && typeof window.supabase.storage.from === 'function') {
+          const { data, error } = await window.supabase.storage.from('avatars').upload(fileName, croppedFile, { upsert: true });
+          if (!error && data) {
+            const pubData = window.supabase.storage.from('avatars').getPublicUrl(fileName);
+            publicUrl = pubData?.data?.publicUrl;
+          }
+        }
+        if (!publicUrl && typeof window.supabase.uploadFile === 'function') {
+          const res = await window.supabase.uploadFile('avatars', fileName, croppedFile);
+          if (res && res.publicUrl) publicUrl = res.publicUrl;
+        }
+      } catch (uploadErr) {
+        console.warn('Aviso subiendo avatar a Supabase Storage:', uploadErr);
+      }
     }
-    const cleanName = (cropperState.fileName || 'avatar.jpg').replace(/\.[^/.]+$/, "") + '_framed.jpg';
-    const croppedFile = new File([blob], cleanName, { type: 'image/jpeg' });
-    const dataUrl = outCanvas.toDataURL('image/jpeg', 0.92);
+
+    // URL final con timestamp anti-caché
+    const finalAvatarUrl = publicUrl ? `${publicUrl.split('?')[0]}?t=${timestamp}` : localDataUrl;
+
+    // Actualizar usuario en sesión y memoria
+    user.avatar = finalAvatarUrl;
+    user.avatar_url = finalAvatarUrl;
+    if (typeof setCurrentUser === 'function') setCurrentUser(user);
+
+    // Sincronizar en localStorage bajo rb_cached_profile para zero-flicker
+    try {
+      const cachedProfile = {
+        id: user.id || null,
+        full_name: user.name || user.full_name || 'Usuario',
+        avatar_url: finalAvatarUrl,
+        role: user.role || 'cliente',
+        username: user.username
+      };
+      localStorage.setItem('rb_cached_profile', JSON.stringify(cachedProfile));
+      localStorage.setItem('rb_current_user', JSON.stringify(user));
+      localStorage.setItem('raiz_user', JSON.stringify(user));
+    } catch (e) {}
+
+    // Actualizar columna avatar_url en la tabla profiles de Supabase
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      try {
+        const endpoint = user.id && user.id.length > 10
+          ? `profiles?id=eq.${user.id}`
+          : `profiles?username=eq.${encodeURIComponent(username)}`;
+        await window.supabase.fetchApi(endpoint, {
+          method: 'PATCH',
+          body: { avatar_url: finalAvatarUrl }
+        });
+      } catch (err) {
+        console.warn('Aviso actualizando avatar_url en Supabase:', err);
+      }
+    }
+
+    // Refrescar inmediatamente el avatar en Navbar y en vista de perfil sin recargar
+    const navAvatar = document.getElementById('nav-user-avatar') || document.querySelector('#user-avatar-btn img');
+    if (navAvatar) navAvatar.src = finalAvatarUrl;
+
+    const profileImg = document.getElementById('profile-avatar-preview');
+    if (profileImg) profileImg.src = finalAvatarUrl;
+
+    const deleteBtn = document.getElementById('btn-delete-avatar');
+    if (deleteBtn) {
+      deleteBtn.classList.remove('hidden');
+      deleteBtn.removeAttribute('disabled');
+    }
+
+    const badge = document.getElementById('photo-draft-badge');
+    if (badge) badge.classList.add('hidden');
+
+    // Cerrar modal y restaurar scroll
+    closeAvatarCropperModal(true);
+
+    if (typeof showToast === 'function') {
+      showToast('¡Foto de perfil actualizada exitosamente!');
+    } else {
+      alert('¡Foto de perfil actualizada exitosamente!');
+    }
 
     if (typeof cropperState.onConfirm === 'function') {
-      cropperState.onConfirm(croppedFile, dataUrl);
+      cropperState.onConfirm(croppedFile, finalAvatarUrl);
     }
-    closeAvatarCropperModal(true);
-  }, 'image/jpeg', 0.92);
+  } catch (err) {
+    console.error('Error guardando avatar recortado:', err);
+    alert('No se pudo guardar la foto: ' + (err.message || 'Error desconocido'));
+  } finally {
+    if (saveBtn) {
+      saveBtn.removeAttribute('disabled');
+      saveBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+      saveBtn.innerHTML = originalHtml;
+    }
+  }
 }
+
+function confirmAvatarCrop() {
+  return saveCroppedAvatar();
+}
+
+window.openAvatarCropperModal = openAvatarCropperModal;
+window.closeAvatarCropperModal = closeAvatarCropperModal;
+window.saveCroppedAvatar = saveCroppedAvatar;
+window.confirmAvatarCrop = confirmAvatarCrop;
+
 
 // Exportar funciones globales
 window.openClientSettingsModal = openClientSettingsModal;
