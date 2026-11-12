@@ -440,7 +440,7 @@ window.addEventListener('focus', () => {
   renderProducts();
 });
 
-// Cargar catálogo en tiempo real desde Supabase
+// Cargar catálogo en tiempo real desde Supabase sin filtrar por claves de nodos huérfanas
 async function loadProductsFromSupabase() {
   if (window.supabase && typeof window.supabase.getProducts === 'function') {
     try {
@@ -459,6 +459,7 @@ async function loadProductsFromSupabase() {
           const normalizedImg = normalizeProductImageUrl(dbP.image_url);
           const priceNum = Number(dbP.price);
           const origPrice = Math.round(priceNum * 1.15 * 100) / 100;
+          const isAvail = (dbP.is_active !== undefined) ? dbP.is_active : (dbP.is_available ?? true);
 
           if (existingIdx !== -1) {
             // Preservar el slug ID original (ej: 'tomate-huerta') para mantener coherencia en las URLs
@@ -471,7 +472,8 @@ async function loadProductsFromSupabase() {
               price: priceNum,
               originalPrice: origPrice,
               subtitle: `${dbP.unit} · Cosechado en finca`,
-              availability: dbP.is_available ? 'Disponible · Supabase' : 'Agotado'
+              origin: dbP.description || PRODUCTS_DATA[existingIdx].origin,
+              availability: isAvail ? 'Disponible · Supabase' : 'Agotado'
             };
           } else {
             PRODUCTS_DATA.push({
@@ -487,7 +489,7 @@ async function loadProductsFromSupabase() {
               reviews: 0,
               price: priceNum,
               originalPrice: origPrice,
-              availability: dbP.is_available ? 'Disponible · Supabase' : 'Agotado',
+              availability: isAvail ? 'Disponible · Supabase' : 'Agotado',
               distanceKm: 38,
               isOffer: false
             });
@@ -495,7 +497,7 @@ async function loadProductsFromSupabase() {
         });
 
         renderProducts();
-        console.log(`Catálogo sincronizado exitosamente desde Supabase (${dbProducts.length} productos).`);
+        console.log(`Catálogo sincronizado exitosamente desde Supabase (${dbProducts.length} productos sin filtros de nodo).`);
       }
     } catch (e) {
       console.warn('Error cargando productos de Supabase:', e);

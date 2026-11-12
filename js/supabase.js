@@ -252,14 +252,19 @@ class SupabaseService {
   // =========================================================================
 
   /**
-   * Obtiene todos los productos de la base de datos
+   * Obtiene todos los productos activos de la base de datos sin filtrar por claves de nodos huérfanas
    */
   async getProducts() {
     try {
-      return await this.fetchApi('products?select=*&order=id.asc');
+      return await this.fetchApi('products?select=*&is_active=eq.true&order=created_at.desc');
     } catch (e) {
-      console.error('Error al obtener productos de Supabase:', e);
-      return [];
+      console.warn('Fallo consultando con is_active, reintentando con fallback:', e);
+      try {
+        return await this.fetchApi('products?select=*&order=id.asc');
+      } catch (e2) {
+        console.error('Error al obtener productos de Supabase:', e2);
+        return [];
+      }
     }
   }
 

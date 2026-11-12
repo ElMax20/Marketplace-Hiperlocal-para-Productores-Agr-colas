@@ -1626,7 +1626,7 @@ function renderDeliveryPreferences() {
   // Renderizar cada dirección
   addrsContainer.innerHTML = cachedDeliveryAddresses.map(addr => {
     const isThisAddrPreferred = (activeDeliveryMode === 'home') && !!addr.is_preferred;
-    const feeFormatted = Number(addr.delivery_fee || 8000).toLocaleString('es-CO');
+    const feeFormatted = Number(addr.delivery_fee ?? 1.50).toFixed(2);
 
     const cardClasses = isThisAddrPreferred
       ? 'bg-[#f0f6f2] border-2 border-[#1a3d2f] rounded-xl p-3.5 shadow-2xs transition-all cursor-pointer'
@@ -1794,7 +1794,7 @@ function openAddressModal(addressId = null) {
     if (neighInput) neighInput.value = target.neighborhood || '';
     if (cityInput) cityInput.value = target.city || 'Guayaquil';
     if (schedInput) schedInput.value = target.delivery_schedule || 'Sáb. 7 nov. · 2:00 – 6:00 p. m.';
-    if (feeInput) feeInput.value = target.delivery_fee || 8000;
+    if (feeInput) feeInput.value = target.delivery_fee ?? 1.50;
     if (instrInput) instrInput.value = target.delivery_instructions || '';
     if (prefCheckbox) prefCheckbox.checked = !!target.is_preferred;
 
@@ -1810,7 +1810,7 @@ function openAddressModal(addressId = null) {
     if (neighInput) neighInput.value = '';
     if (cityInput) cityInput.value = 'Guayaquil';
     if (schedInput) schedInput.value = 'Sáb. 7 nov. · 2:00 – 6:00 p. m.';
-    if (feeInput) feeInput.value = 8000;
+    if (feeInput) feeInput.value = 1.50;
     if (instrInput) instrInput.value = '';
     if (prefCheckbox) prefCheckbox.checked = (cachedDeliveryAddresses.length === 0);
 
@@ -1860,7 +1860,7 @@ async function submitAddressForm() {
   const neighborhood = (document.getElementById('address-neighborhood')?.value || '').trim();
   const city = (document.getElementById('address-city')?.value || '').trim();
   const schedule = (document.getElementById('address-schedule')?.value || '').trim();
-  const fee = Number(document.getElementById('address-fee')?.value || 8000);
+  const fee = Number(document.getElementById('address-fee')?.value || 1.50);
   const instructions = (document.getElementById('address-instructions')?.value || '').trim();
   const isPreferred = !!document.getElementById('address-is-preferred')?.checked;
 

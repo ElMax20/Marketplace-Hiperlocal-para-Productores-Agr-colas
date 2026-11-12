@@ -214,7 +214,7 @@ function renderProducerProducts() {
 
             <div class="flex items-baseline gap-1 mb-3">
               <span class="text-xl font-bold text-stone-900">$${formatCOP(prod.price)}</span>
-              <span class="text-xs text-stone-400 font-medium">/ ${prod.unitLabel} · COP</span>
+              <span class="text-xs text-stone-400 font-medium">/ ${prod.unitLabel} · USD</span>
             </div>
 
             <div class="flex items-center justify-between text-xs pt-3 border-t border-stone-100">

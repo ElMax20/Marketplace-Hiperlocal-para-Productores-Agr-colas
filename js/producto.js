@@ -30,7 +30,7 @@ const DETAILED_PRODUCTS = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg',
     subtitle: '1 kg · selección de temporada',
     unit: '1 kg',
-    unitLabel: 'COP / kg',
+    unitLabel: 'USD / kg',
     price: 0.64,
     originalPrice: 0.85,
     discount: '-20%',
@@ -52,7 +52,7 @@ const DETAILED_PRODUCTS = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/aguacates.jpg',
     subtitle: '1 kg · 4 a 5 unidades aprox.',
     unit: '1 kg',
-    unitLabel: 'COP / kg',
+    unitLabel: 'USD / kg',
     price: 0.85,
     originalPrice: 0.98,
     discount: '-15%',
@@ -74,7 +74,7 @@ const DETAILED_PRODUCTS = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/zanahorias.jpg',
     subtitle: '1 kg · con toda su frescura',
     unit: '1 kg',
-    unitLabel: 'COP / kg',
+    unitLabel: 'USD / kg',
     price: 0.40,
     originalPrice: 0.50,
     discount: '-20%',
@@ -96,7 +96,7 @@ const DETAILED_PRODUCTS = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_familiar.jpg',
     subtitle: '9-10 kg · para 3 a 5 personas',
     unit: 'canasta semanal',
-    unitLabel: 'COP / canasta',
+    unitLabel: 'USD / canasta',
     price: 0.95,
     originalPrice: null,
     discount: null,
@@ -118,7 +118,7 @@ const DETAILED_PRODUCTS = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/fresas.jpg',
     subtitle: '500 g · seleccionadas a mano',
     unit: '500g',
-    unitLabel: 'COP / 500g',
+    unitLabel: 'USD / 500g',
     price: 0.80,
     originalPrice: 0.95,
     discount: '-16%',
@@ -140,7 +140,7 @@ const DETAILED_PRODUCTS = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/queso_campesino.jpg',
     subtitle: '500 g · fresco de pastoreo',
     unit: '500g',
-    unitLabel: 'COP / 500g',
+    unitLabel: 'USD / 500g',
     price: 0.75,
     originalPrice: null,
     discount: null,
@@ -162,7 +162,7 @@ const DETAILED_PRODUCTS = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/miel_silvestre.jpg',
     subtitle: '350 g · pura, sin mezclas',
     unit: '350g',
-    unitLabel: 'COP / 350g',
+    unitLabel: 'USD / 350g',
     price: 0.88,
     originalPrice: null,
     discount: null,
@@ -184,7 +184,7 @@ const DETAILED_PRODUCTS = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/papa_criolla.jpg',
     subtitle: '1 kg · lavada y seleccionada',
     unit: '1 kg',
-    unitLabel: 'COP / kg',
+    unitLabel: 'USD / kg',
     price: 0.52,
     originalPrice: null,
     discount: null,
@@ -206,7 +206,7 @@ const DETAILED_PRODUCTS = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/yogur_pastoreo.jpg',
     subtitle: '1 litro · sin azúcar añadida',
     unit: '1L',
-    unitLabel: 'COP / 1L',
+    unitLabel: 'USD / 1L',
     price: 0.65,
     originalPrice: null,
     discount: null,
@@ -228,7 +228,7 @@ const DETAILED_PRODUCTS = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/banano_criollo.jpg',
     subtitle: '1 kg · 6 a 8 unidades aprox.',
     unit: '1 kg',
-    unitLabel: 'COP / kg',
+    unitLabel: 'USD / kg',
     price: 0.38,
     originalPrice: null,
     discount: null,
@@ -250,7 +250,7 @@ const DETAILED_PRODUCTS = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/mermelada_mora.jpg',
     subtitle: '280 g · fruta + panela orgánica',
     unit: '280g',
-    unitLabel: 'COP / 280g',
+    unitLabel: 'USD / 280g',
     price: 0.60,
     originalPrice: null,
     discount: null,
@@ -272,7 +272,7 @@ const DETAILED_PRODUCTS = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_esencial.jpg',
     subtitle: '6-7 kg · para 1 a 2 personas',
     unit: 'canasta semanal',
-    unitLabel: 'COP / canasta',
+    unitLabel: 'USD / canasta',
     price: 0.70,
     originalPrice: null,
     discount: null,
@@ -294,7 +294,7 @@ const DETAILED_PRODUCTS = [
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/rabanos.jpg',
     subtitle: '1 manojo · frescos y crujientes',
     unit: 'manojo',
-    unitLabel: 'COP / manojo',
+    unitLabel: 'USD / manojo',
     price: 0.28,
     originalPrice: null,
     discount: null,
@@ -447,7 +447,7 @@ function renderProductDetails(p) {
   const deliveryHomeNote = document.getElementById('delivery-home-note');
   if (deliveryHomeNote) {
     const totalHome = p.price + (p.shippingCost || 0.35);
-    deliveryHomeNote.textContent = `A domicilio en Guayaquil: $${formatCOP(p.shippingCost || 0.35)} · Total con envío: $${formatCOP(totalHome)} COP.`;
+    deliveryHomeNote.textContent = `A domicilio en Guayaquil: $${formatCOP(p.shippingCost || 0.35)} · Total con envío: $${formatCOP(totalHome)} USD.`;
   }
 
   recalculateSubtotal();
@@ -488,7 +488,7 @@ function recalculateSubtotal() {
   const deliveryHomeNote = document.getElementById('delivery-home-note');
   if (deliveryHomeNote) {
     const totalHome = subtotal + (currentProduct.shippingCost || 0.35);
-    deliveryHomeNote.textContent = `A domicilio en Guayaquil: $${formatCOP(currentProduct.shippingCost || 0.35)} · Total con envío: $${formatCOP(totalHome)} COP.`;
+    deliveryHomeNote.textContent = `A domicilio en Guayaquil: $${formatCOP(currentProduct.shippingCost || 0.35)} · Total con envío: $${formatCOP(totalHome)} USD.`;
   }
 }
 

@@ -216,7 +216,7 @@ function updateAddressUI(addr) {
     }
   }
   if (feeBadge) {
-    feeBadge.textContent = `$${Number(addr.delivery_fee || 8000).toLocaleString('es-CO')}`;
+    feeBadge.textContent = `$${Number(addr.delivery_fee ?? 1.50).toFixed(2)}`;
   }
 
   // Resumen lateral si está en modo domicilio
@@ -359,7 +359,7 @@ async function handleSaveNewAddress(event) {
     neighborhood: neighInput ? neighInput.value.trim() : 'Urdesa',
     city: cityInput ? cityInput.value.trim() : 'Guayaquil',
     delivery_instructions: instInput ? instInput.value.trim() : '',
-    delivery_fee: 8000,
+    delivery_fee: 1.50,
     delivery_schedule: 'Sáb. 14 nov. · 2:00 – 6:00 p. m.',
     is_preferred: true
   };
@@ -700,7 +700,7 @@ function renderSummaryItems() {
 
 function updateOrderTotals() {
   const subtotal = checkoutCart.reduce((sum, it) => sum + (Number(it.price || 0) * (it.quantity || 1)), 0);
-  const deliveryFee = activeDeliveryMode === 'NODE_PICKUP' ? 0 : (activeAddress?.delivery_fee || 8000);
+  const deliveryFee = activeDeliveryMode === 'NODE_PICKUP' ? 0 : Number(activeAddress?.delivery_fee ?? 1.50);
   const total = subtotal + deliveryFee;
 
   const subtotalEl = document.getElementById('summary-subtotal');
@@ -712,7 +712,7 @@ function updateOrderTotals() {
   const kickerEl = document.getElementById('summary-delivery-label-kicker');
   const badgeEl = document.getElementById('summary-delivery-fee-badge');
 
-  if (subtotalEl) subtotalEl.textContent = `$${subtotal.toLocaleString('es-CO')}`;
+  if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
   
   if (activeDeliveryMode === 'NODE_PICKUP') {
     if (feeLabelEl) feeLabelEl.textContent = 'Recogida en nodo:';
@@ -729,19 +729,19 @@ function updateOrderTotals() {
   } else {
     if (feeLabelEl) feeLabelEl.textContent = 'Envío a domicilio:';
     if (feeCostEl) {
-      feeCostEl.textContent = `$${deliveryFee.toLocaleString('es-CO')}`;
+      feeCostEl.textContent = `$${deliveryFee.toFixed(2)}`;
       feeCostEl.className = 'font-semibold text-stone-800';
     }
     if (kickerEl) kickerEl.textContent = 'Entrega a domicilio:';
     if (badgeEl) {
-      badgeEl.textContent = `$${deliveryFee.toLocaleString('es-CO')}`;
+      badgeEl.textContent = `$${deliveryFee.toFixed(2)}`;
       badgeEl.className = 'text-[10px] font-bold text-stone-700 bg-stone-100 px-2 py-0.2 rounded-full';
     }
     if (activeAddress) updateAddressUI(activeAddress);
   }
 
-  if (totalEl) totalEl.textContent = `$${total.toLocaleString('es-CO')}`;
-  if (btnTotal) btnTotal.textContent = `$${total.toLocaleString('es-CO')}`;
+  if (totalEl) totalEl.textContent = `$${total.toFixed(2)}`;
+  if (btnTotal) btnTotal.textContent = `$${total.toFixed(2)}`;
 }
 
 // =============================================================================
@@ -767,7 +767,7 @@ async function executePurchase() {
   const customerEmail = checkoutUser?.email || 'facturacion@raizybarrio.co';
 
   const subtotal = checkoutCart.reduce((sum, it) => sum + (Number(it.price || 0) * (it.quantity || 1)), 0);
-  const deliveryFee = activeDeliveryMode === 'NODE_PICKUP' ? 0 : (activeAddress?.delivery_fee || 8000);
+  const deliveryFee = activeDeliveryMode === 'NODE_PICKUP' ? 0 : Number(activeAddress?.delivery_fee ?? 1.50);
   const totalAmount = subtotal + deliveryFee;
 
   const randomNum = Math.floor(1000 + Math.random() * 9000);
