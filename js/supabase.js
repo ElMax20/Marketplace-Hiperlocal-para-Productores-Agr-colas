@@ -322,15 +322,15 @@ class SupabaseService {
   // =========================================================================
 
   /**
-   * Obtiene todos los productos activos de la base de datos sin filtrar por claves de nodos huérfanas
+   * Obtiene todos los productos de la base de datos de forma limpia y directa sin joins inexistentes
    */
   async getProducts() {
     try {
-      return await this.fetchApi('products?select=*&is_active=eq.true&order=created_at.desc');
+      return await this.fetchApi('products?select=*&order=created_at.desc');
     } catch (e) {
-      console.warn('Fallo consultando con is_active, reintentando con fallback:', e);
+      console.warn('Fallo consultando products con order=created_at.desc, reintentando con fallback:', e);
       try {
-        return await this.fetchApi('products?select=*&order=id.asc');
+        return await this.fetchApi('products?select=*');
       } catch (e2) {
         console.error('Error al obtener productos de Supabase:', e2);
         return [];

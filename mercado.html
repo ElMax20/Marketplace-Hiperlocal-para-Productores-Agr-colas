@@ -276,37 +276,37 @@
             <li>
               <button onclick="setCategoryFilter('todos')" id="cat-btn-todos" class="w-full flex items-center justify-between px-3 py-2 rounded-xl font-bold bg-[#1a3d2f] text-white transition text-left">
                 <span>Todos los productos</span>
-                <span class="text-[11px] opacity-80">48</span>
+                <span class="text-[11px] opacity-80" id="cat-count-todos">48</span>
               </button>
             </li>
             <li>
               <button onclick="setCategoryFilter('canastas')" id="cat-btn-canastas" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-stone-700 hover:bg-stone-100 transition text-left font-medium">
                 <span>Canastas Familiares</span>
-                <span class="text-[11px] text-stone-400">6</span>
+                <span class="text-[11px] text-stone-400" id="cat-count-canastas">6</span>
               </button>
             </li>
             <li>
               <button onclick="setCategoryFilter('verduras')" id="cat-btn-verduras" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-stone-700 hover:bg-stone-100 transition text-left font-medium">
                 <span>Verduras & Granos</span>
-                <span class="text-[11px] text-stone-400">18</span>
+                <span class="text-[11px] text-stone-400" id="cat-count-verduras">18</span>
               </button>
             </li>
             <li>
               <button onclick="setCategoryFilter('frutas')" id="cat-btn-frutas" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-stone-700 hover:bg-stone-100 transition text-left font-medium">
                 <span>Frutas del Valle</span>
-                <span class="text-[11px] text-stone-400">12</span>
+                <span class="text-[11px] text-stone-400" id="cat-count-frutas">12</span>
               </button>
             </li>
             <li>
               <button onclick="setCategoryFilter('lacteos')" id="cat-btn-lacteos" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-stone-700 hover:bg-stone-100 transition text-left font-medium">
                 <span>Lácteos de Pastoreo</span>
-                <span class="text-[11px] text-stone-400">4</span>
+                <span class="text-[11px] text-stone-400" id="cat-count-lacteos">4</span>
               </button>
             </li>
             <li>
               <button onclick="setCategoryFilter('despensa')" id="cat-btn-despensa" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-stone-700 hover:bg-stone-100 transition text-left font-medium">
                 <span>Mieles & Despensa Artesanal</span>
-                <span class="text-[11px] text-stone-400">8</span>
+                <span class="text-[11px] text-stone-400" id="cat-count-despensa">8</span>
               </button>
             </li>
           </ul>
@@ -330,8 +330,8 @@
               <input type="checkbox" id="filter-weekly" onchange="toggleWeeklyOnly()" class="mt-0.5 rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
               <div>
                 <span class="font-medium">Disponibles esta semana</span>
-                <span class="text-stone-400 text-[11px]">(48)</span>
-                <p class="text-[11px] text-stone-500 mt-0.5 leading-tight">Productos que puedes recoger el sábado en tu Nodo Central.</p>
+                <span class="text-stone-400 text-[11px]" id="weekly-count-label">(48)</span>
+                <p class="text-[11px] text-stone-500 mt-0.5 leading-tight">Productos que puedes recoger en tu Nodo Comunitario de Guayaquil.</p>
               </div>
             </label>
           </div>
@@ -493,7 +493,7 @@
 
         <!-- Pagination -->
         <div class="mt-12 pt-6 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
-          <span class="text-stone-500">Mostrando 1-12 de 48 productos</span>
+          <span class="text-stone-500" id="products-pagination-label">Mostrando 1-12 de 48 productos</span>
           <div class="flex items-center gap-1.5 font-medium">
             <button class="w-8 h-8 rounded-lg border border-stone-200 flex items-center justify-center text-stone-400 hover:text-stone-700">‹</button>
             <button class="w-8 h-8 rounded-lg bg-[#1a3d2f] text-white flex items-center justify-center font-bold">1</button>
@@ -508,7 +508,7 @@
         </div>
 
         <p class="text-[11px] text-stone-400 mt-4 leading-relaxed">
-          Precios en pesos colombianos (COP). El peso puede variar ligeramente por ser productos del campo. La disponibilidad se confirmará con tu punto y fecha de recogida seleccionada.
+          Precios en dólares estadounidenses (USD). El peso puede variar ligeramente por ser productos del campo. La disponibilidad se confirmará con tu punto y fecha de recogida seleccionada.
         </p>
 
       </section>

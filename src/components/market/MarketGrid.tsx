@@ -10,6 +10,230 @@ interface MarketGridProps {
   selectedProducerId?: string | null;
 }
 
+const DEFAULT_MARKET_PRODUCTS: Product[] = [
+  {
+    id: '1',
+    numericId: 1,
+    producer_id: '00000000-0000-0000-0000-000000000005',
+    category_id: 2,
+    title: 'Tomate de huerta',
+    category: 'verduras',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg',
+    price: 0.64,
+    originalPrice: 0.85,
+    subtitle: '1 kg · Cosecha fresca',
+    origin: 'Hacienda San José · Daule · a 45 km',
+    is_available: true,
+    is_active: true,
+    stock_quantity: 85,
+    unit: 'kg'
+  },
+  {
+    id: '2',
+    numericId: 2,
+    producer_id: '00000000-0000-0000-0000-000000000004',
+    category_id: 3,
+    title: 'Aguacate Hass',
+    category: 'frutas',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/aguacates.jpg',
+    price: 0.85,
+    originalPrice: 0.98,
+    subtitle: '1 kg · 4 a 5 unidades aprox.',
+    origin: 'Huerta Agroecológica El Guayacán · Milagro · a 42 km',
+    is_available: true,
+    is_active: true,
+    stock_quantity: 42,
+    unit: 'kg'
+  },
+  {
+    id: '3',
+    numericId: 3,
+    producer_id: '00000000-0000-0000-0000-000000000005',
+    category_id: 2,
+    title: 'Zanahoria de tierra',
+    category: 'verduras',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/zanahorias.jpg',
+    price: 0.40,
+    originalPrice: 0.48,
+    subtitle: '1 kg · Cosechadas a mano',
+    origin: 'Hacienda San José · Daule · a 45 km',
+    is_available: true,
+    is_active: true,
+    stock_quantity: 60,
+    unit: 'kg'
+  },
+  {
+    id: '4',
+    numericId: 4,
+    producer_id: '00000000-0000-0000-0000-000000000004',
+    category_id: 3,
+    title: 'Fresas de temporada',
+    category: 'frutas',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/fresas.jpg',
+    price: 0.80,
+    originalPrice: 0.95,
+    subtitle: '500g · Selección especial',
+    origin: 'Huerta Agroecológica El Guayacán · Milagro · a 42 km',
+    is_available: true,
+    is_active: true,
+    stock_quantity: 35,
+    unit: '500g'
+  },
+  {
+    id: '5',
+    numericId: 5,
+    producer_id: '00000000-0000-0000-0000-000000000005',
+    category_id: 2,
+    title: 'Papa criolla nativa',
+    category: 'verduras',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/papa_criolla.jpg',
+    price: 0.52,
+    originalPrice: 0.65,
+    subtitle: '1 kg · Lavada y seleccionada',
+    origin: 'Hacienda San José · Daule · a 45 km',
+    is_available: true,
+    is_active: true,
+    stock_quantity: 50,
+    unit: 'kg'
+  },
+  {
+    id: '6',
+    numericId: 6,
+    producer_id: '00000000-0000-0000-0000-000000000004',
+    category_id: 3,
+    title: 'Banano criollo de ladera',
+    category: 'frutas',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/banano_criollo.jpg',
+    price: 0.38,
+    originalPrice: 0.45,
+    subtitle: '1 kg · Maduración natural',
+    origin: 'Huerta Agroecológica El Guayacán · Milagro · a 42 km',
+    is_available: true,
+    is_active: true,
+    stock_quantity: 40,
+    unit: 'kg'
+  },
+  {
+    id: '7',
+    numericId: 7,
+    producer_id: '00000000-0000-0000-0000-000000000006',
+    category_id: 4,
+    title: 'Queso campesino artesanal',
+    category: 'lacteos',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/queso_campesino.jpg',
+    price: 0.75,
+    originalPrice: 0.90,
+    subtitle: '500g · Leche de pastoreo',
+    origin: 'Asociación Don Jorge · Naranjal · a 78 km',
+    is_available: true,
+    is_active: true,
+    stock_quantity: 20,
+    unit: '500g'
+  },
+  {
+    id: '8',
+    numericId: 8,
+    producer_id: '00000000-0000-0000-0000-000000000006',
+    category_id: 4,
+    title: 'Yogur de pastoreo',
+    category: 'lacteos',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/yogur_pastoreo.jpg',
+    price: 0.65,
+    originalPrice: 0.80,
+    subtitle: '1 L · Sin azúcar añadida',
+    origin: 'Asociación Don Jorge · Naranjal · a 78 km',
+    is_available: true,
+    is_active: true,
+    stock_quantity: 18,
+    unit: '1L'
+  },
+  {
+    id: '9',
+    numericId: 9,
+    producer_id: '00000000-0000-0000-0000-000000000006',
+    category_id: 5,
+    title: 'Miel de abeja silvestre',
+    category: 'despensa',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/miel_silvestre.jpg',
+    price: 0.88,
+    originalPrice: 1.10,
+    subtitle: '350g · Bosque nativo',
+    origin: 'Asociación Don Jorge · Naranjal · a 78 km',
+    is_available: true,
+    is_active: true,
+    stock_quantity: 15,
+    unit: '350g'
+  },
+  {
+    id: '10',
+    numericId: 10,
+    producer_id: '00000000-0000-0000-0000-000000000006',
+    category_id: 5,
+    title: 'Mermelada artesanal de mora',
+    category: 'despensa',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/mermelada_mora.jpg',
+    price: 0.60,
+    originalPrice: 0.75,
+    subtitle: '280g · Paila artesanal',
+    origin: 'Asociación Don Jorge · Naranjal · a 78 km',
+    is_available: true,
+    is_active: true,
+    stock_quantity: 22,
+    unit: '280g'
+  },
+  {
+    id: '11',
+    numericId: 11,
+    producer_id: '00000000-0000-0000-0000-000000000005',
+    category_id: 1,
+    title: 'Canasta Huerto Familiar',
+    category: 'canastas',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_familiar.jpg',
+    price: 0.95,
+    originalPrice: 1.20,
+    subtitle: 'Canasta semanal · 3 a 5 personas',
+    origin: 'Hacienda San José · Daule · a 45 km',
+    is_available: true,
+    is_active: true,
+    stock_quantity: 12,
+    unit: 'canasta'
+  },
+  {
+    id: '12',
+    numericId: 12,
+    producer_id: '00000000-0000-0000-0000-000000000004',
+    category_id: 1,
+    title: 'Canasta Agroecológica Esencial',
+    category: 'canastas',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_esencial.jpg',
+    price: 0.70,
+    originalPrice: 0.88,
+    subtitle: 'Canasta semanal · 1 a 2 personas',
+    origin: 'Huerta Agroecológica El Guayacán · Milagro · a 42 km',
+    is_available: true,
+    is_active: true,
+    stock_quantity: 8,
+    unit: 'canasta'
+  },
+  {
+    id: '13',
+    numericId: 13,
+    producer_id: '00000000-0000-0000-0000-000000000005',
+    category_id: 2,
+    title: 'Rábanos de temporada',
+    category: 'verduras',
+    image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/rabanos.jpg',
+    price: 0.28,
+    originalPrice: 0.35,
+    subtitle: '1 manojo · Cosecha del día',
+    origin: 'Hacienda San José · Daule · a 45 km',
+    is_available: true,
+    is_active: true,
+    stock_quantity: 30,
+    unit: 'manojo'
+  }
+];
+
 export const MarketGrid: React.FC<MarketGridProps> = ({
   supabaseClient,
   onAddToCart,
@@ -18,8 +242,8 @@ export const MarketGrid: React.FC<MarketGridProps> = ({
   initialCategory = 'todos',
   selectedProducerId = null,
 }) => {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [products, setProducts] = useState<Product[]>(DEFAULT_MARKET_PRODUCTS);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string>(initialCategory);
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -35,16 +259,17 @@ export const MarketGrid: React.FC<MarketGridProps> = ({
         const client = supabaseClient || (window as any).supabase;
 
         if (client && typeof client.from === 'function') {
-          // Consulta directa sin filtrar por claves de nodos huérfanas
-          const { data: productsData, error } = await client
+          // 1. Consulta limpia y directa según requerimiento:
+          const { data, error } = await client
             .from('products')
             .select('*')
-            .eq('is_active', true)
             .order('created_at', { ascending: false });
 
           if (error) {
-            throw error;
+            console.warn('Aviso en supabase.from("products"):', error);
           }
+
+          const productsData = (!error && Array.isArray(data) && data.length > 0) ? data : null;
 
           if (isMounted && productsData) {
             const categoryMap: Record<number, string> = {
@@ -70,7 +295,7 @@ export const MarketGrid: React.FC<MarketGridProps> = ({
                 subtitle: `${dbP.unit || 'kg'} · Cosecha fresca`,
                 origin: dbP.description || 'Finca local de Guayas',
                 description: dbP.description,
-                is_available: dbP.is_available ?? dbP.is_active ?? true,
+                is_available: dbP.is_available ?? true,
                 is_active: dbP.is_active ?? true,
                 stock_quantity: dbP.stock_quantity || 0,
                 unit: dbP.unit || 'kg',

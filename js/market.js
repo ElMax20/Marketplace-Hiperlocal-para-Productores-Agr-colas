@@ -416,17 +416,23 @@ window.getProductReviewStats = getProductReviewStats;
 // =============================================================================
 // 3. Inicialización
 // =============================================================================
-document.addEventListener('DOMContentLoaded', () => {
-  initFavoritesFromStorage();
-  initCartFromStorage();
-  checkAuthStatus();
-  initHeaderLocationSelector();
-  parseUrlParams();
-  renderProducts();
-  setupCartDrawerListeners();
-  setupSearchListener();
-  loadProductsFromSupabase();
-});
+function initMarketApp() {
+  try { initFavoritesFromStorage(); } catch (e) { console.warn('Error initFavorites:', e); }
+  try { initCartFromStorage(); } catch (e) { console.warn('Error initCart:', e); }
+  try { if (typeof checkAuthStatus === 'function') checkAuthStatus(); } catch (e) { console.warn('Error checkAuth:', e); }
+  try { if (typeof initHeaderLocationSelector === 'function') initHeaderLocationSelector(); } catch (e) { console.warn('Error initHeaderLocation:', e); }
+  try { parseUrlParams(); } catch (e) { console.warn('Error parseUrlParams:', e); }
+  try { renderProducts(); } catch (e) { console.error('Error renderProducts:', e); }
+  try { setupCartDrawerListeners(); } catch (e) { console.warn('Error setupCartDrawerListeners:', e); }
+  try { setupSearchListener(); } catch (e) { console.warn('Error setupSearchListener:', e); }
+  try { loadProductsFromSupabase(); } catch (e) { console.warn('Error loadProductsFromSupabase:', e); }
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initMarketApp);
+} else {
+  initMarketApp();
+}
 
 // Sincronización en vivo de valoraciones y favoritos al regresar a la pestaña o recibir cambios
 window.addEventListener('storage', (e) => {
@@ -440,68 +446,89 @@ window.addEventListener('focus', () => {
   renderProducts();
 });
 
-// Cargar catálogo en tiempo real desde Supabase sin filtrar por claves de nodos huérfanas
+// Cargar catálogo en tiempo real desde Supabase con consulta limpia y directa
 async function loadProductsFromSupabase() {
-  if (window.supabase && typeof window.supabase.getProducts === 'function') {
-    try {
-      const dbProducts = await window.supabase.getProducts();
-      if (dbProducts && dbProducts.length > 0) {
-        const categoryMap = { 1: 'canastas', 2: 'verduras', 3: 'frutas', 4: 'lacteos', 5: 'despensa' };
-        
-        dbProducts.forEach(dbP => {
-          const catName = categoryMap[dbP.category_id] || 'verduras';
-          const existingIdx = PRODUCTS_DATA.findIndex(p => 
-            p.id === String(dbP.id) || 
-            (p.numericId && Number(p.numericId) === Number(dbP.id)) ||
-            p.title.toLowerCase() === dbP.title.toLowerCase()
-          );
+  if (!window.supabase) return;
 
-          const normalizedImg = normalizeProductImageUrl(dbP.image_url);
-          const priceNum = Number(dbP.price);
-          const origPrice = Math.round(priceNum * 1.15 * 100) / 100;
-          const isAvail = (dbP.is_active !== undefined) ? dbP.is_active : (dbP.is_available ?? true);
+  try {
+    let dbProducts = null;
 
-          if (existingIdx !== -1) {
-            // Preservar el slug ID original (ej: 'tomate-huerta') para mantener coherencia en las URLs
-            PRODUCTS_DATA[existingIdx] = {
-              ...PRODUCTS_DATA[existingIdx],
-              numericId: dbP.id,
-              title: dbP.title,
-              category: catName,
-              image: normalizedImg,
-              price: priceNum,
-              originalPrice: origPrice,
-              subtitle: `${dbP.unit} · Cosechado en finca`,
-              origin: dbP.description || PRODUCTS_DATA[existingIdx].origin,
-              availability: isAvail ? 'Disponible · Supabase' : 'Agotado'
-            };
-          } else {
-            PRODUCTS_DATA.push({
-              id: String(dbP.id),
-              numericId: dbP.id,
-              title: dbP.title,
-              category: catName,
-              tag: 'Cosecha fresca',
-              image: normalizedImg,
-              subtitle: `${dbP.unit} · Cosechado en finca`,
-              origin: dbP.description || 'Finca campesina aliada',
-              rating: '0',
-              reviews: 0,
-              price: priceNum,
-              originalPrice: origPrice,
-              availability: isAvail ? 'Disponible · Supabase' : 'Agotado',
-              distanceKm: 38,
-              isOffer: false
-            });
-          }
-        });
+    // 1. Consulta limpia y directa con Supabase Client según requerimiento:
+    // const { data, error } = await supabase.from('products').select('*').order('created_at', { ascending: false });
+    if (typeof window.supabase.from === 'function') {
+      const { data, error } = await window.supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
 
-        renderProducts();
-        console.log(`Catálogo sincronizado exitosamente desde Supabase (${dbProducts.length} productos sin filtros de nodo).`);
+      if (!error && Array.isArray(data) && data.length > 0) {
+        dbProducts = data;
+      } else if (error) {
+        console.warn('Aviso en supabase.from("products"):', error);
       }
-    } catch (e) {
-      console.warn('Error cargando productos de Supabase:', e);
     }
+
+    // 2. Fallback con getProducts si no retornó desde .from()
+    if (!dbProducts && typeof window.supabase.getProducts === 'function') {
+      dbProducts = await window.supabase.getProducts();
+    }
+
+    if (dbProducts && Array.isArray(dbProducts) && dbProducts.length > 0) {
+      const categoryMap = { 1: 'canastas', 2: 'verduras', 3: 'frutas', 4: 'lacteos', 5: 'despensa' };
+
+      dbProducts.forEach(dbP => {
+        const catName = categoryMap[dbP.category_id] || 'verduras';
+        const existingIdx = PRODUCTS_DATA.findIndex(p => 
+          String(p.id) === String(dbP.id) || 
+          (p.numericId && Number(p.numericId) === Number(dbP.id)) ||
+          p.title.toLowerCase() === dbP.title.toLowerCase()
+        );
+
+        const normalizedImg = normalizeProductImageUrl(dbP.image_url);
+        const priceNum = Number(dbP.price);
+        const origPrice = Math.round(priceNum * 1.15 * 100) / 100;
+        const isAvail = (dbP.is_available !== undefined) ? dbP.is_available : (dbP.is_active ?? true);
+
+        if (existingIdx !== -1) {
+          // Preservar el slug ID original (ej: 'tomate-huerta') para mantener coherencia en las URLs
+          PRODUCTS_DATA[existingIdx] = {
+            ...PRODUCTS_DATA[existingIdx],
+            numericId: dbP.id,
+            title: dbP.title,
+            category: catName,
+            image: normalizedImg,
+            price: priceNum,
+            originalPrice: origPrice,
+            subtitle: `${dbP.unit || 'kg'} · Cosechado en finca`,
+            origin: dbP.description || PRODUCTS_DATA[existingIdx].origin,
+            availability: isAvail ? 'Disponible · Supabase' : 'Agotado'
+          };
+        } else {
+          PRODUCTS_DATA.push({
+            id: String(dbP.id),
+            numericId: dbP.id,
+            title: dbP.title,
+            category: catName,
+            tag: 'Cosecha fresca',
+            image: normalizedImg,
+            subtitle: `${dbP.unit || 'kg'} · Cosechado en finca`,
+            origin: dbP.description || 'Finca campesina aliada',
+            rating: '0',
+            reviews: 0,
+            price: priceNum,
+            originalPrice: origPrice,
+            availability: isAvail ? 'Disponible · Supabase' : 'Agotado',
+            distanceKm: 38,
+            isOffer: false
+          });
+        }
+      });
+
+      renderProducts();
+      console.log(`Catálogo sincronizado exitosamente desde Supabase (${dbProducts.length} productos).`);
+    }
+  } catch (e) {
+    console.warn('Error cargando productos de Supabase:', e);
   }
 }
 
@@ -692,6 +719,18 @@ function renderProducts() {
     countLabel.textContent = `${filtered.length} productos para tu próxima entrega`;
   }
 
+  // Actualizar etiqueta de paginación inferior
+  const paginationLabel = document.getElementById('products-pagination-label');
+  if (paginationLabel) {
+    const showingMax = Math.min(filtered.length, 12);
+    paginationLabel.textContent = filtered.length > 0 
+      ? `Mostrando 1–${showingMax} de ${filtered.length} productos` 
+      : 'Mostrando 0 de 0 productos';
+  }
+
+  // Actualizar contadores de categorías en la barra lateral
+  updateCategoryBadgesCounts();
+
   // Actualizar interfaz reactiva de filtros activos y botones de limpiar
   updateActiveFiltersUI();
 
@@ -724,7 +763,7 @@ function renderProducts() {
   }
 
   container.innerHTML = filtered.map(p => {
-    const itemInCart = cart.find(item => item.id === p.id);
+    const itemInCart = cart.find(item => String(item.id) === String(p.id));
     const cartQty = itemInCart ? itemInCart.quantity : 0;
     const isFav = isProductFavorite(p.id);
     const stats = getProductReviewStats(p.id);
@@ -739,7 +778,7 @@ function renderProducts() {
         <div class="relative aspect-[4/3] bg-stone-100 overflow-hidden">
           <img 
             src="${normalizeProductImageUrl(p.image)}" 
-            alt="${p.title}" 
+            alt="${p.title || 'Producto'}" 
             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             onerror="this.src='https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/hero_basket.jpg'"
           >
@@ -752,7 +791,7 @@ function renderProducts() {
               </span>
             ` : ''}
             <span class="bg-white/95 backdrop-blur-sm text-[#1a3d2f] text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm">
-              ${p.tag}
+              ${p.tag || 'Cosecha fresca'}
             </span>
           </div>
 
@@ -792,9 +831,9 @@ function renderProducts() {
         <!-- Información del Producto -->
         <div class="p-4 flex-1 flex flex-col justify-between">
           <div>
-            <h3 class="font-bold text-stone-900 text-sm group-hover:text-[#1a3d2f] transition">${p.title}</h3>
-            <p class="text-[11px] text-stone-500 mt-0.5">${p.subtitle}</p>
-            <p class="text-[10px] text-stone-400 mt-1">${p.origin}</p>
+            <h3 class="font-bold text-stone-900 text-sm group-hover:text-[#1a3d2f] transition">${p.title || 'Producto'}</h3>
+            <p class="text-[11px] text-stone-500 mt-0.5">${p.subtitle || 'Cosechado en finca'}</p>
+            <p class="text-[10px] text-stone-400 mt-1">${p.origin || 'Finca local de Guayas'}</p>
 
             <div class="flex items-center gap-1.5 mt-2 text-xs">
               <span class="${stats.hasReviews ? 'text-amber-500' : 'text-stone-400'} font-bold">★ ${stats.ratingDisplay}</span>
@@ -812,7 +851,7 @@ function renderProducts() {
 
             <p class="text-[10px] text-emerald-700 font-medium flex items-center gap-1 mb-3">
               <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              <span>${p.availability}</span>
+              <span>${p.availability || 'Disponible'}</span>
             </p>
 
             <!-- Botón de Compra / Carrito -->
@@ -1146,6 +1185,43 @@ function updateActiveFiltersUI() {
     }
   }
 }
+
+/**
+ * Actualiza los contadores numéricos de cada categoría y disponibilidad en la barra lateral
+ */
+function updateCategoryBadgesCounts() {
+  const catCounts = {
+    todos: PRODUCTS_DATA.length,
+    canastas: 0,
+    verduras: 0,
+    frutas: 0,
+    lacteos: 0,
+    despensa: 0
+  };
+
+  PRODUCTS_DATA.forEach(p => {
+    if (catCounts[p.category] !== undefined) {
+      catCounts[p.category]++;
+    }
+  });
+
+  Object.keys(catCounts).forEach(cat => {
+    const el = document.getElementById(`cat-count-${cat}`);
+    if (el) {
+      el.textContent = catCounts[cat];
+    }
+  });
+
+  const weeklyEl = document.getElementById('weekly-count-label');
+  if (weeklyEl) {
+    const weeklyCount = PRODUCTS_DATA.filter(p => {
+      const avail = (p.availability || '').toLowerCase();
+      return !avail.includes('agotado') && !avail.includes('no disponible');
+    }).length;
+    weeklyEl.textContent = `(${weeklyCount})`;
+  }
+}
+window.updateCategoryBadgesCounts = updateCategoryBadgesCounts;
 
 function setupSearchListener() {
   const input = document.getElementById('market-search');
