@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Mi Perfil y Preferencias | Raíz & Barrio</title>
   
   <!-- Tailwind CSS CDN -->
@@ -280,7 +283,7 @@
           </h3>
           <p id="sidebar-user-since" class="text-xs text-stone-600 mt-1 leading-relaxed">
             Compradora desde septiembre de 2026.<br>
-            Tu nodo: <span id="sidebar-user-node" class="font-semibold text-stone-800">Central · La Perseverancia</span>.
+            Tu nodo: <span id="sidebar-user-node" class="font-semibold text-stone-800">Urdesa · Espacio Verde</span>.
           </p>
         </div>
 
@@ -564,10 +567,10 @@
                 </div>
               </div>
               <h3 id="delivery-node-title" class="font-bold text-xs text-stone-900">
-                Nodo Central · La Perseverancia
+                Sede Urdesa · Espacio Verde
               </h3>
-              <p id="delivery-node-address" class="text-[11px] text-stone-500 mt-0.5">Carrera 5 n.º 30A-10 · Bogotá</p>
-              <p id="delivery-node-schedule" class="text-[11px] text-stone-500">Sáb. 7 nov. · 8:00 a. m. – 12:00 p. m.</p>
+              <p id="delivery-node-address" class="text-[11px] text-stone-500 mt-0.5">Av. Víctor Emilio Estrada y Bálsamos · Guayaquil</p>
+              <p id="delivery-node-schedule" class="text-[11px] text-stone-500">Miércoles y Viernes: 3:00 PM – 7:30 PM</p>
               
               <div class="flex items-center justify-between pt-2 border-t border-stone-200/60 mt-2 text-xs">
                 <span class="font-semibold text-stone-700">Recogida gratis</span>
@@ -641,7 +644,7 @@
   <!-- ========================================================================= -->
   <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-stone-200/80 mt-12 w-full flex flex-col sm:flex-row items-center justify-between text-xs text-stone-400 gap-3">
     <div>
-      © 2026 Raíz & Barrio · Bogotá y su tierra cercana.
+      © 2026 Raíz & Barrio · Guayaquil y la Cuenca del Guayas.
     </div>
     <div class="flex items-center gap-4">
       <a href="#" class="hover:text-stone-700 transition">Ayuda</a>
@@ -1164,7 +1167,7 @@
               type="text" 
               id="address-neighborhood" 
               required 
-              placeholder="Ej: La Merced, Chapinero..." 
+              placeholder="Ej: Urdesa, Samborondón, Ceibos..." 
               class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
             >
           </div>
@@ -1174,7 +1177,7 @@
               type="text" 
               id="address-city" 
               required 
-              value="Bogotá, D. C." 
+              value="Guayaquil" 
               class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
             >
           </div>
@@ -1356,8 +1359,8 @@
   </aside>
 
   <!-- Scripts: Supabase y Lógica de Perfil -->
-  <script src="js/supabase.js?v=4.6"></script>
-  <script src="js/auth.js?v=4.6"></script>
-  <script src="js/perfil.js?v=4.6"></script>
+  <script src="js/supabase.js?v=5.0"></script>
+  <script src="js/auth.js?v=5.0"></script>
+  <script src="js/perfil.js?v=5.0"></script>
 </body>
 </html>

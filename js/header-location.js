@@ -9,8 +9,8 @@ let headerDeliveryAddresses = [];
 let activeDeliveryPreference = {
   type: 'node', // 'node' | 'home'
   id: null,
-  name: 'Nodo Central',
-  detail: 'Carrera 5 n.º 30A-10 · Bogotá'
+  name: 'Sede Urdesa · Espacio Verde',
+  detail: 'Av. Víctor Emilio Estrada y Bálsamos · Guayaquil'
 };
 
 /**
@@ -67,26 +67,26 @@ async function loadHeaderLocationData() {
     headerPickupNodes = [
       {
         id: 'e0177a54-9cbc-4426-a538-1d630f852ac1',
-        name: 'Nodo Central · La Perseverancia',
-        address: 'Carrera 5 n.º 30A-10',
-        city: 'Bogotá',
-        pickup_schedule: 'Sáb. 7 nov. · 8:00 a. m. – 12:00 p. m.',
+        name: 'Sede Urdesa · Espacio Verde',
+        address: 'Av. Víctor Emilio Estrada y Bálsamos',
+        city: 'Guayaquil',
+        pickup_schedule: 'Miércoles y Viernes: 3:00 PM – 7:30 PM',
         is_active: true
       },
       {
         id: '65925730-63b5-486f-9dd0-aaac13a0ffe9',
-        name: 'Nodo Chapinero Alto · Café del Bosque',
-        address: 'Calle 57 n.º 4-22',
-        city: 'Bogotá',
-        pickup_schedule: 'Sáb. 7 nov. · 9:00 a. m. – 1:00 p. m.',
+        name: 'Sede Puerto Santa Ana · Café del Río',
+        address: 'Numa Pompilio Llona, Edificio The Point',
+        city: 'Guayaquil',
+        pickup_schedule: 'Jueves y Sábado: 8:30 AM – 1:30 PM',
         is_active: true
       },
       {
-        id: 'c90c74d8-c114-4161-b4ec-7c87c020dca5',
-        name: 'Nodo Teusaquillo · Casa Cultural',
-        address: 'Calle 34 n.º 19-25',
-        city: 'Bogotá',
-        pickup_schedule: 'Sáb. 7 nov. · 8:30 a. m. – 12:30 p. m.',
+        id: '7a6f8f1f-ad1b-4f87-9d7f-58f1d3c5053c',
+        name: 'Sede Ceibos · Mercado Sostenible',
+        address: 'Av. del Bombero Km 6.5, Plaza Ceibos',
+        city: 'Guayaquil',
+        pickup_schedule: 'Sábados: 8:00 AM – 2:00 PM',
         is_active: true
       }
     ];
@@ -360,3 +360,4 @@ window.toggleHeaderLocationDropdown = toggleHeaderLocationDropdown;
 window.closeHeaderLocationDropdown = closeHeaderLocationDropdown;
 window.selectHeaderLocation = selectHeaderLocation;
 window.initHeaderLocationSelector = initHeaderLocationSelector;
+

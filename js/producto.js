@@ -25,8 +25,8 @@ const DETAILED_PRODUCTS = [
     category: 'verduras',
     badge: 'Cosechado hoy · Agroecológico',
     badgeIcon: '🌱',
-    farmName: 'Finca La Esperanza',
-    farmLocation: 'Choachí, Cundinamarca · a 30 km de tu nodo',
+    farmName: 'Hacienda San José',
+    farmLocation: 'Daule, Guayas · a 45 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg',
     subtitle: '1 kg · selección de temporada',
     unit: '1 kg',
@@ -47,8 +47,8 @@ const DETAILED_PRODUCTS = [
     category: 'frutas',
     badge: 'Listo para pronto · Cosecha limpia',
     badgeIcon: '🥑',
-    farmName: 'Familia Rojas',
-    farmLocation: 'La Vega, Cundinamarca · a 52 km de tu nodo',
+    farmName: 'Huerta Agroecológica El Guayacán',
+    farmLocation: 'Milagro, Guayas · a 42 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/aguacates.jpg',
     subtitle: '1 kg · 4 a 5 unidades aprox.',
     unit: '1 kg',
@@ -69,8 +69,8 @@ const DETAILED_PRODUCTS = [
     category: 'verduras',
     badge: 'Cosechado hoy · Sin químicos',
     badgeIcon: '🥕',
-    farmName: 'Huerta El Renacer',
-    farmLocation: 'Subachoque, Cundinamarca · a 45 km de tu nodo',
+    farmName: 'Hacienda San José',
+    farmLocation: 'Daule, Guayas · a 45 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/zanahorias.jpg',
     subtitle: '1 kg · con toda su frescura',
     unit: '1 kg',
@@ -91,8 +91,8 @@ const DETAILED_PRODUCTS = [
     category: 'canastas',
     badge: 'La favorita del barrio · Familiar',
     badgeIcon: '🧺',
-    farmName: 'Red de Familias Campesinas',
-    farmLocation: 'Choachí, Cundinamarca · a 30 km de tu nodo',
+    farmName: 'Hacienda San José',
+    farmLocation: 'Daule, Guayas · a 45 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_familiar.jpg',
     subtitle: '9-10 kg · para 3 a 5 personas',
     unit: 'canasta semanal',
@@ -179,8 +179,8 @@ const DETAILED_PRODUCTS = [
     category: 'verduras',
     badge: 'Recién cosechada · Tradición',
     badgeIcon: '🥔',
-    farmName: 'Finca Las Margaritas',
-    farmLocation: 'Usme rural, Bogotá · a 29 km de tu nodo',
+    farmName: 'Hacienda San José',
+    farmLocation: 'Daule, Guayas · a 45 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/papa_criolla.jpg',
     subtitle: '1 kg · lavada y seleccionada',
     unit: '1 kg',
@@ -267,8 +267,8 @@ const DETAILED_PRODUCTS = [
     category: 'canastas',
     badge: '100% Limpia · Cosecha viva',
     badgeIcon: '🌿',
-    farmName: 'Huertas de la Sabana',
-    farmLocation: 'Subachoque, Cundinamarca · a 42 km de tu nodo',
+    farmName: 'Huerta Agroecológica El Guayacán',
+    farmLocation: 'Milagro, Guayas · a 42 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_esencial.jpg',
     subtitle: '6-7 kg · para 1 a 2 personas',
     unit: 'canasta semanal',
@@ -289,8 +289,8 @@ const DETAILED_PRODUCTS = [
     category: 'verduras',
     badge: 'Cosechado hoy · Sin químicos',
     badgeIcon: '🌱',
-    farmName: 'Huerta El Renacer',
-    farmLocation: 'Subachoque, Cundinamarca · a 45 km de tu nodo',
+    farmName: 'Hacienda San José',
+    farmLocation: 'Daule, Guayas · a 45 km de tu nodo',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/rabanos.jpg',
     subtitle: '1 manojo · frescos y crujientes',
     unit: 'manojo',
@@ -300,7 +300,7 @@ const DETAILED_PRODUCTS = [
     discount: null,
     stock: 30,
     stockText: 'En stock: 30 manojos',
-    description: 'Rábanos frescos y crujientes cosechados al amanecer en Subachoque. De pulpa firme, color carmesí vivo y suave picor refrescante.',
+    description: 'Rábanos frescos y crujientes cosechados al amanecer en Daule. De pulpa firme, color carmesí vivo y suave picor refrescante.',
     care: 'Retira las hojas y guarda los rábanos en un recipiente ventilado en refrigeración.',
     shippingCost: 0.35
   }
@@ -447,7 +447,7 @@ function renderProductDetails(p) {
   const deliveryHomeNote = document.getElementById('delivery-home-note');
   if (deliveryHomeNote) {
     const totalHome = p.price + (p.shippingCost || 0.35);
-    deliveryHomeNote.textContent = `A domicilio en Bogotá: $${formatCOP(p.shippingCost || 0.35)} · Total con envío: $${formatCOP(totalHome)} COP.`;
+    deliveryHomeNote.textContent = `A domicilio en Guayaquil: $${formatCOP(p.shippingCost || 0.35)} · Total con envío: $${formatCOP(totalHome)} COP.`;
   }
 
   recalculateSubtotal();
@@ -488,7 +488,7 @@ function recalculateSubtotal() {
   const deliveryHomeNote = document.getElementById('delivery-home-note');
   if (deliveryHomeNote) {
     const totalHome = subtotal + (currentProduct.shippingCost || 0.35);
-    deliveryHomeNote.textContent = `A domicilio en Bogotá: $${formatCOP(currentProduct.shippingCost || 0.35)} · Total con envío: $${formatCOP(totalHome)} COP.`;
+    deliveryHomeNote.textContent = `A domicilio en Guayaquil: $${formatCOP(currentProduct.shippingCost || 0.35)} · Total con envío: $${formatCOP(totalHome)} COP.`;
   }
 }
 

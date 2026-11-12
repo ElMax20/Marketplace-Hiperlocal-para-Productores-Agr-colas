@@ -96,3 +96,4 @@ export interface WebhookFacturacionPayload {
   };
   items: OrderItemDetail[];
 }
+

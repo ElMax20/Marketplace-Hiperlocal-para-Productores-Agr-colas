@@ -16,13 +16,13 @@ const PRODUCTS_DATA = [
     discount: '-25%',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/tomates.jpg',
     subtitle: '1 kg · Selección de temporada',
-    origin: 'Finca La Esperanza · Choachí · a 32 km',
+    origin: 'Hacienda San José · Daule · a 45 km',
     rating: '0',
     reviews: 0,
     price: 0.64,
     originalPrice: 0.85,
     availability: 'Disponible · cosecha del día',
-    distanceKm: 32,
+    distanceKm: 45,
     isOffer: true
   },
   {
@@ -34,13 +34,13 @@ const PRODUCTS_DATA = [
     discount: '-15%',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/aguacates.jpg',
     subtitle: '1 kg · 4 a 5 unidades aprox.',
-    origin: 'Familia Rojas · La Vega · a 52 km',
+    origin: 'Huerta Agroecológica El Guayacán · Milagro · a 42 km',
     rating: '0',
     reviews: 0,
     price: 0.85,
     originalPrice: 0.98,
     availability: 'Disponible · maduro/semimaduro',
-    distanceKm: 52,
+    distanceKm: 42,
     isOffer: true
   },
   {
@@ -52,7 +52,7 @@ const PRODUCTS_DATA = [
     discount: '-20%',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/zanahorias.jpg',
     subtitle: '1 kg · con toda su frescura',
-    origin: 'Huerta El Renacer · Subachoque · a 45 km',
+    origin: 'Hacienda San José · Daule · a 45 km',
     rating: '0',
     reviews: 0,
     price: 0.40,
@@ -70,13 +70,13 @@ const PRODUCTS_DATA = [
     discount: null,
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_familiar.jpg',
     subtitle: '9-10 kg · para 3 a 5 personas',
-    origin: 'Red de Familias de Choachí · Choachí · a 30 km',
+    origin: 'Hacienda San José · Daule · a 45 km',
     rating: '0',
     reviews: 0,
     price: 0.95,
     originalPrice: null,
     availability: 'Disponible · 11 canastas',
-    distanceKm: 30,
+    distanceKm: 45,
     isOffer: false
   },
   {
@@ -88,13 +88,13 @@ const PRODUCTS_DATA = [
     discount: '-20%',
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/fresas.jpg',
     subtitle: '500 g · seleccionadas a mano',
-    origin: 'Cooperativa La Colina · Sibaté · a 27 km',
+    origin: 'Huerta Agroecológica El Guayacán · Milagro · a 42 km',
     rating: '0',
     reviews: 0,
     price: 0.80,
     originalPrice: 0.95,
     availability: 'Disponible · cosechadas hoy',
-    distanceKm: 27,
+    distanceKm: 42,
     isOffer: true
   },
   {
@@ -106,13 +106,13 @@ const PRODUCTS_DATA = [
     discount: null,
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/queso_campesino.jpg',
     subtitle: '500 g · fresco de pastoreo',
-    origin: 'Lácteos La Pradera · Sopó · a 42 km',
+    origin: 'Asociación Don Jorge · Naranjal · a 78 km',
     rating: '0',
     reviews: 0,
     price: 0.75,
     originalPrice: null,
     availability: 'Disponible · elaboración de ayer',
-    distanceKm: 42,
+    distanceKm: 78,
     isOffer: false
   },
   {
@@ -124,13 +124,13 @@ const PRODUCTS_DATA = [
     discount: null,
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/miel_silvestre.jpg',
     subtitle: '500 g · pura, sin mezclas',
-    origin: 'Apiario Monte Vivo · La Calera · a 18 km',
+    origin: 'Asociación Don Jorge · Naranjal · a 78 km',
     rating: '0',
     reviews: 0,
     price: 0.88,
     originalPrice: null,
     availability: 'Disponible · lote de noviembre',
-    distanceKm: 18,
+    distanceKm: 78,
     isOffer: false
   },
   {
@@ -142,13 +142,13 @@ const PRODUCTS_DATA = [
     discount: null,
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/papa_criolla.jpg',
     subtitle: '1 kg · lavada y seleccionada',
-    origin: 'Finca Las Margaritas · Usme · a 29 km',
+    origin: 'Hacienda San José · Daule · a 45 km',
     rating: '0',
     reviews: 0,
     price: 0.52,
     originalPrice: null,
     availability: 'Disponible · cosechado la semana',
-    distanceKm: 29,
+    distanceKm: 45,
     isOffer: false
   },
   {
@@ -160,13 +160,13 @@ const PRODUCTS_DATA = [
     discount: null,
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/yogur_pastoreo.jpg',
     subtitle: '1 litro · sin azúcar añadida',
-    origin: 'Lácteos La Pradera · Sopó · a 42 km',
+    origin: 'Asociación Don Jorge · Naranjal · a 78 km',
     rating: '0',
     reviews: 0,
     price: 0.65,
     originalPrice: null,
     availability: 'Disponible · conservar refrigerado',
-    distanceKm: 42,
+    distanceKm: 78,
     isOffer: false
   },
   {
@@ -178,13 +178,13 @@ const PRODUCTS_DATA = [
     discount: null,
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/banano_criollo.jpg',
     subtitle: '1 kg · 6 a 8 unidades aprox.',
-    origin: 'Finca El Porvenir · San Francisco · a 68 km',
+    origin: 'Huerta Agroecológica El Guayacán · Milagro · a 42 km',
     rating: '0',
     reviews: 0,
     price: 0.38,
     originalPrice: null,
     availability: 'Disponible · maduración natural',
-    distanceKm: 68,
+    distanceKm: 42,
     isOffer: false
   },
   {
@@ -196,13 +196,13 @@ const PRODUCTS_DATA = [
     discount: null,
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/mermelada_mora.jpg',
     subtitle: '250 g · fruta + panela',
-    origin: 'Sabores de la Abuela · Tabio · a 35 km',
+    origin: 'Asociación Don Jorge · Naranjal · a 78 km',
     rating: '0',
     reviews: 0,
     price: 0.60,
     originalPrice: null,
     availability: 'Disponible · elaboración artesanal',
-    distanceKm: 35,
+    distanceKm: 78,
     isOffer: false
   },
   {
@@ -214,13 +214,13 @@ const PRODUCTS_DATA = [
     discount: null,
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_esencial.jpg',
     subtitle: '6-7 kg · ideal 1 a 2 personas',
-    origin: 'Familia Moreno · Bojacá/Facatativá · a 40 km',
+    origin: 'Huerta Agroecológica El Guayacán · Milagro · a 42 km',
     rating: '0',
     reviews: 0,
     price: 0.70,
     originalPrice: null,
     availability: 'Disponible · 8 canastas',
-    distanceKm: 40,
+    distanceKm: 42,
     isOffer: false
   },
   {
@@ -232,7 +232,7 @@ const PRODUCTS_DATA = [
     discount: null,
     image: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/rabanos.jpg',
     subtitle: '1 manojo · frescos y crujientes',
-    origin: 'Huerta El Renacer · Subachoque · a 45 km',
+    origin: 'Hacienda San José · Daule · a 45 km',
     rating: '0',
     reviews: 0,
     price: 0.28,
@@ -286,6 +286,7 @@ let priceMax = null;
 let farmingPractices = [];
 let favorites = [];
 let favoritesOnly = false;
+let currentProducer = null;
 
 // =============================================================================
 // Helper: Manejo de Favoritos Persistentes
@@ -526,6 +527,12 @@ function parseUrlParams() {
     favoritesOnly = true;
   }
 
+  // Si viene con filtro de productor/finca (ej: ?productor=hacienda-san-jose o el-guayacan o don-jorge)
+  const prodParam = params.get('productor') || params.get('finca');
+  if (prodParam) {
+    currentProducer = prodParam.toLowerCase();
+  }
+
   // Si viene con solicitud de login (ej: tras cambiar contraseña con 2FA)
   const isAuth = params.get('openAuth') === '1' || params.get('login') === '1';
   if (isAuth) {
@@ -537,6 +544,16 @@ function parseUrlParams() {
   }
 }
 
+function clearProducerFilter() {
+  currentProducer = null;
+  const url = new URL(window.location);
+  url.searchParams.delete('productor');
+  url.searchParams.delete('finca');
+  window.history.replaceState({}, '', url);
+  renderProducts();
+}
+window.clearProducerFilter = clearProducerFilter;
+
 // =============================================================================
 // 4. Renderizado y Filtro de Productos
 // =============================================================================
@@ -544,7 +561,55 @@ function renderProducts() {
   const container = document.getElementById('products-grid');
   if (!container) return;
 
+  const producerBanner = document.getElementById('producer-filter-banner');
+  const producerTitle = document.getElementById('producer-filter-title');
+  if (producerBanner) {
+    if (currentProducer) {
+      let displayName = 'Finca Campesina';
+      if (currentProducer.includes('san-jose') || currentProducer.includes('daule') || currentProducer.includes('alvarado')) {
+        displayName = 'Hacienda San José · Familia Alvarado (Daule · 45 km)';
+      } else if (currentProducer.includes('guayacan') || currentProducer.includes('milagro')) {
+        displayName = 'Huerta Agroecológica El Guayacán (Milagro · 42 km)';
+      } else if (currentProducer.includes('don-jorge') || currentProducer.includes('naranjal')) {
+        displayName = 'Asociación Don Jorge (Naranjal · 78 km)';
+      } else {
+        displayName = currentProducer.replace(/-/g, ' ').toUpperCase();
+      }
+      if (producerTitle) producerTitle.textContent = displayName;
+      producerBanner.classList.remove('hidden');
+    } else {
+      producerBanner.classList.add('hidden');
+    }
+  }
+
   let filtered = PRODUCTS_DATA.filter(p => {
+    // Filtro por Productor / Finca
+    if (currentProducer) {
+      const orig = (p.origin || '').toLowerCase();
+      const tit = (p.title || '').toLowerCase();
+      const sub = (p.subtitle || '').toLowerCase();
+      const combined = `${orig} ${tit} ${sub}`;
+
+      if (currentProducer.includes('san-jose') || currentProducer.includes('daule') || currentProducer.includes('alvarado')) {
+        if (!combined.includes('san josé') && !combined.includes('san jose') && !combined.includes('daule') && !combined.includes('alvarado')) {
+          return false;
+        }
+      } else if (currentProducer.includes('guayacan') || currentProducer.includes('milagro')) {
+        if (!combined.includes('guayacán') && !combined.includes('guayacan') && !combined.includes('milagro')) {
+          return false;
+        }
+      } else if (currentProducer.includes('don-jorge') || currentProducer.includes('naranjal')) {
+        if (!combined.includes('don jorge') && !combined.includes('naranjal') && !combined.includes('cacao')) {
+          return false;
+        }
+      } else {
+        const cleanP = currentProducer.replace(/-/g, ' ');
+        if (!combined.includes(cleanP)) {
+          return false;
+        }
+      }
+    }
+
     // Categoría
     if (currentCategory !== 'todos' && p.category !== currentCategory) {
       return false;
@@ -1444,7 +1509,7 @@ async function handleLogin(e) {
       email: dbUser.email || '',
       phone: dbUser.phone || '',
       address: dbUser.location_address || '',
-      preferredNode: dbUser.farm_name || 'Nodo Central · La Perseverancia',
+      preferredNode: dbUser.farm_name || 'Sede Urdesa · Espacio Verde',
       avatar: (typeof normalizeAvatarUrl === 'function') ? normalizeAvatarUrl(dbUser.avatar_url || '') : (dbUser.avatar_url || '').replace('/assets/images/avatars/', '/assets/avatars/'),
       loggedIn: true
     };
@@ -1553,26 +1618,26 @@ async function loadHeaderLocationData() {
     headerPickupNodes = [
       {
         id: 'e0177a54-9cbc-4426-a538-1d630f852ac1',
-        name: 'Nodo Central · La Perseverancia',
-        address: 'Carrera 5 n.º 30A-10',
-        city: 'Bogotá',
-        pickup_schedule: 'Sáb. 7 nov. · 8:00 a. m. – 12:00 p. m.',
+        name: 'Sede Urdesa · Espacio Verde',
+        address: 'Av. Víctor Emilio Estrada y Bálsamos',
+        city: 'Guayaquil',
+        pickup_schedule: 'Miércoles y Viernes: 3:00 PM – 7:30 PM',
         is_active: true
       },
       {
         id: '65925730-63b5-486f-9dd0-aaac13a0ffe9',
-        name: 'Nodo Chapinero Alto · Café del Bosque',
-        address: 'Calle 57 n.º 4-22',
-        city: 'Bogotá',
-        pickup_schedule: 'Sáb. 7 nov. · 9:00 a. m. – 1:00 p. m.',
+        name: 'Sede Puerto Santa Ana · Café del Río',
+        address: 'Numa Pompilio Llona, Edificio The Point',
+        city: 'Guayaquil',
+        pickup_schedule: 'Jueves y Sábado: 8:30 AM – 1:30 PM',
         is_active: true
       },
       {
-        id: 'c90c74d8-c114-4161-b4ec-7c87c020dca5',
-        name: 'Nodo Teusaquillo · Casa Cultural',
-        address: 'Calle 34 n.º 19-25',
-        city: 'Bogotá',
-        pickup_schedule: 'Sáb. 7 nov. · 8:30 a. m. – 12:30 p. m.',
+        id: '7a6f8f1f-ad1b-4f87-9d7f-58f1d3c5053c',
+        name: 'Sede Ceibos · Mercado Sostenible',
+        address: 'Av. del Bombero Km 6.5, Plaza Ceibos',
+        city: 'Guayaquil',
+        pickup_schedule: 'Sábados: 8:00 AM – 2:00 PM',
         is_active: true
       }
     ];

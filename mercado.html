@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>El mercado de tu barrio | Raíz & Barrio</title>
 
   <!-- Google Fonts -->
@@ -216,7 +219,7 @@
           <svg class="w-5 h-5 text-[#c85a32]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clip-rule="evenodd"/></svg>
         </div>
         <div>
-          <p id="page-node-name" class="text-xs font-bold text-[#1a3d2f]">Nodo Central · La Perseverancia</p>
+          <p id="page-node-name" class="text-xs font-bold text-[#1a3d2f]">Sede Urdesa · Espacio Verde</p>
           <p id="page-node-schedule" class="text-[11px] text-stone-500 font-medium">Sáb. 7 nov. · 8:00 a. m. – 12:00 p. m. ▾</p>
           <button type="button" onclick="toggleHeaderLocationDropdown(event)" class="text-[11px] font-bold text-[#c85a32] hover:underline mt-0.5 inline-block cursor-pointer">Cambiar punto de entrega</button>
         </div>
@@ -466,6 +469,23 @@
       <!-- RIGHT COLUMN: PRODUCT GRID -->
       <section class="lg:col-span-9">
         
+        <!-- Banner de Filtro de Productor Activo -->
+        <div id="producer-filter-banner" class="hidden mb-6 p-4 rounded-2xl bg-emerald-50 border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-emerald-100 text-[#1a3d2f] flex items-center justify-center text-xl shrink-0">
+              🌱
+            </div>
+            <div>
+              <p class="text-[10px] font-bold uppercase tracking-wider text-emerald-800">Mostrando cosechas de la finca:</p>
+              <h4 id="producer-filter-title" class="font-serif text-lg font-bold text-[#1a3d2f]">Hacienda San José</h4>
+            </div>
+          </div>
+          <button onclick="clearProducerFilter()" class="px-3.5 py-1.5 rounded-full bg-white hover:bg-emerald-100 text-[#1a3d2f] text-xs font-bold transition border border-emerald-300 shadow-2xs flex items-center justify-center gap-1.5 cursor-pointer self-start sm:self-auto">
+            <span>Ver todo el mercado</span>
+            <span>✕</span>
+          </button>
+        </div>
+
         <!-- Grid Container -->
         <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <!-- Rendered dynamically by market.js for instant filtering & reactive cart buttons -->
@@ -538,7 +558,7 @@
           </div>
           <span class="text-[9px] tracking-widest text-[#c85a32] font-extrabold uppercase block mb-3">Mercado de Cercanía</span>
           <p class="text-stone-400 text-xs leading-relaxed">
-            Del campo de nuestras familias a tu mesa. Bogotá y su tierra cercana.
+            Del campo de nuestras familias a tu mesa. Guayaquil y la Cuenca del Guayas.
           </p>
         </div>
         <div>
@@ -808,7 +828,7 @@
             type="text" 
             id="pt-location" 
             required 
-            placeholder="Ej: Choachí, Cundinamarca · Vereda El Verjón" 
+            placeholder="Ej: Daule, Guayas · Recinto Las Maravillas" 
             class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#c85a32] outline-none transition"
           >
         </div>
@@ -868,9 +888,10 @@
   </div>
 
   <!-- Market JavaScript Logic -->
-  <script src="js/supabase.js?v=4.7"></script>
-  <script src="js/auth.js?v=4.7"></script>
-  <script src="js/market.js?v=4.7"></script>
+  <script src="js/supabase.js?v=5.0"></script>
+  <script src="js/auth.js?v=5.0"></script>
+  <script src="js/header-location.js?v=5.0"></script>
+  <script src="js/market.js?v=5.0"></script>
 </body>
 </html>
 

@@ -356,8 +356,8 @@ async function handleSaveNewAddress(event) {
     user_id: userId,
     label: labelInput ? labelInput.value.trim() : 'Casa',
     street_address: streetInput ? streetInput.value.trim() : '',
-    neighborhood: neighInput ? neighInput.value.trim() : 'Bogotá',
-    city: cityInput ? cityInput.value.trim() : 'Bogotá, D. C.',
+    neighborhood: neighInput ? neighInput.value.trim() : 'Urdesa',
+    city: cityInput ? cityInput.value.trim() : 'Guayaquil',
     delivery_instructions: instInput ? instInput.value.trim() : '',
     delivery_fee: 8000,
     delivery_schedule: 'Sáb. 14 nov. · 2:00 – 6:00 p. m.',
@@ -776,8 +776,8 @@ async function executePurchase() {
   const authCode = Math.floor(100000 + Math.random() * 900000).toString();
 
   const deliveryLocation = activeDeliveryMode === 'NODE_PICKUP'
-    ? (activeNode?.name || 'Nodo Central · La Perseverancia')
-    : `${activeAddress?.street_address || ''}, ${activeAddress?.neighborhood || ''}, ${activeAddress?.city || 'Bogotá'}`;
+    ? (activeNode?.name || 'Sede Urdesa · Espacio Verde')
+    : `${activeAddress?.street_address || ''}, ${activeAddress?.neighborhood || ''}, ${activeAddress?.city || 'Guayaquil'}`;
 
   const estimatedDate = activeDeliveryMode === 'NODE_PICKUP'
     ? (activeNode?.pickup_schedule || 'Sáb. 14 nov. · 8:00 a. m. – 12:00 p. m.')
@@ -848,7 +848,7 @@ async function executePurchase() {
       delivery_type: activeDeliveryMode,
       location_name: deliveryLocation,
       address: deliveryLocation,
-      city: activeAddress?.city || activeNode?.city || 'Bogotá',
+      city: activeAddress?.city || activeNode?.city || 'Guayaquil',
       delivery_fee: deliveryFee,
       schedule: estimatedDate
     },
@@ -941,3 +941,4 @@ function showCheckoutToast(msg, icon = '✓') {
     toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
   }, 3500);
 }
+

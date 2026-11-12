@@ -372,11 +372,11 @@ function renderProfileUI(u) {
   if (handle) handle.textContent = `@${u.username || (u.name || 'vecino').toLowerCase().replace(/\s+/g, '.')}`;
 
   const sidebarNode = document.getElementById('sidebar-user-node');
-  if (sidebarNode) sidebarNode.textContent = (u.preferredNode || 'Central · La Perseverancia').replace('Nodo ', '');
+  if (sidebarNode) sidebarNode.textContent = (u.preferredNode || 'Urdesa · Espacio Verde').replace('Nodo ', '').replace('Sede ', '');
 
   const sidebarSince = document.getElementById('sidebar-user-since');
   if (sidebarSince) {
-    sidebarSince.innerHTML = `${roleText} en la comunidad Raíz & Barrio.<br>Tu nodo: <span class="font-semibold text-stone-800">${u.preferredNode || 'Central · La Perseverancia'}</span>.`;
+    sidebarSince.innerHTML = `${roleText} en la comunidad Raíz & Barrio.<br>Tu nodo: <span class="font-semibold text-stone-800">${u.preferredNode || 'Sede Urdesa · Espacio Verde'}</span>.`;
   }
 
   // Card 1: Datos Personales
@@ -398,7 +398,7 @@ function renderProfileUI(u) {
 
   // Card 4: Entrega y Dirección
   const deliveryNode = document.getElementById('delivery-node-title');
-  if (deliveryNode) deliveryNode.textContent = u.preferredNode || 'Nodo Central · La Perseverancia';
+  if (deliveryNode) deliveryNode.textContent = u.preferredNode || 'Sede Urdesa · Espacio Verde';
 
   const deliveryAddress = document.getElementById('delivery-home-address');
   if (deliveryAddress) deliveryAddress.textContent = u.address || 'Carrera 7 n.º 32-16, apto. 402';
@@ -1514,43 +1514,27 @@ async function loadDeliveryPreferences() {
   if (cachedPickupNodes.length === 0) {
     cachedPickupNodes = [
       {
-        id: '11111111-1111-1111-1111-111111111101',
-        name: 'Nodo Central · La Perseverancia',
-        address: 'Carrera 5 n.º 30A-10',
-        city: 'Bogotá',
-        pickup_schedule: 'Sáb. 7 nov. · 8:00 a. m. – 12:00 p. m.',
+        id: 'e0177a54-9cbc-4426-a538-1d630f852ac1',
+        name: 'Sede Urdesa · Espacio Verde',
+        address: 'Av. Víctor Emilio Estrada y Bálsamos',
+        city: 'Guayaquil',
+        pickup_schedule: 'Miércoles y Viernes: 3:00 PM – 7:30 PM',
         is_active: true
       },
       {
-        id: '11111111-1111-1111-1111-111111111102',
-        name: 'Nodo Chapinero Alto · Café del Bosque',
-        address: 'Calle 57 n.º 4-22',
-        city: 'Bogotá',
-        pickup_schedule: 'Sáb. 7 nov. · 9:00 a. m. – 1:00 p. m.',
+        id: '65925730-63b5-486f-9dd0-aaac13a0ffe9',
+        name: 'Sede Puerto Santa Ana · Café del Río',
+        address: 'Numa Pompilio Llona, Edificio The Point',
+        city: 'Guayaquil',
+        pickup_schedule: 'Jueves y Sábado: 8:30 AM – 1:30 PM',
         is_active: true
       },
       {
-        id: '11111111-1111-1111-1111-111111111103',
-        name: 'Nodo Teusaquillo · Casa Campesina',
-        address: 'Transversal 19A n.º 39-40',
-        city: 'Bogotá',
-        pickup_schedule: 'Sáb. 7 nov. · 8:30 a. m. – 12:30 p. m.',
-        is_active: true
-      },
-      {
-        id: '11111111-1111-1111-1111-111111111104',
-        name: 'Nodo Usaquén · Plaza de Artesanos',
-        address: 'Carrera 6A n.º 119-18',
-        city: 'Bogotá',
-        pickup_schedule: 'Sáb. 7 nov. · 9:00 a. m. – 2:00 p. m.',
-        is_active: true
-      },
-      {
-        id: '11111111-1111-1111-1111-111111111105',
-        name: 'Nodo Suba · Huerto Comunitario',
-        address: 'Calle 146C n.º 90-11',
-        city: 'Bogotá',
-        pickup_schedule: 'Sáb. 7 nov. · 8:00 a. m. – 11:30 a. m.',
+        id: '7a6f8f1f-ad1b-4f87-9d7f-58f1d3c5053c',
+        name: 'Sede Ceibos · Mercado Sostenible',
+        address: 'Av. del Bombero Km 6.5, Plaza Ceibos',
+        city: 'Guayaquil',
+        pickup_schedule: 'Sábados: 8:00 AM – 2:00 PM',
         is_active: true
       }
     ];
@@ -1580,7 +1564,7 @@ function renderDeliveryPreferences() {
 
   if (activeNode) {
     if (nodeTitle) nodeTitle.textContent = activeNode.name;
-    if (nodeAddress) nodeAddress.textContent = `${activeNode.address} · ${activeNode.city || 'Bogotá'}`;
+    if (nodeAddress) nodeAddress.textContent = `${activeNode.address} · ${activeNode.city || 'Guayaquil'}`;
     if (nodeSchedule) nodeSchedule.textContent = activeNode.pickup_schedule;
 
     // Actualizar nombre en navbar
@@ -1669,7 +1653,7 @@ function renderDeliveryPreferences() {
         </div>
 
         <p class="text-[11px] text-stone-700 font-medium">${escapeHtml(addr.street_address)}</p>
-        <p class="text-[11px] text-stone-500">${escapeHtml(addr.neighborhood ? addr.neighborhood + ' · ' : '')}${escapeHtml(addr.city || 'Bogotá, D. C.')}</p>
+        <p class="text-[11px] text-stone-500">${escapeHtml(addr.neighborhood ? addr.neighborhood + ' · ' : '')}${escapeHtml(addr.city || 'Guayaquil')}</p>
         <p class="text-[11px] text-stone-500">${escapeHtml(addr.delivery_schedule || 'Sáb. 7 nov. · 2:00 – 6:00 p. m.')} · $${feeFormatted} por pedido</p>
         ${addr.delivery_instructions ? `<p class="text-[10px] text-stone-500 italic mt-1 bg-stone-50/80 p-1.5 rounded-lg border border-stone-100">📝 "${escapeHtml(addr.delivery_instructions)}"</p>` : ''}
 
@@ -1808,7 +1792,7 @@ function openAddressModal(addressId = null) {
     if (labelInput) labelInput.value = target.label || 'Casa';
     if (streetInput) streetInput.value = target.street_address || '';
     if (neighInput) neighInput.value = target.neighborhood || '';
-    if (cityInput) cityInput.value = target.city || 'Bogotá, D. C.';
+    if (cityInput) cityInput.value = target.city || 'Guayaquil';
     if (schedInput) schedInput.value = target.delivery_schedule || 'Sáb. 7 nov. · 2:00 – 6:00 p. m.';
     if (feeInput) feeInput.value = target.delivery_fee || 8000;
     if (instrInput) instrInput.value = target.delivery_instructions || '';
@@ -1824,7 +1808,7 @@ function openAddressModal(addressId = null) {
     if (labelInput) labelInput.value = 'Casa';
     if (streetInput) streetInput.value = '';
     if (neighInput) neighInput.value = '';
-    if (cityInput) cityInput.value = 'Bogotá, D. C.';
+    if (cityInput) cityInput.value = 'Guayaquil';
     if (schedInput) schedInput.value = 'Sáb. 7 nov. · 2:00 – 6:00 p. m.';
     if (feeInput) feeInput.value = 8000;
     if (instrInput) instrInput.value = '';
@@ -2103,7 +2087,7 @@ function renderNodeSelectorList() {
             </span>
             <div>
               <h4 class="font-bold text-xs text-stone-900">${escapeHtml(node.name)}</h4>
-              <p class="text-[11px] text-stone-600 mt-0.5">${escapeHtml(node.address)} · ${escapeHtml(node.city || 'Bogotá')}</p>
+              <p class="text-[11px] text-stone-600 mt-0.5">${escapeHtml(node.address)} · ${escapeHtml(node.city || 'Guayaquil')}</p>
               <p class="text-[11px] text-stone-500">${escapeHtml(node.pickup_schedule)}</p>
             </div>
           </div>

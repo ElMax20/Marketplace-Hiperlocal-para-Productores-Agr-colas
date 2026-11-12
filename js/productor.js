@@ -22,8 +22,8 @@ let producerProducts = [
     statusText: 'Publicado',
     subtitle: 'Cosecha del día · entrega 7 nov.',
     image: `${SUPABASE_STORAGE_URL}/zanahorias.jpg`,
-    description: 'Zanahorias frescas cultivadas en nuestra huerta en Subachoque. Cosechadas a mano, con su tallo y toda la frescura de la tierra. Ideales para sopas, ensaladas y jugos.',
-    origin: 'Huerta El Renacer · Subachoque',
+    description: 'Zanahorias frescas cultivadas en nuestra hacienda en Daule. Cosechadas a mano, con su tallo y toda la frescura de la tierra. Ideales para sopas, ensaladas y jugos.',
+    origin: 'Hacienda San José · Daule',
     harvestDate: '06 / 11 / 2026',
     lastUpdate: 'Hoy · 10:42 a. m.'
   },
@@ -40,8 +40,8 @@ let producerProducts = [
     statusText: 'Borrador',
     subtitle: '4-5 kg · selección semanal',
     image: `${SUPABASE_STORAGE_URL}/canasta_esencial.jpg`,
-    description: 'Selección de 5 a 6 variedades agroecológicas cosechadas al punto perfecto. Huerta El Renacer.',
-    origin: 'Huerta El Renacer · Subachoque',
+    description: 'Selección de 5 a 6 variedades agroecológicas cosechadas al punto perfecto. Hacienda San José.',
+    origin: 'Hacienda San José · Daule',
     harvestDate: '06 / 11 / 2026',
     lastUpdate: 'Ayer · 4:15 p. m.'
   },
@@ -58,8 +58,8 @@ let producerProducts = [
     statusText: 'Agotado',
     subtitle: 'Próxima cosecha · 13 nov.',
     image: `${SUPABASE_STORAGE_URL}/acelgas.jpg`,
-    description: 'Acelgas de hoja ancha y penca blanca tierna. Cosechadas en la madrugada en Subachoque.',
-    origin: 'Huerta El Renacer · Subachoque',
+    description: 'Acelgas de hoja ancha y penca blanca tierna. Cosechadas en la madrugada en Daule.',
+    origin: 'Hacienda San José · Daule',
     harvestDate: '13 / 11 / 2026',
     lastUpdate: 'Hoy · 8:20 a. m.'
   }
@@ -515,7 +515,7 @@ async function publishNewProduct() {
   const rawStock = stockInput ? stockInput.value.replace(/[^0-9]/g, '') : '30';
   const stock = Number(rawStock) || 30;
   const unit = unitSelect ? unitSelect.value.split('·')[0].trim() : 'Manojo';
-  const origin = originInput ? originInput.value.trim() : 'Huerta El Renacer · Subachoque';
+  const origin = originInput ? originInput.value.trim() : 'Hacienda San José · Daule';
 
   const newCode = `PR-0${Math.floor(20 + Math.random() * 80)}`;
 

@@ -231,7 +231,7 @@ async function handleAuthSubmit(event) {
       name: dbUser.full_name || dbUser.username,
       phone: dbUser.phone || '',
       address: dbUser.location_address || '',
-      preferredNode: dbUser.farm_name || 'Nodo Central · La Perseverancia',
+      preferredNode: dbUser.farm_name || 'Sede Urdesa · Espacio Verde',
       email: dbUser.email || '',
       avatar: normalizeAvatarUrl(dbUser.avatar_url || ''),
       loggedIn: true
@@ -1151,7 +1151,7 @@ async function syncCurrentUserFromSupabase() {
       if (db.full_name && user.name !== db.full_name) { user.name = db.full_name; hasChanges = true; }
       if (db.phone !== undefined && user.phone !== (db.phone || '')) { user.phone = db.phone || ''; hasChanges = true; }
       if (db.location_address !== undefined && user.address !== (db.location_address || '')) { user.address = db.location_address || ''; hasChanges = true; }
-      if (db.farm_name !== undefined && user.preferredNode !== (db.farm_name || '')) { user.preferredNode = db.farm_name || 'Nodo Central · La Perseverancia'; hasChanges = true; }
+      if (db.farm_name !== undefined && user.preferredNode !== (db.farm_name || '')) { user.preferredNode = db.farm_name || 'Sede Urdesa · Espacio Verde'; hasChanges = true; }
       if (db.avatar_url !== undefined) {
         const cleanAvatar = normalizeAvatarUrl(db.avatar_url || '');
         if (user.avatar !== cleanAvatar) { user.avatar = cleanAvatar; hasChanges = true; }
@@ -1300,10 +1300,9 @@ function ensureClientSettingsModalExists() {
                   <div>
                     <label class="block text-[11px] font-bold text-stone-700 mb-1">Nodo de entrega preferido</label>
                     <select id="client-profile-node" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                      <option value="Nodo Central · La Perseverancia">Nodo Central · La Perseverancia</option>
-                      <option value="Sede San Fernando / Chapinero">Sede San Fernando / Chapinero</option>
-                      <option value="Nodo Teusaquillo / Park Way">Nodo Teusaquillo / Park Way</option>
-                      <option value="Nodo Usaquén / Santa Bárbara">Nodo Usaquén / Santa Bárbara</option>
+                      <option value="Sede Urdesa · Espacio Verde">Sede Urdesa · Espacio Verde</option>
+                      <option value="Sede Puerto Santa Ana · Café del Río">Sede Puerto Santa Ana · Café del Río</option>
+                      <option value="Sede Ceibos · Mercado Sostenible">Sede Ceibos · Mercado Sostenible</option>
                     </select>
                   </div>
                 </div>
@@ -1524,7 +1523,7 @@ async function openClientSettingsModal() {
         user.name = fresh.full_name || user.name;
         user.phone = (fresh.phone !== null && fresh.phone !== undefined) ? fresh.phone : '';
         user.address = (fresh.location_address !== null && fresh.location_address !== undefined) ? fresh.location_address : '';
-        user.preferredNode = (fresh.farm_name !== null && fresh.farm_name !== undefined) ? fresh.farm_name : (user.preferredNode || 'Nodo Central · La Perseverancia');
+        user.preferredNode = (fresh.farm_name !== null && fresh.farm_name !== undefined) ? fresh.farm_name : (user.preferredNode || 'Sede Urdesa · Espacio Verde');
         user.avatar = (fresh.avatar_url !== null && fresh.avatar_url !== undefined) ? normalizeAvatarUrl(fresh.avatar_url) : '';
         user.email = fresh.email || user.email;
 

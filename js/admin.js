@@ -142,7 +142,7 @@ async function publishProductToSupabase() {
   let cleanVal = priceInput ? priceInput.value.replace(/[^0-9.]/g, '') : '0.28';
   const price = parseFloat(cleanVal) || 0.28;
   const unit = unitSelect ? unitSelect.value.split('·')[0].trim() : 'Manojo';
-  const description = originInput ? originInput.value.trim() : 'Huerta El Renacer · Subachoque';
+  const description = originInput ? originInput.value.trim() : 'Hacienda San José · Daule';
 
   const newProduct = {
     producer_id: '00000000-0000-0000-0000-000000000002', // Max Productor

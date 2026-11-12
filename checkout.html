@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>Checkout Seguro | Raíz & Barrio</title>
   
   <!-- Tailwind CSS CDN -->
@@ -144,18 +147,18 @@
 
               <!-- Detalle del Nodo Activo -->
               <div class="mt-4 pt-3 border-t border-emerald-100/60 text-xs">
-                <p id="checkout-node-name" class="font-bold text-stone-900">Nodo Central · La Perseverancia</p>
-                <p id="checkout-node-address" class="text-stone-500 text-[11px] mt-0.5">Carrera 5 n.º 30A-10 · Bogotá</p>
+                <p id="checkout-node-name" class="font-bold text-stone-900">Sede Urdesa · Espacio Verde</p>
+                <p id="checkout-node-address" class="text-stone-500 text-[11px] mt-0.5">Av. Víctor Emilio Estrada y Bálsamos · Guayaquil</p>
                 
                 <div class="mt-2.5 bg-white/90 rounded-xl p-3 border border-emerald-200/60 shadow-2xs">
                   <span class="text-[10px] font-bold text-[#1a3d2f] block uppercase tracking-wider">
                     Horario de recogida:
                   </span>
                   <p id="checkout-node-schedule" class="text-stone-800 text-xs font-semibold mt-0.5">
-                    Sáb. 14 nov. · 8:00 a. m. – 12:00 p. m.
+                    Miércoles y Viernes: 3:00 PM – 7:30 PM
                   </p>
                   <p id="checkout-node-estimate" class="text-[11px] text-stone-500 mt-1.5 italic">
-                    🌿 <strong>Tiempo de preparación:</strong> Tu canasta estará lista para retiro el Sáb. 14 nov. de 8:00 a. m. a 12:00 p. m.
+                    🌿 <strong>Tiempo de preparación:</strong> Tu canasta estará lista para retiro el Miércoles o Viernes en horario de entrega.
                   </p>
                 </div>
 
@@ -506,10 +509,10 @@
               </span>
             </div>
             <p id="summary-delivery-name" class="font-bold text-stone-900 truncate">
-              Nodo Central · La Perseverancia
+              Sede Urdesa · Espacio Verde
             </p>
             <p id="summary-delivery-schedule" class="text-[11px] text-stone-500 mt-0.5">
-              Sáb. 14 nov. · 8:00 a. m. – 12:00 p. m.
+              Miércoles y Viernes: 3:00 PM – 7:30 PM
             </p>
           </div>
 
@@ -573,11 +576,11 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block font-bold text-stone-700 mb-1">Barrio *</label>
-            <input type="text" id="modal-addr-neighborhood" required placeholder="Ej: La Merced" class="w-full p-3 rounded-xl border border-stone-200 focus:outline-none focus:border-[#1a3d2f]">
+            <input type="text" id="modal-addr-neighborhood" required placeholder="Ej: Urdesa Central, Ceibos..." class="w-full p-3 rounded-xl border border-stone-200 focus:outline-none focus:border-[#1a3d2f]">
           </div>
           <div>
             <label class="block font-bold text-stone-700 mb-1">Ciudad *</label>
-            <input type="text" id="modal-addr-city" required value="Bogotá, D. C." class="w-full p-3 rounded-xl border border-stone-200 focus:outline-none focus:border-[#1a3d2f]">
+            <input type="text" id="modal-addr-city" required value="Guayaquil" class="w-full p-3 rounded-xl border border-stone-200 focus:outline-none focus:border-[#1a3d2f]">
           </div>
         </div>
         <div>
@@ -640,8 +643,8 @@
   </div>
 
   <!-- Scripts: Supabase y Lógica de Checkout -->
-  <script src="js/supabase.js?v=4.7"></script>
-  <script src="js/auth.js?v=4.7"></script>
-  <script src="js/checkout.js?v=4.7"></script>
+  <script src="js/supabase.js?v=5.0"></script>
+  <script src="js/auth.js?v=5.0"></script>
+  <script src="js/checkout.js?v=5.0"></script>
 </body>
 </html>

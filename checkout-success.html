@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>¡Compra Confirmada! | Raíz & Barrio</title>
   
   <!-- Tailwind CSS CDN -->
@@ -102,10 +105,10 @@
         <div class="py-3.5">
           <span class="text-[10px] uppercase font-bold text-[#c85a32] block">Lugar y Fecha de Entrega</span>
           <p id="ticket-delivery-location" class="font-bold text-stone-900 text-xs sm:text-sm mt-0.5">
-            Nodo Central · La Perseverancia (Carrera 5 n.º 30A-10)
+            Sede Urdesa · Espacio Verde (Av. Víctor Emilio Estrada y Bálsamos · Guayaquil)
           </p>
           <p id="ticket-delivery-estimate" class="text-stone-500 text-[11px] mt-1 font-medium">
-            🌿 Estimación: Listo para retiro el Sábado de 8:00 a. m. a 12:00 p. m.
+            🌿 Estimación: Listo para retiro el Miércoles o Viernes en horario de entrega
           </p>
         </div>
 
@@ -221,7 +224,7 @@
 
       const locEl = document.getElementById('ticket-delivery-location');
       if (locEl) {
-        locEl.textContent = order.delivery_location || (order.delivery_type === 'NODE_PICKUP' ? 'Nodo Central · La Perseverancia' : 'A Domicilio');
+        locEl.textContent = order.delivery_location || (order.delivery_type === 'NODE_PICKUP' ? 'Sede Urdesa · Espacio Verde' : 'A Domicilio');
       }
 
       const estEl = document.getElementById('ticket-delivery-estimate');
@@ -251,3 +254,4 @@
   </script>
 </body>
 </html>
+

@@ -276,36 +276,36 @@ let activeInfoWindow = null;
 const pickupNodes = [
   {
     id: 'node-1',
-    name: 'Sede Barrio San Fernando / Chapinero Alto',
-    venue: 'Café del Bosque',
-    address: 'Calle 58 # 3-21, Bogotá',
+    name: 'Sede Urdesa · Espacio Verde',
+    venue: 'Sede Urdesa · Espacio Verde',
+    address: 'Av. Víctor Emilio Estrada y Bálsamos · Guayaquil',
     schedule: 'Miércoles y Viernes: 3:00 PM – 7:30 PM',
-    lat: 4.6465,
-    lng: -74.0578,
+    lat: -2.1698,
+    lng: -79.9142,
     status: 'Punto verificado con refrigeración',
-    quota: '14 canastas asignadas'
+    quota: '18 canastas asignadas'
   },
   {
     id: 'node-2',
-    name: 'Sede Teusaquillo · Casa Taller',
-    venue: 'Librería & Huerto Central',
-    address: 'Carrera 19 # 34-12, Bogotá',
-    schedule: 'Miércoles: 2:30 PM – 7:00 PM',
-    lat: 4.6295,
-    lng: -74.0735,
-    status: 'Acopio comunitario',
-    quota: '8 canastas asignadas'
+    name: 'Sede Puerto Santa Ana · Café del Río',
+    venue: 'Sede Puerto Santa Ana · Café del Río',
+    address: 'Numa Pompilio Llona, Edificio The Point · Guayaquil',
+    schedule: 'Jueves y Sábado: 8:30 AM – 1:30 PM',
+    lat: -2.1804,
+    lng: -79.8767,
+    status: 'Acopio comunitario fresco',
+    quota: '12 canastas asignadas'
   },
   {
     id: 'node-3',
-    name: 'Sede Usaquén · Mercado Verde',
-    venue: 'Café & Despensa Agroecológica',
-    address: 'Calle 119 # 6-18, Bogotá',
-    schedule: 'Sábados: 9:00 AM – 2:00 PM',
-    lat: 4.6948,
-    lng: -74.0305,
+    name: 'Sede Ceibos · Mercado Sostenible',
+    venue: 'Sede Ceibos · Mercado Sostenible',
+    address: 'Av. del Bombero Km 6.5, Plaza Ceibos · Guayaquil',
+    schedule: 'Sábados: 8:00 AM – 2:00 PM',
+    lat: -2.1729,
+    lng: -79.9546,
     status: 'Punto de recolección fin de semana',
-    quota: '22 canastas asignadas'
+    quota: '25 canastas asignadas'
   }
 ];
 
@@ -332,10 +332,11 @@ window.initGoogleMap = function() {
 
   activeInfoWindow = new google.maps.InfoWindow();
 
-  // Estilos orgánicos y armónicos con la estética de Raíz & Barrio
+  // Estilos orgánicos y armónicos con la estética de Raíz & Barrio en Guayaquil
   googleMapInstance = new google.maps.Map(mapElement, {
-    center: { lat: 4.655, lng: -74.055 },
-    zoom: 12,
+    center: { lat: -2.1894, lng: -79.8891 },
+    zoom: 12.5,
+    renderingType: 'VECTOR',
     mapTypeControl: false,
     streetViewControl: false,
     fullscreenControl: true,
@@ -348,6 +349,7 @@ window.initGoogleMap = function() {
       { "featureType": "landscape.man_made", "elementType": "geometry.fill", "stylers": [{ "color": "#fcfbf9" }] },
       { "featureType": "landscape.natural", "elementType": "geometry.fill", "stylers": [{ "color": "#eef4ec" }] },
       { "featureType": "poi", "elementType": "all", "stylers": [{ "visibility": "off" }] },
+      { "featureType": "poi.business", "elementType": "labels", "stylers": [{ "visibility": "off" }] },
       { "featureType": "poi.park", "elementType": "geometry.fill", "stylers": [{ "visibility": "on" }, { "color": "#d7e8d0" }] },
       { "featureType": "road", "elementType": "all", "stylers": [{ "saturation": -100 }, { "lightness": 40 }] },
       { "featureType": "road.highway", "elementType": "all", "stylers": [{ "visibility": "simplified" }, { "color": "#e2ded6" }] },
