@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   try { initQuantitySteppers(); } catch (e) { console.warn('Error initQuantitySteppers:', e); }
   try { initRoleModal(); } catch (e) { console.warn('Error initRoleModal:', e); }
   try { initSmoothScroll(); } catch (e) { console.warn('Error initSmoothScroll:', e); }
+  try { initCosechaDeHoy(); } catch (e) { console.warn('Error initCosechaDeHoy:', e); }
 });
 
 /* ==========================================================================
@@ -654,3 +655,327 @@ window.addToCart = addToCart;
 window.updateCartQuantity = updateCartQuantity;
 window.removeCartItem = removeCartItem;
 window.showToast = showToast;
+
+/* ==========================================================================
+   8. Sincronización Real de "La cosecha de hoy" (Top 4 Productos Mejor Valorados)
+   ========================================================================== */
+
+/**
+ * Normaliza la URL de imagen de un producto para garantizar que apunte al Storage de Supabase
+ */
+function normalizeCosechaImageUrl(img) {
+  if (!img) return 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/hero_basket.jpg';
+  if (img.startsWith('http://') || img.startsWith('https://')) return img;
+  const clean = img.replace(/^\/+/, '');
+  return `https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/${clean}`;
+}
+
+/**
+ * Extrae la valoración y número de opiniones reales de un producto,
+ * combinando las columnas de Supabase (si existen) y las opiniones verificadas
+ * en localStorage almacenadas por el sistema de detalle de producto.
+ */
+function getProductRealRating(p) {
+  // 1. Columnas en Supabase (si existen en la base de datos)
+  const dbRating = (p.rating !== undefined && p.rating !== null && !isNaN(Number(p.rating))) ? Number(p.rating) : 0;
+  const dbReviews = (p.reviews_count !== undefined && p.reviews_count !== null && !isNaN(Number(p.reviews_count)))
+    ? Number(p.reviews_count)
+    : ((p.reviews !== undefined && p.reviews !== null && !isNaN(Number(p.reviews))) ? Number(p.reviews) : 0);
+
+  // 2. Reseñas reales persistidas de usuarios (localStorage por id / numericId / slug)
+  let localReviews = [];
+  try {
+    const keys = [
+      p.id ? `product_reviews_${p.id}` : null,
+      p.numericId ? `product_reviews_${p.numericId}` : null
+    ].filter(Boolean);
+
+    for (const k of keys) {
+      const raw = localStorage.getItem(k);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          localReviews = parsed.filter(r => !String(r.id).startsWith('mock-'));
+          if (localReviews.length > 0) break;
+        }
+      }
+    }
+  } catch (_) {}
+
+  let localRating = 0;
+  let localCount = localReviews.length;
+  if (localCount > 0) {
+    const sum = localReviews.reduce((acc, r) => acc + (Number(r.rating) || 5), 0);
+    localRating = Number((sum / localCount).toFixed(1));
+  }
+
+  // Prioridad 1: Si Supabase tiene rating > 0 o reviews_count > 0 en la BD
+  if (dbRating > 0 || dbReviews > 0) {
+    return {
+      rating: dbRating,
+      reviewsCount: dbReviews || 1,
+      hasRating: true
+    };
+  }
+
+  // Prioridad 2: Si existen opiniones reales de usuarios registradas en el marketplace
+  if (localRating > 0 || localCount > 0) {
+    return {
+      rating: localRating,
+      reviewsCount: localCount,
+      hasRating: true
+    };
+  }
+
+  return {
+    rating: 0,
+    reviewsCount: 0,
+    hasRating: false
+  };
+}
+
+/**
+ * Consulta la tabla 'products' en Supabase y renderiza como máximo
+ * los 4 productos mejor valorados con calificación > 0.
+ * Cumple la regla estricta: Si solo 1 tiene valoración, muestra solo ese 1.
+ */
+async function initCosechaDeHoy() {
+  const grid = document.getElementById('cosecha-grid');
+  if (!grid) return;
+
+  let products = [];
+
+  // Consulta a Supabase
+  if (window.supabase) {
+    try {
+      if (typeof window.supabase.from === 'function') {
+        const { data, error } = await window.supabase
+          .from('products')
+          .select('*')
+          .eq('is_available', true);
+        if (!error && Array.isArray(data) && data.length > 0) {
+          products = data;
+        }
+      }
+      if (products.length === 0 && typeof window.supabase.getProducts === 'function') {
+        const all = await window.supabase.getProducts();
+        if (Array.isArray(all)) {
+          products = all.filter(p => p.is_available !== false);
+        }
+      }
+    } catch (err) {
+      console.warn('Advertencia al consultar Supabase para "La cosecha de hoy":', err);
+    }
+  }
+
+  // Fallback si no hay conexión o no cargó de Supabase
+  if (products.length === 0 && typeof PRODUCTS_DATA !== 'undefined' && Array.isArray(PRODUCTS_DATA)) {
+    products = PRODUCTS_DATA.filter(p => !p.availability || !p.availability.includes('Agotado'));
+  }
+
+  // 1. Filtrar únicamente los productos disponibles con valoración válida (rating > 0 o reviews_count > 0)
+  const ratedProducts = [];
+  for (const p of products) {
+    if (p.is_available === false || p.is_active === false) continue;
+    const stats = getProductRealRating(p);
+    if (stats.hasRating && (stats.rating > 0 || stats.reviewsCount > 0)) {
+      ratedProducts.push({
+        ...p,
+        realRating: stats.rating,
+        realReviewsCount: stats.reviewsCount
+      });
+    }
+  }
+
+  // 2. Ordenar de mayor a menor calificación (rating DESC)
+  ratedProducts.sort((a, b) => b.realRating - a.realRating || b.realReviewsCount - a.realReviewsCount);
+
+  // 3. Tomar como máximo los 4 mejores productos
+  const top4 = ratedProducts.slice(0, 4);
+
+  // 4. Regla estricta: Si no hay productos con valoración válida, mostrar mensaje limpio
+  if (top4.length === 0) {
+    grid.innerHTML = `
+      <div class="col-span-full py-12 text-center bg-white rounded-3xl border border-stone-200/80 p-8 shadow-xs">
+        <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-emerald-50 text-emerald-800 flex items-center justify-center text-xl font-serif">🌱</div>
+        <h3 class="font-serif text-lg text-stone-900 font-semibold">Cosechas en proceso de valoración</h3>
+        <p class="text-xs text-stone-500 mt-1 max-w-md mx-auto">
+          Los productos con valoraciones y opiniones verificadas de nuestros clientes aparecerán aquí automáticamente según su calificación.
+        </p>
+        <a href="mercado.html" class="inline-flex items-center gap-1.5 mt-4 px-5 py-2.5 rounded-full bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-semibold shadow-sm transition">
+          <span>Explorar catálogo completo en el Mercado</span>
+          <span>→</span>
+        </a>
+      </div>
+    `;
+    return;
+  }
+
+  // 5. Renderizar exactamente los productos calificados (1 si hay 1, 2 si hay 2, etc. sin tarjetas de relleno)
+  grid.innerHTML = top4.map(p => {
+    const priceNum = typeof p.price === 'number' ? p.price : (parseFloat(p.price) || 0);
+    const priceDisplay = priceNum.toFixed(2).replace('.', ',');
+    const unitStr = p.unit || 'kg';
+    const titleStr = p.title || 'Producto campesino';
+    const rawImg = p.image_url || p.image || '';
+    const imgUrl = normalizeCosechaImageUrl(rawImg);
+
+    // Origen de finca y cantón
+    let originStr = 'Finca campesina aliada';
+    if (p.description) {
+      const parts = p.description.split('·');
+      if (parts.length >= 2) {
+        originStr = `${parts[0].trim()} • ${parts[1].trim()}`;
+      } else {
+        originStr = p.description.trim();
+      }
+    }
+
+    // Estrellas y formato numérico
+    const roundedStars = Math.min(5, Math.max(1, Math.round(p.realRating)));
+    const starsHtml = '★'.repeat(roundedStars) + '☆'.repeat(5 - roundedStars);
+    const scoreStr = p.realRating.toFixed(1);
+    const reviewWord = p.realReviewsCount === 1 ? 'reseña' : 'reseñas';
+    const prodId = p.id || p.numericId;
+
+    return `
+      <div 
+        class="card-hover bg-white rounded-2xl border border-stone-200 overflow-hidden flex flex-col justify-between group cursor-pointer transition-all duration-300 hover:shadow-md hover:border-stone-300 relative"
+        data-product-id="${prodId}"
+        data-product-title="${titleStr}"
+        data-product-price="${priceNum}"
+        data-product-unit="${unitStr}"
+        data-product-image="${imgUrl}"
+        data-product-origin="${originStr}"
+      >
+        <div class="relative aspect-square overflow-hidden bg-stone-100">
+          <img 
+            src="${imgUrl}" 
+            alt="${titleStr}" 
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy" 
+            decoding="async"
+            onerror="this.src='https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/hero_basket.jpg'"
+          >
+          <span class="absolute top-3 left-3 bg-[#c85a32] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
+            Cosecha destacada
+          </span>
+        </div>
+        <div class="p-4 flex-1 flex flex-col justify-between">
+          <div>
+            <p class="text-[11px] text-stone-500 font-medium truncate">${originStr}</p>
+            <h3 class="font-serif text-lg text-stone-900 font-semibold mt-0.5">${titleStr}</h3>
+            <div class="flex items-center gap-1 text-[11px] text-amber-500 mt-1">
+              <span>${starsHtml}</span>
+              <span class="text-stone-500 font-medium">(${scoreStr} · ${p.realReviewsCount} ${reviewWord})</span>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">
+            <div>
+              <span class="text-lg font-bold text-[#1a3d2f]">$${priceDisplay}</span>
+              <span class="text-xs text-stone-500">/ ${unitStr}</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <div class="qty-stepper flex items-center border border-stone-200 rounded-lg bg-stone-50">
+                <button class="btn-minus px-2 py-1 text-stone-600 hover:text-stone-900 text-xs font-bold">-</button>
+                <input type="text" value="1" readonly class="w-7 text-center bg-transparent text-xs font-bold text-stone-800">
+                <button class="btn-plus px-2 py-1 text-stone-600 hover:text-stone-900 text-xs font-bold">+</button>
+              </div>
+              <button class="btn-add-product bg-[#1a3d2f] hover:bg-[#255440] text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">
+                + Añadir
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 6. Asignar interactividad a las tarjetas dinámicas
+  attachCosechaCardListeners(grid);
+}
+
+/**
+ * Conecta los eventos de Stepper (+/-), botón "+ Añadir" y clic de navegación
+ */
+function attachCosechaCardListeners(container) {
+  if (!container) return;
+
+  // Steppers
+  container.querySelectorAll('.qty-stepper').forEach(stepper => {
+    const minus = stepper.querySelector('.btn-minus');
+    const plus = stepper.querySelector('.btn-plus');
+    const input = stepper.querySelector('input');
+    if (minus && input && !minus.dataset.hasListener) {
+      minus.dataset.hasListener = 'true';
+      minus.addEventListener('click', (e) => {
+        e.stopPropagation();
+        let val = parseInt(input.value) || 1;
+        if (val > 1) input.value = val - 1;
+      });
+    }
+    if (plus && input && !plus.dataset.hasListener) {
+      plus.dataset.hasListener = 'true';
+      plus.addEventListener('click', (e) => {
+        e.stopPropagation();
+        let val = parseInt(input.value) || 1;
+        input.value = val + 1;
+      });
+    }
+  });
+
+  // Botón "+ Añadir" al carrito
+  container.querySelectorAll('.btn-add-product').forEach(btn => {
+    if (btn.dataset.hasListener) return;
+    btn.dataset.hasListener = 'true';
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const card = btn.closest('[data-product-id]');
+      if (!card) return;
+
+      const id = card.getAttribute('data-product-id');
+      const title = card.getAttribute('data-product-title');
+      const price = parseFloat(card.getAttribute('data-product-price')) || 0;
+      const unit = card.getAttribute('data-product-unit');
+      const image = card.getAttribute('data-product-image');
+      const origin = card.getAttribute('data-product-origin');
+      const qtyInput = card.querySelector('.qty-stepper input');
+      const quantity = qtyInput ? (parseInt(qtyInput.value) || 1) : 1;
+
+      addToCart({
+        id,
+        title,
+        price,
+        unit,
+        quantity,
+        image,
+        origin
+      });
+    });
+  });
+
+  // Clic en la tarjeta para abrir ficha de producto
+  container.querySelectorAll('[data-product-id]').forEach(card => {
+    if (card.dataset.hasClickListener) return;
+    card.dataset.hasClickListener = 'true';
+    card.addEventListener('click', (e) => {
+      if (e.target.closest('button') || e.target.closest('.qty-stepper')) return;
+      const id = card.getAttribute('data-product-id');
+      if (id) {
+        window.location.href = `producto.html?id=${encodeURIComponent(id)}`;
+      }
+    });
+  });
+}
+
+// Reactividad ante cambios en localStorage (cuando el usuario opina o valora en otra pestaña)
+window.addEventListener('storage', (e) => {
+  if (e.key && e.key.startsWith('product_reviews_')) {
+    initCosechaDeHoy();
+  }
+});
+window.addEventListener('focus', () => {
+  initCosechaDeHoy();
+});
+window.initCosechaDeHoy = initCosechaDeHoy;
+window.getProductRealRating = getProductRealRating;

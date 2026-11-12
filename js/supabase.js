@@ -241,6 +241,26 @@ class SupabaseService {
         queryParams.push(`${col}=eq.${encodeURIComponent(val)}`);
         return builder;
       },
+      neq(col, val) {
+        queryParams.push(`${col}=neq.${encodeURIComponent(val)}`);
+        return builder;
+      },
+      gt(col, val) {
+        queryParams.push(`${col}=gt.${encodeURIComponent(val)}`);
+        return builder;
+      },
+      gte(col, val) {
+        queryParams.push(`${col}=gte.${encodeURIComponent(val)}`);
+        return builder;
+      },
+      lt(col, val) {
+        queryParams.push(`${col}=lt.${encodeURIComponent(val)}`);
+        return builder;
+      },
+      lte(col, val) {
+        queryParams.push(`${col}=lte.${encodeURIComponent(val)}`);
+        return builder;
+      },
       order(col, options = {}) {
         const asc = (options && options.ascending === false) ? 'desc' : 'asc';
         queryParams.push(`order=${col}.${asc}`);

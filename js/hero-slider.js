@@ -32,7 +32,7 @@ const HERO_SLIDES = [
     title: 'El mercado campesino, ahora a la vuelta de tu casa.',
     description: 'Arma tu pedido eligiendo producto por producto entre decenas de pequeños agricultores locales. Calidad artesanal y entrega en tu nodo más cercano.',
     primaryButton: { text: 'Comprar en el Mercado →', link: 'mercado.html' },
-    secondaryButton: { text: 'Conoce a los Agricultores', link: 'productor.html' },
+    secondaryButton: { text: 'Conoce a los Agricultores', link: '#agricultores' },
     benefits: ['Cero intermediarios', 'Cosechado bajo pedido', 'Precios fijos y transparentes'],
     imageUrl: 'https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&w=1200&q=80',
     alt: 'Cosecha fresca de tomates, legumbres y hortalizas recién recolectadas',

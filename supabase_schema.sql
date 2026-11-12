@@ -13,6 +13,10 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS password text;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email text;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url text;
 
+-- Modificaciones en tabla 'products' (para valoraciones reales)
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS rating numeric DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS reviews_count int DEFAULT 0;
+
 -- 3. Políticas de Seguridad de Nivel de Fila (RLS) para Acceso Público
 DROP POLICY IF EXISTS "Permitir todo anon profiles" ON public.profiles;
 CREATE POLICY "Permitir todo anon profiles" ON public.profiles FOR ALL TO public USING (true) WITH CHECK (true);
