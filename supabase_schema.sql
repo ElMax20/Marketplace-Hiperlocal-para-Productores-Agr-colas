@@ -231,8 +231,8 @@ CREATE TABLE IF NOT EXISTS public.pickup_nodes (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     name text NOT NULL,
     address text NOT NULL,
-    city text NOT NULL DEFAULT 'Bogotá',
-    pickup_schedule text NOT NULL DEFAULT 'Sáb. 7 nov. · 8:00 a. m. – 12:00 p. m.',
+    city text NOT NULL DEFAULT 'Guayaquil',
+    pickup_schedule text NOT NULL DEFAULT 'Miércoles y Viernes: 3:00 PM – 7:30 PM',
     is_active boolean NOT NULL DEFAULT true,
     created_at timestamptz NOT NULL DEFAULT now()
 );
@@ -262,7 +262,7 @@ CREATE TABLE IF NOT EXISTS public.delivery_addresses (
     label text NOT NULL DEFAULT 'Casa',
     street_address text NOT NULL,
     neighborhood text NOT NULL,
-    city text NOT NULL DEFAULT 'Bogotá, D. C.',
+    city text NOT NULL DEFAULT 'Guayaquil',
     delivery_instructions text,
     delivery_fee numeric NOT NULL DEFAULT 8000,
     delivery_schedule text NOT NULL DEFAULT 'Sáb. 7 nov. · 2:00 – 6:00 p. m.',
