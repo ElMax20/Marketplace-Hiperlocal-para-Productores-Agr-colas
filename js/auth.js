@@ -572,8 +572,10 @@ function closeLoginModal() {
     document.body.style.overflow = '';
     syncModalPauseState();
   }
-  const forgotPanel = document.getElementById('forgot-password-panel');
-  if (forgotPanel && !forgotPanel.classList.contains('hidden')) {
+  const clientForgotPanel = document.getElementById('forgot-password-panel');
+  const producerForgotPanel = document.getElementById('producer-forgot-password-panel');
+  if ((clientForgotPanel && !clientForgotPanel.classList.contains('hidden')) || 
+      (producerForgotPanel && !producerForgotPanel.classList.contains('hidden'))) {
     switchToLoginView();
   }
 }
@@ -591,7 +593,8 @@ function safeEscapeHtml(str) {
 }
 
 /**
- * Cambia suavemente la vista del modal al panel de Recuperar Contraseña
+ * Cambia suavemente la vista del modal al panel de Recuperar Contraseña,
+ * diferenciando entre Comprador / Vecino (automático vía n8n) y Soy Productor (asistencia técnica / agrónomo)
  */
 function switchToForgotPasswordView() {
   const tabsWrapper = document.getElementById('auth-modal-tabs-wrapper');
@@ -600,39 +603,57 @@ function switchToForgotPasswordView() {
   const descEl = document.getElementById('auth-modal-desc');
   const loginForm = document.getElementById('login-auth-form');
   const errorBox = document.getElementById('auth-error-box');
-  const forgotPanel = document.getElementById('forgot-password-panel');
-  const emailInput = document.getElementById('forgot-email-input');
-  const userInput = document.getElementById('auth-username');
-  const forgotErrorBox = document.getElementById('forgot-error-box');
-  const forgotSuccessBox = document.getElementById('forgot-success-box');
+  const clientForgotPanel = document.getElementById('forgot-password-panel');
+  const producerForgotPanel = document.getElementById('producer-forgot-password-panel');
 
   if (tabsWrapper) tabsWrapper.classList.add('hidden');
   if (badgeEl) badgeEl.classList.add('hidden');
   if (loginForm) loginForm.classList.add('hidden');
   if (errorBox) errorBox.classList.add('hidden');
 
-  if (titleEl) titleEl.textContent = 'Recuperar contraseña';
-  if (descEl) descEl.textContent = 'Ingresa el correo con el que te registraste y te enviaremos un enlace seguro para crear una nueva clave.';
+  if (currentAuthType === 'productor') {
+    // =========================================================================
+    // MODO 2: Soy Productor -> Canal de Soporte Agronómico / Director Técnico
+    // =========================================================================
+    if (clientForgotPanel) clientForgotPanel.classList.add('hidden');
+    if (producerForgotPanel) producerForgotPanel.classList.remove('hidden');
 
-  if (forgotErrorBox) {
-    forgotErrorBox.classList.add('hidden');
-    forgotErrorBox.textContent = '';
-  }
-  if (forgotSuccessBox) {
-    forgotSuccessBox.classList.add('hidden');
-    forgotSuccessBox.innerHTML = '';
-  }
+    if (titleEl) titleEl.textContent = 'Soporte y Acceso Productor';
+    if (descEl) descEl.textContent = 'Gestión agronómica y técnica de credenciales para familias campesinas.';
+  } else {
+    // =========================================================================
+    // MODO 1: Comprador / Vecino -> Recuperación Automática n8n
+    // =========================================================================
+    if (producerForgotPanel) producerForgotPanel.classList.add('hidden');
+    if (clientForgotPanel) clientForgotPanel.classList.remove('hidden');
 
-  // Pre-llenar si el usuario ya escribió su correo en el campo de usuario
-  if (userInput && emailInput) {
-    const val = userInput.value.trim();
-    if (val.includes('@')) {
-      emailInput.value = val;
+    if (titleEl) titleEl.textContent = 'Recuperar contraseña';
+    if (descEl) descEl.textContent = 'Ingresa el correo con el que te registraste y te enviaremos un enlace seguro para crear una nueva clave.';
+
+    const userInput = document.getElementById('auth-username');
+    const emailInput = document.getElementById('forgot-email-input');
+    const forgotErrorBox = document.getElementById('forgot-error-box');
+    const forgotSuccessBox = document.getElementById('forgot-success-box');
+
+    if (forgotErrorBox) {
+      forgotErrorBox.classList.add('hidden');
+      forgotErrorBox.textContent = '';
     }
-  }
+    if (forgotSuccessBox) {
+      forgotSuccessBox.classList.add('hidden');
+      forgotSuccessBox.innerHTML = '';
+    }
 
-  if (forgotPanel) forgotPanel.classList.remove('hidden');
-  if (emailInput) emailInput.focus();
+    // Pre-llenar si el usuario ya escribió su correo en el campo de usuario
+    if (userInput && emailInput) {
+      const val = userInput.value.trim();
+      if (val.includes('@')) {
+        emailInput.value = val;
+      }
+    }
+
+    if (emailInput) emailInput.focus();
+  }
 }
 
 /**
@@ -642,14 +663,16 @@ function switchToLoginView() {
   const tabsWrapper = document.getElementById('auth-modal-tabs-wrapper');
   const badgeEl = document.getElementById('auth-modal-badge');
   const loginForm = document.getElementById('login-auth-form');
-  const forgotPanel = document.getElementById('forgot-password-panel');
+  const clientForgotPanel = document.getElementById('forgot-password-panel');
+  const producerForgotPanel = document.getElementById('producer-forgot-password-panel');
   const emailInput = document.getElementById('forgot-email-input');
   const submitBtn = document.getElementById('forgot-submit-btn');
 
   if (tabsWrapper) tabsWrapper.classList.remove('hidden');
   if (badgeEl) badgeEl.classList.remove('hidden');
   if (loginForm) loginForm.classList.remove('hidden');
-  if (forgotPanel) forgotPanel.classList.add('hidden');
+  if (clientForgotPanel) clientForgotPanel.classList.add('hidden');
+  if (producerForgotPanel) producerForgotPanel.classList.add('hidden');
 
   if (emailInput) {
     emailInput.disabled = false;
@@ -660,7 +683,7 @@ function switchToLoginView() {
     submitBtn.innerHTML = '<span>Enviar enlace de recuperación</span>';
   }
 
-  // Re-aplicar configuración según tipo de usuario activo
+  // Re-aplicar configuración según tipo de usuario activo ('cliente' o 'productor')
   if (typeof currentAuthType !== 'undefined') {
     openLoginModal(currentAuthType);
   } else {
