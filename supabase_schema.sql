@@ -120,24 +120,24 @@ ON CONFLICT (id) DO UPDATE SET
     image_url = EXCLUDED.image_url;
 
 -- =============================================================================
--- 7. Configuración de Supabase Storage (Bucket 'assets')
+-- 7. Configuración de Supabase Storage (Buckets 'assets' y 'avatars')
 -- =============================================================================
 INSERT INTO storage.buckets (id, name, public) 
-VALUES ('assets', 'assets', true)
+VALUES ('assets', 'assets', true), ('avatars', 'avatars', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
 -- Políticas de seguridad para storage.objects
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;
-CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id = 'assets');
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id IN ('assets', 'avatars'));
 
 DROP POLICY IF EXISTS "Public Insert" ON storage.objects;
-CREATE POLICY "Public Insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'assets');
+CREATE POLICY "Public Insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id IN ('assets', 'avatars'));
 
 DROP POLICY IF EXISTS "Public Update" ON storage.objects;
-CREATE POLICY "Public Update" ON storage.objects FOR UPDATE USING (bucket_id = 'assets');
+CREATE POLICY "Public Update" ON storage.objects FOR UPDATE USING (bucket_id IN ('assets', 'avatars'));
 
 DROP POLICY IF EXISTS "Public Delete" ON storage.objects;
-CREATE POLICY "Public Delete" ON storage.objects FOR DELETE USING (bucket_id = 'assets');
+CREATE POLICY "Public Delete" ON storage.objects FOR DELETE USING (bucket_id IN ('assets', 'avatars'));
 
 -- =============================================================================
 -- 8. Tabla Relacional de Metadatos de Assets ('public.assets')

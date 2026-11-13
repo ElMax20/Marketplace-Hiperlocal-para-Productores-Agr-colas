@@ -64,6 +64,7 @@ async function initProfilePage() {
         }
         if (fresh.avatar_url && fresh.avatar_url !== currentUser.avatar) {
           currentUser.avatar = fresh.avatar_url;
+          currentUser.avatar_url = fresh.avatar_url;
           hasChanges = true;
         }
         if (fresh.email && fresh.email !== currentUser.email) {

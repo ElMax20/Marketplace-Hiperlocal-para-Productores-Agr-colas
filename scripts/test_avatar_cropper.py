@@ -356,6 +356,76 @@ def test_cropper():
         assert save_info["navInitialsHidden"], "Navbar initials must be hidden after avatar save!"
         assert save_info["navImgSrc"] == save_info["profilePreviewSrc"], "Navbar and profile preview must match!"
 
+        # 7. TEST RECARGA DE PÁGINA (perfil.html) - PERSISTENCIA DE AVATAR SIN REGRESAR A "M"
+        print("\n--- TEST 7: Recarga de perfil.html (Verificar que NO regrese al círculo verde con 'M') ---")
+        call('Page.reload')
+        time.sleep(2.5) # Esperar hidratación síncrona y sincronización en segundo plano con Supabase
+
+        res = call('Runtime.evaluate', {'expression': """(() => {
+            const navImg = document.getElementById('nav-user-avatar');
+            const navInitials = document.getElementById('nav-user-initials');
+            const preview = document.getElementById('profile-avatar-preview');
+            const cached = JSON.parse(localStorage.getItem('rb_cached_profile') || '{}');
+            return {
+                navImgHidden: navImg ? navImg.classList.contains('hidden') : true,
+                navImgSrc: navImg ? navImg.src : '',
+                navInitialsHidden: navInitials ? navInitials.classList.contains('hidden') : false,
+                navInitialsText: navInitials ? navInitials.textContent.trim() : '',
+                previewSrc: preview ? preview.src : '',
+                cachedAvatar: cached.avatar_url || ''
+            };
+        })()""", 'returnByValue': True})
+        reload_info = res["result"]["result"]["value"]
+        print("After Page Reload:", reload_info)
+        assert not reload_info["navImgHidden"], "El avatar en el Navbar debe seguir VISIBLE tras recargar!"
+        assert reload_info["navImgSrc"] and "avatar_" in reload_info["navImgSrc"], f"El avatar debe tener la URL de la foto tras recargar, got: {reload_info['navImgSrc']}"
+        assert reload_info["navInitialsHidden"], "Las iniciales ('M') deben seguir OCULTAS tras recargar!"
+        assert reload_info["previewSrc"] and "avatar_" in reload_info["previewSrc"], "La previsualización de perfil debe mantener la foto!"
+
+        # 8. TEST NAVEGACIÓN A mercado.html - NAVBAR SINCRONIZADO CON FOTO
+        print("\n--- TEST 8: Navegación a mercado.html (Navbar sincronizado con foto) ---")
+        call('Page.navigate', {'url': 'http://localhost:5500/mercado.html'})
+        time.sleep(2.0)
+
+        res = call('Runtime.evaluate', {'expression': """(() => {
+            const navImg = document.getElementById('nav-user-avatar') || document.querySelector('#user-avatar-btn img');
+            const navInitials = document.getElementById('nav-user-initials');
+            return {
+                hasUserBtn: !!document.getElementById('user-avatar-btn'),
+                navImgHidden: navImg ? navImg.classList.contains('hidden') : true,
+                navImgSrc: navImg ? navImg.src : '',
+                navInitialsHidden: navInitials ? navInitials.classList.contains('hidden') : false
+            };
+        })()""", 'returnByValue': True})
+        mercado_info = res["result"]["result"]["value"]
+        print("En mercado.html:", mercado_info)
+        assert mercado_info["hasUserBtn"], "Debe mostrar el botón de usuario logueado en mercado.html"
+        assert not mercado_info["navImgHidden"], "El avatar debe estar visible en mercado.html!"
+        assert mercado_info["navImgSrc"] and "avatar_" in mercado_info["navImgSrc"], "El avatar en mercado.html debe mostrar la foto subida!"
+        assert mercado_info["navInitialsHidden"], "Las iniciales deben estar ocultas en mercado.html!"
+
+        # 9. TEST NAVEGACIÓN A index.html - NAVBAR SINCRONIZADO CON FOTO
+        print("\n--- TEST 9: Navegación a index.html (Navbar sincronizado con foto) ---")
+        call('Page.navigate', {'url': 'http://localhost:5500/index.html'})
+        time.sleep(2.0)
+
+        res = call('Runtime.evaluate', {'expression': """(() => {
+            const navImg = document.getElementById('nav-user-avatar') || document.querySelector('#user-avatar-btn img');
+            const navInitials = document.getElementById('nav-user-initials');
+            return {
+                hasUserBtn: !!document.getElementById('user-avatar-btn'),
+                navImgHidden: navImg ? navImg.classList.contains('hidden') : true,
+                navImgSrc: navImg ? navImg.src : '',
+                navInitialsHidden: navInitials ? navInitials.classList.contains('hidden') : false
+            };
+        })()""", 'returnByValue': True})
+        index_info = res["result"]["result"]["value"]
+        print("En index.html:", index_info)
+        assert index_info["hasUserBtn"], "Debe mostrar el botón de usuario logueado en index.html"
+        assert not index_info["navImgHidden"], "El avatar debe estar visible en index.html!"
+        assert index_info["navImgSrc"] and "avatar_" in index_info["navImgSrc"], "El avatar en index.html debe mostrar la foto subida!"
+        assert index_info["navInitialsHidden"], "Las iniciales deben estar ocultas en index.html!"
+
         print("\n==========================================")
         print(">>> ALL TESTS PASSED SUCCESSFULLY 100%! <<<")
         print("==========================================")

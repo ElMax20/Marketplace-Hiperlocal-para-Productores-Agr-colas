@@ -116,13 +116,26 @@ class SupabaseService {
           upload: async (path, file, options = {}) => {
             try {
               const cleanPath = path.replace(/^\/+/, '');
+              
+              // Obtener token JWT si existe en la sesión
+              let authToken = SUPABASE_CONFIG.anonKey;
+              try {
+                const tokenInfo = typeof getSupabaseAuthTokenInfo === 'function' 
+                  ? getSupabaseAuthTokenInfo() 
+                  : null;
+                if (tokenInfo?.session?.access_token) {
+                  authToken = tokenInfo.session.access_token;
+                }
+              } catch (_) {}
+
+              const contentType = options.contentType || file.type || 'image/webp';
               let uploadUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/${bucket}/${cleanPath}`;
               let resp = await fetch(uploadUrl, {
                 method: 'POST',
                 headers: {
                   'apikey': SUPABASE_CONFIG.anonKey,
-                  'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-                  'Content-Type': file.type || 'image/webp',
+                  'Authorization': `Bearer ${authToken}`,
+                  'Content-Type': contentType,
                   'x-upsert': 'true'
                 },
                 body: file
@@ -141,7 +154,7 @@ class SupabaseService {
                   headers: {
                     'apikey': SUPABASE_CONFIG.anonKey,
                     'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
-                    'Content-Type': file.type || 'image/webp',
+                    'Content-Type': contentType,
                     'x-upsert': 'true'
                   },
                   body: file
@@ -153,10 +166,18 @@ class SupabaseService {
                 return { data: null, error: new Error(`Error en storage.upload (${resp.status}): ${errTxt}`) };
               }
 
+              const pubUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/${usedBucket}/${usedPath}`;
+              
+              // Registrar última subida para sincronización de getPublicUrl
+              window.__lastUploadedAvatarPath = cleanPath;
+              window.__lastUploadedAvatarUrl = pubUrl;
+
               return {
                 data: {
                   path: usedPath,
-                  fullPath: `${usedBucket}/${usedPath}`
+                  fullPath: `${usedBucket}/${usedPath}`,
+                  Key: `${usedBucket}/${usedPath}`,
+                  publicUrl: pubUrl
                 },
                 error: null
               };
@@ -166,11 +187,21 @@ class SupabaseService {
           },
           getPublicUrl: (path) => {
             const cleanPath = path.replace(/^\/+/, '');
-            const targetPath = cleanPath.startsWith('avatars/') ? cleanPath : `avatars/${cleanPath}`;
-            const pubUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/assets/${targetPath}`;
+            let pubUrl = '';
+            if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
+              pubUrl = cleanPath;
+            } else if (window.__lastUploadedAvatarUrl && window.__lastUploadedAvatarPath === cleanPath) {
+              pubUrl = window.__lastUploadedAvatarUrl;
+            } else if (cleanPath.startsWith('assets/')) {
+              pubUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/${cleanPath}`;
+            } else if (cleanPath.startsWith('avatars/')) {
+              pubUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/${cleanPath}`;
+            } else {
+              pubUrl = `${SUPABASE_CONFIG.url}/storage/v1/object/public/${bucket}/${cleanPath}`;
+            }
             return {
               data: {
-                publicUrl: `${pubUrl}?t=${Date.now()}`
+                publicUrl: pubUrl
               }
             };
           }

@@ -422,10 +422,14 @@ async function validateAndSyncSession() {
       const res = await window.supabase.fetchApi(`profiles?id=eq.${userId}&select=*`);
       if (res && res.length > 0) {
         const db = res[0];
+        const dbAvatar = normalizeAvatarUrl(db.avatar_url || '');
+        const currentCachedAvatar = cached?.avatar_url || '';
+        const resolvedAvatar = dbAvatar || currentCachedAvatar;
+
         const updatedProfile = {
           id: db.id,
           full_name: db.full_name || cached?.full_name || '',
-          avatar_url: normalizeAvatarUrl(db.avatar_url || ''),
+          avatar_url: resolvedAvatar,
           role: db.role || cached?.role || 'cliente'
         };
 
@@ -2610,7 +2614,7 @@ async function saveCroppedAvatar() {
     outCtx.drawImage(cropperState.img, drawX, drawY, drawW, drawH);
     outCtx.restore();
 
-    // Exportar como Blob (image/webp, 0.85 con fallback a image/jpeg)
+    // 1. Exportar recorte a Blob (image/webp, 0.85 con fallback a image/jpeg)
     const blob = await new Promise((resolve) => {
       outCanvas.toBlob((b) => {
         if (b) resolve(b);
@@ -2622,84 +2626,98 @@ async function saveCroppedAvatar() {
 
     if (!blob) throw new Error('No se pudo generar el archivo de imagen.');
 
+    // 2. Subir el archivo al bucket público 'avatars' usando el ID del usuario autenticado
     const user = (typeof getCurrentUser === 'function' ? getCurrentUser() : null) || {};
-    const username = user.username || (user.name ? user.name.toLowerCase().replace(/\s+/g, '_') : 'usuario');
+    const userId = user.id || '00000000-0000-0000-0000-000000000001';
     const timestamp = Date.now();
-    const fileName = `avatar_${username}_${timestamp}.webp`;
-    const croppedFile = new File([blob], fileName, { type: blob.type || 'image/webp' });
-    const localDataUrl = outCanvas.toDataURL('image/webp', 0.85);
+    const filePath = `${userId}/avatar_${timestamp}.webp`;
 
-    let publicUrl = null;
+    const supabase = window.supabase;
+    if (!supabase || !supabase.storage) {
+      throw new Error('El cliente de Supabase Storage no está disponible.');
+    }
 
-    // Subir a Supabase Storage: supabase.storage.from('avatars').upload(...)
-    if (window.supabase) {
-      try {
-        if (window.supabase.storage && typeof window.supabase.storage.from === 'function') {
-          const { data, error } = await window.supabase.storage.from('avatars').upload(fileName, croppedFile, { upsert: true });
-          if (!error && data) {
-            const pubData = window.supabase.storage.from('avatars').getPublicUrl(fileName);
-            publicUrl = pubData?.data?.publicUrl;
-          }
-        }
-        if (!publicUrl && typeof window.supabase.uploadFile === 'function') {
-          const res = await window.supabase.uploadFile('avatars', fileName, croppedFile);
-          if (res && res.publicUrl) publicUrl = res.publicUrl;
-        }
-      } catch (uploadErr) {
-        console.warn('Aviso subiendo avatar a Supabase Storage:', uploadErr);
-      }
+    const { data: uploadData, error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(filePath, blob, { contentType: 'image/webp', upsert: true });
+
+    if (uploadError) {
+      console.error('Error subiendo avatar a Supabase Storage:', uploadError);
+      throw uploadError;
+    }
+
+    // 3. Obtener la URL pública del archivo subido
+    const { data: pubData } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(filePath);
+
+    const publicUrl = pubData?.publicUrl || uploadData?.publicUrl;
+    if (!publicUrl) {
+      throw new Error('No se pudo obtener la URL pública de Supabase Storage.');
     }
 
     // URL final con timestamp anti-caché
-    const finalAvatarUrl = publicUrl ? `${publicUrl.split('?')[0]}?t=${timestamp}` : localDataUrl;
+    const finalAvatarUrl = `${publicUrl.split('?')[0]}?t=${timestamp}`;
 
-    // Actualizar usuario en sesión y memoria
-    user.avatar = finalAvatarUrl;
-    user.avatar_url = finalAvatarUrl;
-    if (typeof setCurrentUser === 'function') setCurrentUser(user);
-
-    // Sincronizar en localStorage bajo rb_cached_profile para zero-flicker
-    try {
-      const cachedProfile = {
-        id: user.id || null,
-        full_name: user.name || user.full_name || 'Usuario',
-        avatar_url: finalAvatarUrl,
-        role: user.role || 'cliente',
-        username: user.username
-      };
-      localStorage.setItem('rb_cached_profile', JSON.stringify(cachedProfile));
-      localStorage.setItem('rb_current_user', JSON.stringify(user));
-      localStorage.setItem('raiz_user', JSON.stringify(user));
-    } catch (e) {}
-
-    // Actualizar columna avatar_url en la tabla profiles de Supabase
-    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+    // 4. Actualizar columna avatar_url en la tabla profiles de Supabase
+    if (supabase && typeof supabase.from === 'function') {
+      const { error: dbError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: finalAvatarUrl })
+        .eq('id', userId);
+      if (dbError) {
+        console.warn('Aviso actualizando perfil en Supabase via .from():', dbError);
+      }
+    }
+    if (supabase && typeof supabase.fetchApi === 'function') {
       try {
-        const endpoint = user.id && user.id.length > 10
-          ? `profiles?id=eq.${user.id}`
-          : `profiles?username=eq.${encodeURIComponent(username)}`;
-        await window.supabase.fetchApi(endpoint, {
+        await supabase.fetchApi(`profiles?id=eq.${userId}`, {
           method: 'PATCH',
           body: { avatar_url: finalAvatarUrl }
         });
       } catch (err) {
-        console.warn('Aviso actualizando avatar_url en Supabase:', err);
+        console.warn('Aviso actualizando avatar_url en Supabase via fetchApi:', err);
       }
     }
 
-    // Refrescar inmediatamente el avatar en Navbar y en vista de perfil sin recargar
-    const navAvatar = document.getElementById('nav-user-avatar') || document.querySelector('#user-avatar-btn img');
-    const navInitials = document.getElementById('nav-user-initials');
-    if (navAvatar) {
-      navAvatar.src = finalAvatarUrl;
-      navAvatar.classList.remove('hidden');
-    }
-    if (navInitials) {
-      navInitials.classList.add('hidden');
+    // 5. Actualizar usuario en sesión y memoria local
+    user.avatar = finalAvatarUrl;
+    user.avatar_url = finalAvatarUrl;
+    if (typeof setCurrentUser === 'function') {
+      setCurrentUser(user);
+    } else {
+      localStorage.setItem('rb_current_user', JSON.stringify(user));
+      localStorage.setItem('raiz_user', JSON.stringify(user));
     }
 
+    // Sincronizar en localStorage bajo rb_cached_profile para lectura síncrona (zero-flicker)
+    const cachedProfile = {
+      id: userId,
+      full_name: user.full_name || user.name || 'Usuario',
+      avatar_url: finalAvatarUrl,
+      role: user.role || 'cliente',
+      username: user.username
+    };
+    localStorage.setItem('rb_cached_profile', JSON.stringify(cachedProfile));
+
+    // 6. Refrescar inmediatamente el avatar en Navbar y en vista de perfil sin recargar
+    const navAvatars = document.querySelectorAll('#nav-user-avatar, #user-avatar-btn img');
+    navAvatars.forEach(img => {
+      img.src = finalAvatarUrl;
+      img.classList.remove('hidden');
+      img.classList.add('w-full', 'h-full', 'object-cover', 'object-center', 'block');
+    });
+
+    const navInitials = document.querySelectorAll('#nav-user-initials');
+    navInitials.forEach(el => {
+      el.classList.add('hidden');
+      el.classList.remove('flex');
+    });
+
     const profileImg = document.getElementById('profile-avatar-preview');
-    if (profileImg) profileImg.src = finalAvatarUrl;
+    if (profileImg) {
+      profileImg.src = finalAvatarUrl;
+    }
 
     const deleteBtn = document.getElementById('btn-delete-avatar');
     if (deleteBtn) {
@@ -2719,6 +2737,7 @@ async function saveCroppedAvatar() {
       alert('¡Foto de perfil actualizada exitosamente!');
     }
 
+    const croppedFile = new File([blob], `avatar_${timestamp}.webp`, { type: 'image/webp' });
     if (typeof cropperState.onConfirm === 'function') {
       cropperState.onConfirm(croppedFile, finalAvatarUrl);
     }
