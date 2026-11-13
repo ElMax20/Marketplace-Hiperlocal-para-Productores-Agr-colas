@@ -58,11 +58,11 @@
   <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCW3Un9B28_B3t1uS1LbVl48xHFw7QWz5E&callback=initGoogleMap" async defer></script>
 
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=5.3">
 
   <!-- Supabase & Auth Zero-Flicker Hydration -->
   <script src="js/supabase.js?v=5.1"></script>
-  <script src="js/auth.js?v=5.2"></script>
+  <script src="js/auth.js?v=5.3"></script>
 
   <!-- Estilos para scroll fluido en modales -->
   <style>
@@ -1183,8 +1183,8 @@
   <!-- =======================================================================
        13. MODAL DE INICIO DE SESIÓN SEGMENTADO (Cliente vs Productor vs Admin)
        ======================================================================= -->
-  <div id="login-auth-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target === this) closeLoginModal()">
-    <div class="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 sm:p-8 shadow-xl my-auto z-10 animate-slide-up modal-scroll border border-stone-200">
+  <div id="login-auth-modal" class="modal-overlay-gpu fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target === this) closeLoginModal()">
+    <div class="modal-card-gpu relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 sm:p-8 shadow-xl my-auto z-10 modal-scroll border border-stone-200">
       
       <!-- Botón Cerrar -->
       <button onclick="closeLoginModal()" class="absolute top-5 right-5 p-2 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100 transition">
@@ -1400,8 +1400,8 @@
   <!-- =======================================================================
        14. MODAL DE REGISTRO DE CLIENTES ("Crea tu cuenta para comprar")
        ======================================================================= -->
-  <div id="register-auth-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target === this) closeRegisterModal()">
-    <div class="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl my-auto z-10 animate-slide-up modal-scroll border border-stone-200">
+  <div id="register-auth-modal" class="modal-overlay-gpu fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target === this) closeRegisterModal()">
+    <div class="modal-card-gpu relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl my-auto z-10 modal-scroll border border-stone-200">
       
       <!-- Modal Header -->
       <div class="p-6 pb-4 bg-gradient-to-b from-[#FAF7F2] to-white border-b border-stone-200 text-center relative">
@@ -1524,8 +1524,8 @@
   <!-- =======================================================================
        15. MODAL DE SOLICITUD DE ALTA TÉCNICA PARA PRODUCTORES AGRÍCOLAS
        ======================================================================= -->
-  <div id="producer-technical-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-    <div class="relative bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-stone-200 overflow-hidden z-10 animate-slide-up my-auto">
+  <div id="producer-technical-modal" class="modal-overlay-gpu fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
+    <div class="modal-card-gpu relative bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-stone-200 overflow-hidden z-10 my-auto">
       
       <div class="p-6 pb-4 bg-gradient-to-b from-[#FAF7F2] to-white border-b border-stone-200 relative text-left">
         <button type="button" onclick="closeProducerTechnicalModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-700 text-sm font-bold w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center transition">✕</button>

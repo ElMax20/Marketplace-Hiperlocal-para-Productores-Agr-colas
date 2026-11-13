@@ -2438,7 +2438,17 @@ function handleProceedToCheckout() {
 // Control del Modal de Autenticación
 function openAuthModal(mode = 'register') {
   const modal = document.getElementById('auth-modal');
-  if (modal) modal.classList.remove('hidden');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.scrollTop = 0;
+    const safeRAF = (typeof requestAnimationFrame === 'function') ? requestAnimationFrame : (cb) => setTimeout(cb, 16);
+    safeRAF(() => {
+      safeRAF(() => {
+        modal.classList.add('is-open');
+        modal.scrollTop = 0;
+      });
+    });
+  }
   document.body.classList.add('modal-open');
   document.body.style.overflow = 'hidden';
   if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
@@ -2447,7 +2457,14 @@ function openAuthModal(mode = 'register') {
 
 function closeAuthModal() {
   const modal = document.getElementById('auth-modal');
-  if (modal) modal.classList.add('hidden');
+  if (modal) {
+    modal.classList.remove('is-open');
+    setTimeout(() => {
+      if (!modal.classList.contains('is-open')) {
+        modal.classList.add('hidden');
+      }
+    }, 220);
+  }
   const cartDrawer = document.getElementById('cart-drawer');
   const cartOpen = cartDrawer && !cartDrawer.classList.contains('pointer-events-none') && document.getElementById('cart-panel') && !document.getElementById('cart-panel').classList.contains('translate-x-full');
   if (!cartOpen) {

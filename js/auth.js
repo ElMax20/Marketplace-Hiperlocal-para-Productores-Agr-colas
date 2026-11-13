@@ -550,6 +550,14 @@ function isProducerAuthActive() {
 }
 window.isProducerAuthActive = isProducerAuthActive;
 
+function safeRAF(cb) {
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(cb);
+  } else {
+    setTimeout(cb, 16);
+  }
+}
+
 /**
  * Conmuta o establece el rol activo del modal de login
  * @param {'cliente' | 'productor'} type 
@@ -639,21 +647,47 @@ function openLoginModal(type = 'cliente') {
     if (prodTechSection) prodTechSection.classList.remove('hidden');
   }
 
+  const isAlreadyOpen = modal.classList.contains('is-open') && !modal.classList.contains('hidden');
+
   modal.classList.remove('hidden');
+  modal.scrollTop = 0;
   document.body.classList.add('modal-open');
   if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
   document.body.style.overflow = 'hidden';
 
   const userInput = document.getElementById('auth-username');
-  if (userInput && !userInput.value) userInput.focus();
+
+  if (!isAlreadyOpen) {
+    // Activación fluida a 60fps con doble requestAnimationFrame
+    safeRAF(() => {
+      safeRAF(() => {
+        modal.classList.add('is-open');
+        modal.scrollTop = 0;
+        if (userInput && !userInput.value) {
+          try {
+            userInput.focus({ preventScroll: true });
+          } catch (e) {
+            userInput.focus();
+          }
+        }
+      });
+    });
+  } else {
+    modal.classList.add('is-open');
+  }
 }
 
 function closeLoginModal() {
   const modal = document.getElementById('login-auth-modal');
   if (modal) {
-    modal.classList.add('hidden');
-    document.body.style.overflow = '';
-    syncModalPauseState();
+    modal.classList.remove('is-open');
+    setTimeout(() => {
+      if (!modal.classList.contains('is-open')) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        syncModalPauseState();
+      }
+    }, 220);
   }
   const clientForgotPanel = document.getElementById('forgot-password-panel');
   const producerForgotView = document.getElementById('producer-forgot-password-view') || document.getElementById('producer-forgot-password-panel');
@@ -1846,11 +1880,25 @@ function openRegisterModal() {
   const regModal = document.getElementById('register-auth-modal');
   if (regModal) {
     regModal.classList.remove('hidden');
+    regModal.scrollTop = 0;
     document.body.classList.add('modal-open');
     if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
     document.body.style.overflow = 'hidden';
-    const firstInput = document.getElementById('reg-name');
-    if (firstInput) firstInput.focus();
+
+    safeRAF(() => {
+      safeRAF(() => {
+        regModal.classList.add('is-open');
+        regModal.scrollTop = 0;
+        const firstInput = document.getElementById('reg-name');
+        if (firstInput) {
+          try {
+            firstInput.focus({ preventScroll: true });
+          } catch (e) {
+            firstInput.focus();
+          }
+        }
+      });
+    });
   } else if (typeof openAuthModal === 'function') {
     openAuthModal('register');
   }
@@ -1859,9 +1907,14 @@ function openRegisterModal() {
 function closeRegisterModal() {
   const regModal = document.getElementById('register-auth-modal');
   if (regModal) {
-    regModal.classList.add('hidden');
-    document.body.style.overflow = '';
-    syncModalPauseState();
+    regModal.classList.remove('is-open');
+    setTimeout(() => {
+      if (!regModal.classList.contains('is-open')) {
+        regModal.classList.add('hidden');
+        document.body.style.overflow = '';
+        syncModalPauseState();
+      }
+    }, 220);
   }
 }
 
@@ -1873,20 +1926,39 @@ function openProducerTechnicalModal() {
   const modal = document.getElementById('producer-technical-modal');
   if (modal) {
     modal.classList.remove('hidden');
+    modal.scrollTop = 0;
     document.body.classList.add('modal-open');
     if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
     document.body.style.overflow = 'hidden';
-    const first = document.getElementById('pt-farm-name');
-    if (first) first.focus();
+
+    safeRAF(() => {
+      safeRAF(() => {
+        modal.classList.add('is-open');
+        modal.scrollTop = 0;
+        const first = document.getElementById('pt-farm-name');
+        if (first) {
+          try {
+            first.focus({ preventScroll: true });
+          } catch (e) {
+            first.focus();
+          }
+        }
+      });
+    });
   }
 }
 
 function closeProducerTechnicalModal() {
   const modal = document.getElementById('producer-technical-modal');
   if (modal) {
-    modal.classList.add('hidden');
-    document.body.style.overflow = '';
-    syncModalPauseState();
+    modal.classList.remove('is-open');
+    setTimeout(() => {
+      if (!modal.classList.contains('is-open')) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+        syncModalPauseState();
+      }
+    }, 220);
   }
 }
 window.openRegisterModal = openRegisterModal;

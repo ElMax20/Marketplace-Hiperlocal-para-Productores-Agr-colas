@@ -37,11 +37,11 @@
   </script>
 
   <!-- Custom CSS -->
-  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/styles.css?v=5.3">
 
   <!-- Supabase & Auth Zero-Flicker Hydration -->
   <script src="js/supabase.js?v=5.1"></script>
-  <script src="js/auth.js?v=5.2"></script>
+  <script src="js/auth.js?v=5.3"></script>
   <style>
     .filter-badge {
       transition: all 0.2s ease;
@@ -666,8 +666,8 @@
   <!-- =======================================================================
        8. AUTH MODAL (CREAR CUENTA / INICIAR SESIÓN OBLIGATORIO PARA COMPRAR)
        ======================================================================= -->
-  <div id="auth-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target === this) closeAuthModal()">
-    <div class="relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl my-auto z-10 animate-slide-up modal-scroll border border-stone-200">
+  <div id="auth-modal" class="modal-overlay-gpu fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 p-4 overflow-y-auto" onclick="if(event.target === this) closeAuthModal()">
+    <div class="modal-card-gpu relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl my-auto z-10 modal-scroll border border-stone-200">
       
       <!-- Modal Header -->
       <div class="p-6 pb-4 bg-gradient-to-b from-[#FAF7F2] to-white border-b border-stone-200 text-center relative">
@@ -918,8 +918,8 @@
   <!-- =======================================================================
        MODAL DE SOLICITUD DE ALTA TÉCNICA PARA PRODUCTORES AGRÍCOLAS
        ======================================================================= -->
-  <div id="producer-technical-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-    <div class="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl my-auto z-10 animate-slide-up modal-scroll border border-stone-200">
+  <div id="producer-technical-modal" class="modal-overlay-gpu fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
+    <div class="modal-card-gpu relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl my-auto z-10 modal-scroll border border-stone-200">
       
       <div class="p-6 pb-4 bg-gradient-to-b from-[#FAF7F2] to-white border-b border-stone-200 relative text-left">
         <button type="button" onclick="closeProducerTechnicalModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-700 text-sm font-bold w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center transition">✕</button>
@@ -1011,7 +1011,7 @@
 
   <!-- Market JavaScript Logic -->
   <script src="js/header-location.js?v=5.0"></script>
-  <script src="js/market.js?v=5.0"></script>
+  <script src="js/market.js?v=5.3"></script>
 </body>
 </html>
 

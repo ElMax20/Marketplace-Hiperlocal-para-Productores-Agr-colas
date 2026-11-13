@@ -145,6 +145,61 @@ body.modal-open .animate-pulse {
   transition: none !important;
 }
 
+/* ==========================================================================
+   Modales Fluidos a 60fps con Aceleración por GPU (Zero Layout Shifts)
+   ========================================================================== */
+
+/* Contenedor overlay con centrado permanente y control de visibilidad */
+.modal-overlay-gpu {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background-color: rgba(0, 0, 0, 0.5);
+  overflow-y: auto;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 180ms ease-out, visibility 180ms ease-out;
+  will-change: opacity;
+}
+
+/* Estado activo del overlay */
+.modal-overlay-gpu.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Soporte para clase hidden de Tailwind (display: none cuando está completamente cerrado) */
+.modal-overlay-gpu.hidden {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+/* Tarjeta interna: Animación exclusiva de transform y opacity acelerada por GPU */
+.modal-card-gpu {
+  position: relative;
+  width: 100%;
+  max-width: 28rem;
+  max-height: 90vh;
+  margin: auto;
+  transform: translateY(-8px) scale(0.97);
+  opacity: 0;
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), opacity 180ms ease-out;
+  will-change: transform, opacity;
+}
+
+.modal-overlay-gpu.is-open .modal-card-gpu {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+}
+
 /* Toast Animation */
 @keyframes slideInUp {
   from {
