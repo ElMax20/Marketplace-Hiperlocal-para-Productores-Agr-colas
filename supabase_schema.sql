@@ -364,7 +364,7 @@ CREATE TABLE IF NOT EXISTS public.delivery_addresses (
     neighborhood text NOT NULL,
     city text NOT NULL DEFAULT 'Guayaquil',
     delivery_instructions text,
-    delivery_fee numeric NOT NULL DEFAULT 8000,
+    delivery_fee numeric NOT NULL DEFAULT 2.50,
     delivery_schedule text NOT NULL DEFAULT 'Sáb. 7 nov. · 2:00 – 6:00 p. m.',
     is_preferred boolean NOT NULL DEFAULT false,
     created_at timestamptz NOT NULL DEFAULT now()

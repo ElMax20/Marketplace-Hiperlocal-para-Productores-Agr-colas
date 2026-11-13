@@ -2191,7 +2191,7 @@ function ensureClientSettingsModalExists() {
                 <span>Cuenta activa</span>
               </div>
               <p class="text-xs font-bold text-stone-800">Comunidad Raíz & Barrio</p>
-              <p class="text-[11px] text-stone-500 mt-0.5">Bogotá y su tierra cercana</p>
+              <p class="text-[11px] text-stone-500 mt-0.5">Guayaquil y su tierra cercana</p>
               <div class="mt-3 pt-2.5 border-t border-stone-100 text-[10px] text-stone-400 space-y-0.5">
                 <p>Cuenta CU-042</p>
                 <p>En el barrio desde 2026</p>

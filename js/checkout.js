@@ -11,8 +11,11 @@ let checkoutAddresses = [];
 let checkoutSavedCards = [];
 
 let activeDeliveryMode = 'NODE_PICKUP'; // 'NODE_PICKUP' | 'HOME_DELIVERY'
+window.getActiveDeliveryMode = () => activeDeliveryMode;
 let activeNode = null;
 let activeAddress = null;
+window.getActiveAddress = () => activeAddress;
+window.getCheckoutAddresses = () => checkoutAddresses;
 
 let activePaymentMethod = 'CARD'; // 'CARD' | 'CASH_ON_DELIVERY'
 let activeCardId = null;
@@ -26,7 +29,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function initCheckout() {
   // 1. Obtener usuario autenticado
   try {
-    const rawUser = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
+    const rawUser = localStorage.getItem('rb_cached_profile') || 
+                    localStorage.getItem('rb_current_user') || 
+                    localStorage.getItem('raiz_user');
     if (rawUser) {
       checkoutUser = JSON.parse(rawUser);
     } else if (typeof getCachedProfile === 'function') {
@@ -80,38 +85,116 @@ async function initCheckout() {
  * Carga nodos, direcciones y tarjetas del usuario desde Supabase
  */
 async function loadSupabaseCheckoutData() {
-  if (!window.supabase || typeof window.supabase.fetchApi !== 'function') return;
+  const userId = checkoutUser?.id || (typeof getCachedProfile === 'function' ? getCachedProfile()?.id : null);
 
-  const userId = checkoutUser?.id;
-
-  try {
-    // A. Nodos comunitarios activos
-    const nodes = await window.supabase.fetchApi('pickup_nodes?is_active=eq.true&order=created_at.asc');
-    if (Array.isArray(nodes) && nodes.length > 0) {
-      checkoutPickupNodes = nodes;
-      // Seleccionar el preferido o el primero por defecto
-      activeNode = nodes[0];
-      updateNodeUI(activeNode);
+  // A. Nodos comunitarios activos
+  if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+    try {
+      const nodes = await window.supabase.fetchApi('pickup_nodes?is_active=eq.true&order=created_at.asc');
+      if (Array.isArray(nodes) && nodes.length > 0) {
+        checkoutPickupNodes = nodes;
+        activeNode = nodes[0];
+        updateNodeUI(activeNode);
+      }
+    } catch (errNodes) {
+      console.warn('Error consultando pickup_nodes:', errNodes);
     }
-  } catch (errNodes) {
-    console.warn('Error consultando pickup_nodes:', errNodes);
   }
 
-  if (userId) {
+  // Nodos por defecto para Guayaquil
+  if (checkoutPickupNodes.length === 0) {
+    checkoutPickupNodes = [
+      {
+        id: 'node-urdesa',
+        name: 'Sede Urdesa · Espacio Verde',
+        address: 'Av. Víctor Emilio Estrada y Bálsamos',
+        city: 'Guayaquil',
+        pickup_schedule: 'Miércoles y Viernes: 3:00 PM – 7:30 PM'
+      },
+      {
+        id: 'node-puerto-santa-ana',
+        name: 'Sede Puerto Santa Ana · La Perla',
+        address: 'Numa Pompilio Llona, Edificio The Point',
+        city: 'Guayaquil',
+        pickup_schedule: 'Jueves y Sábados: 10:00 AM – 4:00 PM'
+      },
+      {
+        id: 'node-ceibos',
+        name: 'Sede Ceibos · Parque Campesino',
+        address: 'Av. del Bombero Km 6.5, Plaza Ceibos',
+        city: 'Guayaquil',
+        pickup_schedule: 'Viernes: 2:00 PM – 7:00 PM'
+      }
+    ];
+    activeNode = checkoutPickupNodes[0];
+    updateNodeUI(activeNode);
+  }
+
+  // B. Direcciones del usuario desde Supabase (Tabla delivery_addresses)
+  checkoutAddresses = [];
+  activeAddress = null;
+
+  if (window.supabase && typeof window.supabase.fetchApi === 'function' && userId) {
     try {
-      // B. Direcciones guardadas del usuario
       const addrs = await window.supabase.fetchApi(`delivery_addresses?user_id=eq.${userId}&order=is_preferred.desc,created_at.desc`);
       if (Array.isArray(addrs) && addrs.length > 0) {
         checkoutAddresses = addrs;
-        activeAddress = addrs[0];
-        updateAddressUI(activeAddress);
       }
     } catch (errAddrs) {
       console.warn('Error consultando delivery_addresses:', errAddrs);
     }
+  }
 
+  // Respaldo local de direcciones
+  if (checkoutAddresses.length === 0 && userId) {
     try {
-      // C. Métodos de pago guardados del usuario
+      const localAddrs = localStorage.getItem(`rb_delivery_addresses_${userId}`) || localStorage.getItem('rb_delivery_addresses');
+      if (localAddrs) {
+        const parsed = JSON.parse(localAddrs);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          checkoutAddresses = parsed;
+        }
+      }
+    } catch (_) {}
+  }
+
+  // Respaldo desde el perfil activo si contiene dirección en Guayaquil
+  if (checkoutAddresses.length === 0 && checkoutUser) {
+    const rawAddr = checkoutUser.address || checkoutUser.location_address;
+    if (rawAddr && !rawAddr.includes('Carrera 7') && !rawAddr.includes('Bogot')) {
+      checkoutAddresses = [{
+        id: 'profile-addr-default',
+        user_id: userId,
+        label: 'Casa',
+        street_address: rawAddr,
+        neighborhood: checkoutUser.neighborhood || 'Guayaquil',
+        city: 'Guayaquil',
+        delivery_instructions: '',
+        delivery_fee: 2.50,
+        delivery_schedule: 'Sáb. 14 nov. · 2:00 – 6:00 p. m.',
+        is_preferred: true
+      }];
+    }
+  }
+
+  // Configuración de Estados A y B
+  if (checkoutAddresses.length > 0) {
+    // Caso B: El usuario SÍ tiene direcciones
+    const preferredAddr = checkoutAddresses.find(a => a.is_preferred) || checkoutAddresses[0];
+    activeAddress = preferredAddr;
+    updateAddressUI(activeAddress);
+  } else {
+    // Caso A: El usuario NO tiene direcciones guardadas
+    activeAddress = null;
+    updateAddressUI(null);
+    // Por defecto, la opción inicial debe ser Recogida en Nodo (Gratis)
+    activeDeliveryMode = 'NODE_PICKUP';
+    selectDeliveryMode('NODE_PICKUP');
+  }
+
+  // C. Métodos de pago guardados del usuario
+  if (window.supabase && typeof window.supabase.fetchApi === 'function' && userId) {
+    try {
       const cards = await window.supabase.fetchApi(`payment_methods?user_id=eq.${userId}&order=is_default.desc,created_at.desc`);
       if (Array.isArray(cards) && cards.length > 0) {
         checkoutSavedCards = cards;
@@ -123,24 +206,6 @@ async function loadSupabaseCheckoutData() {
     } catch (errCards) {
       console.warn('Error consultando payment_methods:', errCards);
     }
-
-    // D. Verificar si hay preferencia guardada en perfil o user_preferences
-    try {
-      const prefs = await window.supabase.fetchApi(`user_preferences?user_id=eq.${userId}&select=*`);
-      if (prefs && prefs.length > 0) {
-        const pref = prefs[0];
-        if (pref.delivery_mode === 'home' || pref.delivery_mode === 'HOME_DELIVERY') {
-          activeDeliveryMode = 'HOME_DELIVERY';
-          if (pref.preferred_address_id) {
-            const foundAddr = checkoutAddresses.find(a => a.id === pref.preferred_address_id);
-            if (foundAddr) activeAddress = foundAddr;
-          }
-        } else if (pref.preferred_node_id) {
-          const foundNode = checkoutPickupNodes.find(n => n.id === pref.preferred_node_id);
-          if (foundNode) activeNode = foundNode;
-        }
-      }
-    } catch (_) {}
   }
 }
 
@@ -149,14 +214,13 @@ async function loadSupabaseCheckoutData() {
 // =============================================================================
 
 function selectDeliveryMode(mode) {
-  activeDeliveryMode = mode;
-
   const cardNode = document.getElementById('card-delivery-node');
   const cardHome = document.getElementById('card-delivery-home');
   const radioNode = document.getElementById('radio-delivery-node');
   const radioHome = document.getElementById('radio-delivery-home');
 
   if (mode === 'NODE_PICKUP') {
+    activeDeliveryMode = 'NODE_PICKUP';
     if (radioNode) radioNode.checked = true;
     if (cardNode) {
       cardNode.className = 'cursor-pointer rounded-2xl p-5 border-2 transition-all relative border-[#1a3d2f] bg-emerald-50/30 ring-2 ring-[#1a3d2f]/10 shadow-xs';
@@ -164,7 +228,11 @@ function selectDeliveryMode(mode) {
     if (cardHome) {
       cardHome.className = 'cursor-pointer rounded-2xl p-5 border-2 transition-all relative border-stone-200 bg-white hover:border-stone-300';
     }
+    // Ocultar alerta de dirección si estaba visible
+    const alertBanner = document.getElementById('checkout-delivery-alert');
+    if (alertBanner) alertBanner.classList.add('hidden');
   } else {
+    activeDeliveryMode = 'HOME_DELIVERY';
     if (radioHome) radioHome.checked = true;
     if (cardHome) {
       cardHome.className = 'cursor-pointer rounded-2xl p-5 border-2 transition-all relative border-[#1a3d2f] bg-emerald-50/30 ring-2 ring-[#1a3d2f]/10 shadow-xs';
@@ -173,7 +241,7 @@ function selectDeliveryMode(mode) {
       cardNode.className = 'cursor-pointer rounded-2xl p-5 border-2 transition-all relative border-stone-200 bg-white hover:border-stone-300';
     }
 
-    // Si no hay dirección y se selecciona domicilio, sugerir agregar una
+    // Si no hay dirección y se selecciona domicilio, abrir el formulario para agregarla
     if (!activeAddress && checkoutAddresses.length === 0) {
       openNewAddressModal();
     }
@@ -190,7 +258,7 @@ function updateNodeUI(node) {
   const estEl = document.getElementById('checkout-node-estimate');
 
   if (nameEl) nameEl.textContent = node.name;
-  if (addrEl) addrEl.textContent = `${node.address} · ${node.city}`;
+  if (addrEl) addrEl.textContent = `${node.address} · ${node.city || 'Guayaquil'}`;
   if (schedEl) schedEl.textContent = node.pickup_schedule;
   if (estEl) {
     estEl.innerHTML = `🌿 <strong>Tiempo de preparación:</strong> Tu canasta estará lista para retiro el ${node.pickup_schedule}.`;
@@ -204,16 +272,38 @@ function updateNodeUI(node) {
 }
 
 function updateAddressUI(addr) {
-  if (!addr) return;
+  const noAddrView = document.getElementById('checkout-no-address-view');
+  const selAddrView = document.getElementById('checkout-selected-address-view');
+  const schedBox = document.getElementById('checkout-home-schedule-box');
+  const btnToggle = document.getElementById('btn-toggle-addresses');
+  const feeBadge = document.getElementById('checkout-home-fee-badge');
+
+  if (feeBadge) {
+    feeBadge.textContent = '$2.50';
+  }
+
+  // Caso A: Sin dirección guardada
+  if (!addr) {
+    if (noAddrView) noAddrView.classList.remove('hidden');
+    if (selAddrView) selAddrView.classList.add('hidden');
+    if (schedBox) schedBox.classList.add('hidden');
+    if (btnToggle) btnToggle.classList.add('hidden');
+    return;
+  }
+
+  // Caso B: Con dirección seleccionada
+  if (noAddrView) noAddrView.classList.add('hidden');
+  if (selAddrView) selAddrView.classList.remove('hidden');
+  if (schedBox) schedBox.classList.remove('hidden');
+
   const labelEl = document.getElementById('checkout-home-label');
   const neighEl = document.getElementById('checkout-home-neighborhood');
   const schedEl = document.getElementById('checkout-home-schedule');
   const estEl = document.getElementById('checkout-home-estimate');
   const instEl = document.getElementById('checkout-home-instructions');
-  const feeBadge = document.getElementById('checkout-home-fee-badge');
 
-  if (labelEl) labelEl.textContent = `${addr.label} · ${addr.street_address}`;
-  if (neighEl) neighEl.textContent = `${addr.neighborhood} · ${addr.city}`;
+  if (labelEl) labelEl.textContent = `${addr.label || 'Casa'} · ${addr.street_address}`;
+  if (neighEl) neighEl.textContent = `${addr.neighborhood || 'Sector'} · ${addr.city || 'Guayaquil'}`;
   if (schedEl) schedEl.textContent = addr.delivery_schedule || 'Sáb. 14 nov. · 2:00 – 6:00 p. m.';
   if (estEl) {
     estEl.innerHTML = `🚚 <strong>Tiempo de entrega:</strong> Entrega en tu puerta el Sábado entre 2:00 p. m. y 6:00 p. m.`;
@@ -226,15 +316,18 @@ function updateAddressUI(addr) {
       instEl.classList.add('hidden');
     }
   }
-  if (feeBadge) {
-    feeBadge.textContent = `$${Number(addr.delivery_fee ?? 1.50).toFixed(2)}`;
+
+  if (checkoutAddresses.length > 1) {
+    if (btnToggle) btnToggle.classList.remove('hidden');
+  } else {
+    if (btnToggle) btnToggle.classList.add('hidden');
   }
 
   // Resumen lateral si está en modo domicilio
   if (activeDeliveryMode === 'HOME_DELIVERY') {
     const sumName = document.getElementById('summary-delivery-name');
     const sumSched = document.getElementById('summary-delivery-schedule');
-    if (sumName) sumName.textContent = `${addr.label}: ${addr.street_address}`;
+    if (sumName) sumName.textContent = `${addr.label || 'Casa'}: ${addr.street_address}`;
     if (sumSched) sumSched.textContent = addr.delivery_schedule || 'Sáb. 14 nov. · 2:00 – 6:00 p. m.';
   }
 }
@@ -297,8 +390,16 @@ function choosePickupNode(nodeId) {
 
 function toggleAddressesSelector() {
   const dropdown = document.getElementById('checkout-addresses-dropdown');
+  const btnLabel = document.getElementById('btn-toggle-addresses-label');
   if (!dropdown) return;
-  dropdown.classList.toggle('hidden');
+  const isHidden = dropdown.classList.contains('hidden');
+  if (isHidden) {
+    dropdown.classList.remove('hidden');
+    if (btnLabel) btnLabel.textContent = '✕ Cerrar lista';
+  } else {
+    dropdown.classList.add('hidden');
+    if (btnLabel) btnLabel.textContent = '⇄ Cambiar dirección';
+  }
 }
 
 function renderDeliveryAddresses() {
@@ -308,22 +409,28 @@ function renderDeliveryAddresses() {
 
   if (checkoutAddresses.length > 1) {
     if (btnToggle) btnToggle.classList.remove('hidden');
-    container.innerHTML = checkoutAddresses.map(addr => {
-      const isSelected = activeAddress?.id === addr.id;
-      return `
-        <div 
-          onclick="chooseDeliveryAddress('${addr.id}')"
-          class="p-2 rounded-xl border text-[11px] cursor-pointer transition flex items-center justify-between ${
-            isSelected 
-              ? 'border-[#1a3d2f] bg-emerald-50 font-bold text-stone-900' 
-              : 'border-stone-200 bg-white hover:bg-stone-50 text-stone-600'
-          }"
-        >
-          <span><strong>${addr.label}:</strong> ${addr.street_address} (${addr.neighborhood})</span>
-          ${isSelected ? '<span class="text-emerald-700 font-bold">✓</span>' : ''}
-        </div>
-      `;
-    }).join('');
+    container.innerHTML = `
+      <div class="text-[11px] text-stone-500 font-semibold mb-1">Elige una de tus direcciones registradas:</div>
+      ${checkoutAddresses.map(addr => {
+        const isSelected = activeAddress?.id === addr.id;
+        return `
+          <div 
+            onclick="chooseDeliveryAddress('${addr.id}')"
+            class="p-2.5 rounded-xl border text-xs cursor-pointer transition flex items-center justify-between ${
+              isSelected 
+                ? 'border-[#1a3d2f] bg-emerald-50 text-stone-900 font-bold ring-1 ring-[#1a3d2f]/20' 
+                : 'border-stone-200 bg-white hover:bg-stone-50 text-stone-700'
+            }"
+          >
+            <div>
+              <p class="font-bold text-xs">${addr.label || 'Casa'}: <span class="font-normal text-stone-800">${addr.street_address}</span></p>
+              <p class="text-[10px] text-stone-400 mt-0.5">${addr.neighborhood || 'Sector'} · ${addr.city || 'Guayaquil'}</p>
+            </div>
+            ${isSelected ? '<span class="text-emerald-700 font-bold text-sm">✓</span>' : ''}
+          </div>
+        `;
+      }).join('')}
+    `;
   } else {
     if (btnToggle) btnToggle.classList.add('hidden');
     container.innerHTML = '';
@@ -338,6 +445,8 @@ function chooseDeliveryAddress(addrId) {
     renderDeliveryAddresses();
     const dropdown = document.getElementById('checkout-addresses-dropdown');
     if (dropdown) dropdown.classList.add('hidden');
+    const btnLabel = document.getElementById('btn-toggle-addresses-label');
+    if (btnLabel) btnLabel.textContent = '⇄ Cambiar dirección';
     updateOrderTotals();
   }
 }
@@ -348,9 +457,32 @@ function openNewAddressModal() {
   if (modal) modal.classList.remove('hidden');
 }
 
+/**
+ * Regla estricta de seguridad/UX:
+ * Advertencia y fallback automático a Recogida en Nodo (Gratis)
+ */
+function triggerAddressMissingFallback() {
+  // Cambiar automáticamente a Recogida en Nodo (Gratis) y recalcular total ($0.00 de envío)
+  selectDeliveryMode('NODE_PICKUP');
+
+  const alertBanner = document.getElementById('checkout-delivery-alert');
+  const alertText = document.getElementById('checkout-delivery-alert-text');
+  const msg = 'No has seleccionado una dirección de entrega. Se seleccionó automáticamente Recogida en Nodo.';
+  if (alertBanner && alertText) {
+    alertText.textContent = msg;
+    alertBanner.classList.remove('hidden');
+  }
+  showCheckoutToast(msg, 'warning');
+}
+
 function closeNewAddressModal() {
   const modal = document.getElementById('modal-new-address');
   if (modal) modal.classList.add('hidden');
+
+  // Si el usuario cancela o cierra sin haber guardado dirección y tiene marcado A Domicilio
+  if (activeDeliveryMode === 'HOME_DELIVERY' && !activeAddress) {
+    triggerAddressMissingFallback();
+  }
 }
 
 async function handleSaveNewAddress(event) {
@@ -361,7 +493,7 @@ async function handleSaveNewAddress(event) {
   const cityInput = document.getElementById('modal-addr-city');
   const instInput = document.getElementById('modal-addr-instructions');
 
-  const userId = checkoutUser?.id || '00000000-0000-0000-0000-000000000001';
+  const userId = checkoutUser?.id || (typeof getCachedProfile === 'function' ? getCachedProfile()?.id : null);
 
   const newAddrObj = {
     user_id: userId,
@@ -370,13 +502,13 @@ async function handleSaveNewAddress(event) {
     neighborhood: neighInput ? neighInput.value.trim() : 'Urdesa',
     city: cityInput ? cityInput.value.trim() : 'Guayaquil',
     delivery_instructions: instInput ? instInput.value.trim() : '',
-    delivery_fee: 1.50,
+    delivery_fee: 2.50,
     delivery_schedule: 'Sáb. 14 nov. · 2:00 – 6:00 p. m.',
     is_preferred: true
   };
 
   try {
-    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+    if (window.supabase && typeof window.supabase.fetchApi === 'function' && userId) {
       const res = await window.supabase.fetchApi('delivery_addresses', {
         method: 'POST',
         headers: { Prefer: 'return=representation' },
@@ -388,23 +520,43 @@ async function handleSaveNewAddress(event) {
     }
   } catch (e) {
     console.warn('Error guardando dirección en Supabase:', e);
+  }
+
+  if (!newAddrObj.id) {
     newAddrObj.id = 'addr-' + Date.now();
+  }
+
+  // Guardar en localStorage para persistencia inmediata del usuario
+  if (userId) {
+    try {
+      const userKey = `rb_delivery_addresses_${userId}`;
+      const existing = JSON.parse(localStorage.getItem(userKey) || '[]');
+      existing.unshift(newAddrObj);
+      localStorage.setItem(userKey, JSON.stringify(existing));
+    } catch (_) {}
   }
 
   checkoutAddresses.unshift(newAddrObj);
   activeAddress = newAddrObj;
   updateAddressUI(newAddrObj);
   renderDeliveryAddresses();
-  closeNewAddressModal();
+
+  // Cerrar modal sin disparar fallback
+  const modal = document.getElementById('modal-new-address');
+  if (modal) modal.classList.add('hidden');
+
+  const alertBanner = document.getElementById('checkout-delivery-alert');
+  if (alertBanner) alertBanner.classList.add('hidden');
+
   selectDeliveryMode('HOME_DELIVERY');
-  showCheckoutToast('Dirección agregada y seleccionada correctamente.');
+  showCheckoutToast('Dirección agregada y seleccionada correctamente.', 'success');
 }
 
 // Continuar al Paso 2
 function proceedToStep2() {
+  // Validación estricta: si está en A Domicilio pero sin dirección
   if (activeDeliveryMode === 'HOME_DELIVERY' && !activeAddress) {
-    alert('Por favor agrega o selecciona una dirección de entrega a domicilio.');
-    openNewAddressModal();
+    triggerAddressMissingFallback();
     return;
   }
 
@@ -699,11 +851,11 @@ function renderSummaryItems() {
       <div class="flex-1 min-w-0">
         <p class="font-bold text-stone-800 truncate">${item.title}</p>
         <p class="text-[11px] text-stone-400">
-          ${item.quantity || 1} ${item.unit || 'unidad(es)'} × $${Number(item.price || 0).toLocaleString('es-CO')}
+          ${item.quantity || 1} ${item.unit || 'unidad(es)'} × $${Number(item.price || 0).toFixed(2)}
         </p>
       </div>
       <span class="font-bold text-stone-900 shrink-0">
-        $${(Number(item.price || 0) * (item.quantity || 1)).toLocaleString('es-CO')}
+        $${(Number(item.price || 0) * (item.quantity || 1)).toFixed(2)}
       </span>
     </div>
   `).join('');
@@ -711,7 +863,7 @@ function renderSummaryItems() {
 
 function updateOrderTotals() {
   const subtotal = checkoutCart.reduce((sum, it) => sum + (Number(it.price || 0) * (it.quantity || 1)), 0);
-  const deliveryFee = activeDeliveryMode === 'NODE_PICKUP' ? 0 : Number(activeAddress?.delivery_fee ?? 1.50);
+  const deliveryFee = activeDeliveryMode === 'NODE_PICKUP' ? 0.00 : 2.50;
   const total = subtotal + deliveryFee;
 
   const subtotalEl = document.getElementById('summary-subtotal');
@@ -734,7 +886,7 @@ function updateOrderTotals() {
     if (kickerEl) kickerEl.textContent = 'Punto de recogida:';
     if (badgeEl) {
       badgeEl.textContent = 'Gratis';
-      badgeEl.className = 'text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.2 rounded-full';
+      badgeEl.className = 'text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full';
     }
     if (activeNode) updateNodeUI(activeNode);
   } else {
@@ -746,7 +898,7 @@ function updateOrderTotals() {
     if (kickerEl) kickerEl.textContent = 'Entrega a domicilio:';
     if (badgeEl) {
       badgeEl.textContent = `$${deliveryFee.toFixed(2)}`;
-      badgeEl.className = 'text-[10px] font-bold text-stone-700 bg-stone-100 px-2 py-0.2 rounded-full';
+      badgeEl.className = 'text-[10px] font-bold text-stone-700 bg-stone-100 px-2 py-0.5 rounded-full';
     }
     if (activeAddress) updateAddressUI(activeAddress);
   }
@@ -778,7 +930,7 @@ async function executePurchase() {
   const customerEmail = checkoutUser?.email || 'facturacion@raizybarrio.co';
 
   const subtotal = checkoutCart.reduce((sum, it) => sum + (Number(it.price || 0) * (it.quantity || 1)), 0);
-  const deliveryFee = activeDeliveryMode === 'NODE_PICKUP' ? 0 : Number(activeAddress?.delivery_fee ?? 1.50);
+  const deliveryFee = activeDeliveryMode === 'NODE_PICKUP' ? 0.00 : 2.50;
   const totalAmount = subtotal + deliveryFee;
 
   const randomNum = Math.floor(1000 + Math.random() * 9000);
@@ -836,9 +988,13 @@ async function executePurchase() {
     items: orderItems,
     subtotal: subtotal,
     delivery_fee: deliveryFee,
+    shipping_cost: deliveryFee,
     total_amount: totalAmount,
-    delivery_type: activeDeliveryMode,
+    total_price: totalAmount,
+    delivery_type: activeDeliveryMode === 'NODE_PICKUP' ? 'nodo' : 'domicilio',
+    delivery_type_code: activeDeliveryMode,
     delivery_location: deliveryLocation,
+    delivery_address: deliveryLocation,
     delivery_estimated_date: estimatedDate,
     preparation_time_estimate: prepEstimate,
     delivery_address_or_node_id: activeDeliveryMode === 'NODE_PICKUP' ? activeNode?.id : activeAddress?.id,
@@ -856,11 +1012,12 @@ async function executePurchase() {
       timestamp: new Date().toISOString()
     },
     delivery_details: {
-      delivery_type: activeDeliveryMode,
+      delivery_type: activeDeliveryMode === 'NODE_PICKUP' ? 'nodo' : 'domicilio',
       location_name: deliveryLocation,
       address: deliveryLocation,
       city: activeAddress?.city || activeNode?.city || 'Guayaquil',
       delivery_fee: deliveryFee,
+      shipping_cost: deliveryFee,
       schedule: estimatedDate
     },
     status: 'confirmed'

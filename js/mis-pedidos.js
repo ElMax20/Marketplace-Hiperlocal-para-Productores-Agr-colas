@@ -14,6 +14,9 @@ const DEMO_ORDERS = [
     created_at: "2026-11-06T14:30:00Z",
     status: "delivered",
     payment_method: "Tarjeta de crédito",
+    delivery_type: "nodo",
+    delivery_fee: 0.00,
+    shipping_cost: 0.00,
     total_amount: 58.00,
     items: [
       {
@@ -34,7 +37,10 @@ const DEMO_ORDERS = [
     created_at: "2026-10-30T10:15:00Z",
     status: "delivered",
     payment_method: "Transferencia PSE",
-    total_amount: 12.80,
+    delivery_type: "domicilio",
+    delivery_fee: 2.50,
+    shipping_cost: 2.50,
+    total_amount: 15.30,
     items: [
       {
         title: "Tomate de huerta",
@@ -54,6 +60,9 @@ const DEMO_ORDERS = [
     created_at: "2026-10-23T11:45:00Z",
     status: "delivered",
     payment_method: "Nequi",
+    delivery_type: "nodo",
+    delivery_fee: 0.00,
+    shipping_cost: 0.00,
     total_amount: 10.20,
     items: [
       {
@@ -74,7 +83,10 @@ const DEMO_ORDERS = [
     created_at: "2026-10-16T16:20:00Z",
     status: "delivered",
     payment_method: "Tarjeta de débito",
-    total_amount: 16.00,
+    delivery_type: "domicilio",
+    delivery_fee: 2.50,
+    shipping_cost: 2.50,
+    total_amount: 18.50,
     items: [
       {
         title: "Fresas de temporada",
@@ -94,6 +106,9 @@ const DEMO_ORDERS = [
     created_at: "2026-10-09T09:10:00Z",
     status: "delivered",
     payment_method: "Transferencia PSE",
+    delivery_type: "nodo",
+    delivery_fee: 0.00,
+    shipping_cost: 0.00,
     total_amount: 14.50,
     items: [
       {
@@ -413,6 +428,28 @@ function renderOrdersView(orders) {
     const unitPrice = item.price || (order.total_amount / Math.max(1, q));
     const totalPrice = item.subtotal || (unitPrice * q);
     
+    const dType = String(order.delivery_type || order.delivery_details?.delivery_type || '').toLowerCase();
+    const feeVal = Number(order.delivery_fee ?? order.shipping_cost ?? order.delivery_details?.delivery_fee ?? order.delivery_details?.shipping_cost ?? 0);
+    const isHome = dType.includes('domicilio') || dType.includes('home') || feeVal > 0;
+    const shippingFee = isHome ? (feeVal > 0 ? feeVal : 2.50) : 0.00;
+
+    let deliveryBadgeHtml = '';
+    if (isHome && shippingFee > 0) {
+      deliveryBadgeHtml = `
+        <p class="text-[11px] text-stone-600 font-medium mt-1 flex items-center gap-1">
+          <span>🏡</span> +$${formatUSD(shippingFee)} envío a domicilio
+        </p>
+      `;
+    } else {
+      deliveryBadgeHtml = `
+        <p class="text-[11px] text-emerald-700 font-medium mt-1 flex items-center gap-1">
+          <span>🏛️</span> Envío gratis (Recogida en nodo)
+        </p>
+      `;
+    }
+
+    const finalAmount = Number(order.total_amount ?? order.total_price ?? (totalPrice + shippingFee));
+    
     const paymentMethodName = cleanPaymentMethodName(order.payment_method, order.payment_details);
     const productImage = item.image_url || item.image || 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=600&q=80';
 
@@ -449,9 +486,10 @@ function renderOrdersView(orders) {
 
         <!-- Columna 3: Precio -->
         <div class="col-span-6 sm:col-span-3">
-          <p class="font-bold text-stone-900 text-sm sm:text-base leading-snug">$${formatUSD(totalPrice)}</p>
+          <p class="font-bold text-stone-900 text-sm sm:text-base leading-snug">$${formatUSD(finalAmount)}</p>
           <p class="text-[11px] text-stone-400 uppercase tracking-wider mt-0.5">USD · total</p>
           <p class="text-[11px] text-stone-500 font-medium mt-0.5">$${formatUSD(unitPrice)} / unidad</p>
+          ${deliveryBadgeHtml}
         </div>
 
         <!-- Columna 4: Método de pago -->

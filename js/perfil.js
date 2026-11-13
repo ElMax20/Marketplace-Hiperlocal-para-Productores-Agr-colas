@@ -420,7 +420,7 @@ function renderProfileUI(u) {
   if (deliveryNode) deliveryNode.textContent = u.preferredNode || 'Sede Urdesa · Espacio Verde';
 
   const deliveryAddress = document.getElementById('delivery-home-address');
-  if (deliveryAddress) deliveryAddress.textContent = u.address || 'Carrera 7 n.º 32-16, apto. 402';
+  if (deliveryAddress) deliveryAddress.textContent = u.address || 'Av. Víctor Emilio Estrada 415 y Bálsamos';
 }
 
 function updateCartBadge() {
@@ -1686,7 +1686,7 @@ function renderDeliveryPreferences() {
   // Renderizar cada dirección
   addrsContainer.innerHTML = cachedDeliveryAddresses.map(addr => {
     const isThisAddrPreferred = (activeDeliveryMode === 'home') && !!addr.is_preferred;
-    const feeFormatted = Number(addr.delivery_fee ?? 1.50).toFixed(2);
+    const feeFormatted = Number(addr.delivery_fee ?? 2.50).toFixed(2);
 
     const cardClasses = isThisAddrPreferred
       ? 'bg-[#f0f6f2] border-2 border-[#1a3d2f] rounded-xl p-3.5 shadow-2xs transition-all cursor-pointer'
@@ -1854,7 +1854,7 @@ function openAddressModal(addressId = null) {
     if (neighInput) neighInput.value = target.neighborhood || '';
     if (cityInput) cityInput.value = target.city || 'Guayaquil';
     if (schedInput) schedInput.value = target.delivery_schedule || 'Sáb. 7 nov. · 2:00 – 6:00 p. m.';
-    if (feeInput) feeInput.value = target.delivery_fee ?? 1.50;
+    if (feeInput) feeInput.value = target.delivery_fee ?? 2.50;
     if (instrInput) instrInput.value = target.delivery_instructions || '';
     if (prefCheckbox) prefCheckbox.checked = !!target.is_preferred;
 
@@ -1870,7 +1870,7 @@ function openAddressModal(addressId = null) {
     if (neighInput) neighInput.value = '';
     if (cityInput) cityInput.value = 'Guayaquil';
     if (schedInput) schedInput.value = 'Sáb. 7 nov. · 2:00 – 6:00 p. m.';
-    if (feeInput) feeInput.value = 1.50;
+    if (feeInput) feeInput.value = 2.50;
     if (instrInput) instrInput.value = '';
     if (prefCheckbox) prefCheckbox.checked = (cachedDeliveryAddresses.length === 0);
 
@@ -1920,7 +1920,7 @@ async function submitAddressForm() {
   const neighborhood = (document.getElementById('address-neighborhood')?.value || '').trim();
   const city = (document.getElementById('address-city')?.value || '').trim();
   const schedule = (document.getElementById('address-schedule')?.value || '').trim();
-  const fee = Number(document.getElementById('address-fee')?.value || 1.50);
+  const fee = Number(document.getElementById('address-fee')?.value || 2.50);
   const instructions = (document.getElementById('address-instructions')?.value || '').trim();
   const isPreferred = !!document.getElementById('address-is-preferred')?.checked;
 
