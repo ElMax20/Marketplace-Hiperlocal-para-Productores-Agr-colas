@@ -483,6 +483,81 @@ function syncModalPauseState() {
 
 // Estado actual del modal de login ('cliente' | 'productor')
 let currentAuthType = 'cliente';
+window.currentAuthType = 'cliente';
+
+/**
+ * Detecta de forma infalible y exhaustiva si el rol activo en el modal es Productor
+ * Revisa variable de estado, atributos data-role, títulos, badges y pestañas activas en el DOM.
+ * @returns {boolean}
+ */
+function isProducerAuthActive() {
+  // 1. Variable de estado en memoria (local o en window)
+  if (typeof window.currentAuthType !== 'undefined' && 
+      (window.currentAuthType === 'productor' || window.currentAuthType === 'producer')) {
+    return true;
+  }
+  if (typeof currentAuthType !== 'undefined' && 
+      (currentAuthType === 'productor' || currentAuthType === 'producer')) {
+    return true;
+  }
+
+  // 2. Atributo data-role o data-auth-type en modal o formulario
+  const loginModal = document.getElementById('login-auth-modal') || document.getElementById('auth-modal');
+  if (loginModal) {
+    const roleAttr = (loginModal.getAttribute('data-role') || loginModal.getAttribute('data-auth-type') || '').toLowerCase();
+    if (roleAttr === 'productor' || roleAttr === 'producer') return true;
+    if (roleAttr === 'cliente' || roleAttr === 'consumidor' || roleAttr === 'consumer') return false;
+  }
+  const loginForm = document.getElementById('login-auth-form');
+  if (loginForm) {
+    const formRole = (loginForm.getAttribute('data-role') || '').toLowerCase();
+    if (formRole === 'productor' || formRole === 'producer') return true;
+  }
+
+  // 3. Pestaña o tab activo en el DOM (tab-login-productor)
+  const tabProd = document.getElementById('tab-login-productor');
+  if (tabProd) {
+    const isSelected = tabProd.getAttribute('aria-selected') === 'true';
+    const cls = tabProd.className || '';
+    const hasProducerColor = cls.includes('#c85a32') || cls.includes('#C85A28') || cls.includes('bg-[#c85a32]') || cls.includes('bg-[#C85A28]');
+    const tabCli = document.getElementById('tab-login-cliente');
+    const isClientInactive = tabCli ? (!tabCli.className.includes('#1a3d2f') && tabCli.getAttribute('aria-selected') !== 'true') : true;
+
+    if (isSelected || (hasProducerColor && isClientInactive)) {
+      return true;
+    }
+  }
+
+  // 4. Título o badge del modal reflejando productor
+  const titleEl = document.getElementById('auth-modal-title');
+  if (titleEl && titleEl.textContent && 
+      (titleEl.textContent.includes('Productor') || titleEl.textContent.includes('Familias Productoras'))) {
+    return true;
+  }
+  const badgeEl = document.getElementById('auth-modal-badge');
+  if (badgeEl && badgeEl.textContent && 
+      badgeEl.textContent.toLowerCase().includes('productor')) {
+    return true;
+  }
+
+  // 5. Visibilidad de la sección técnica de productores
+  const prodTechSection = document.getElementById('auth-producer-technical-section');
+  if (prodTechSection && !prodTechSection.classList.contains('hidden')) {
+    return true;
+  }
+
+  return false;
+}
+window.isProducerAuthActive = isProducerAuthActive;
+
+/**
+ * Conmuta o establece el rol activo del modal de login
+ * @param {'cliente' | 'productor'} type 
+ */
+function setAuthType(type = 'cliente') {
+  openLoginModal(type);
+}
+window.setAuthType = setAuthType;
 
 /**
  * Abre el modal de inicio de sesión configurado para Cliente o Productor
@@ -490,8 +565,12 @@ let currentAuthType = 'cliente';
  */
 function openLoginModal(type = 'cliente') {
   currentAuthType = type;
+  window.currentAuthType = type;
   const modal = document.getElementById('login-auth-modal');
   if (!modal) return;
+
+  modal.setAttribute('data-role', type);
+  modal.setAttribute('data-auth-type', type);
 
   const titleEl = document.getElementById('auth-modal-title');
   const badgeEl = document.getElementById('auth-modal-badge');
@@ -506,10 +585,8 @@ function openLoginModal(type = 'cliente') {
     errorBox.textContent = '';
   }
 
-  // Limpiar campos
-  const userInput = document.getElementById('auth-username');
+  // Limpiar contraseña por seguridad al cambiar o abrir
   const passInput = document.getElementById('auth-password');
-  if (userInput) userInput.value = '';
   if (passInput) passInput.value = '';
 
   if (type === 'cliente') {
@@ -524,9 +601,11 @@ function openLoginModal(type = 'cliente') {
       submitBtn.className = 'w-full bg-[#1a3d2f] hover:bg-[#255440] text-white py-3 rounded-xl font-bold text-sm shadow-md transition';
     }
     if (tabCliente) {
+      tabCliente.setAttribute('aria-selected', 'true');
       tabCliente.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-[#1a3d2f] text-white transition shadow-sm';
     }
     if (tabProductor) {
+      tabProductor.setAttribute('aria-selected', 'false');
       tabProductor.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-stone-600 hover:text-stone-900 transition';
     }
     // Visibilidad de opciones específicas
@@ -538,17 +617,19 @@ function openLoginModal(type = 'cliente') {
     if (titleEl) titleEl.textContent = 'Portal de Familias Productoras';
     if (badgeEl) {
       badgeEl.textContent = 'Acceso Productor Agrícola';
-      badgeEl.className = 'inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#faece6] text-[#c85a32] border border-[#f3d9ce]';
+      badgeEl.className = 'inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#FDF6F0] text-[#C85A28] border border-[#f3d9ce]';
     }
     if (descEl) descEl.textContent = 'Espacio exclusivo para que los agricultores gestionen cosechas, canastas y entregas.';
     if (submitBtn) {
       submitBtn.textContent = 'Ingresar al Portal Productor';
-      submitBtn.className = 'w-full bg-[#c85a32] hover:bg-[#b04a25] text-white py-3 rounded-xl font-bold text-sm shadow-md transition';
+      submitBtn.className = 'w-full bg-[#C85A28] hover:bg-[#b04a20] text-white py-3 rounded-xl font-bold text-sm shadow-md transition';
     }
     if (tabProductor) {
-      tabProductor.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-[#c85a32] text-white transition shadow-sm';
+      tabProductor.setAttribute('aria-selected', 'true');
+      tabProductor.className = 'flex-1 py-2 text-xs font-bold rounded-lg bg-[#C85A28] text-white transition shadow-sm';
     }
     if (tabCliente) {
+      tabCliente.setAttribute('aria-selected', 'false');
       tabCliente.className = 'flex-1 py-2 text-xs font-semibold rounded-lg text-stone-600 hover:text-stone-900 transition';
     }
     // Visibilidad de opciones específicas
@@ -562,7 +643,9 @@ function openLoginModal(type = 'cliente') {
   document.body.classList.add('modal-open');
   if (typeof window.pauseHeroSliderForModal === 'function') window.pauseHeroSliderForModal();
   document.body.style.overflow = 'hidden';
-  if (userInput) userInput.focus();
+
+  const userInput = document.getElementById('auth-username');
+  if (userInput && !userInput.value) userInput.focus();
 }
 
 function closeLoginModal() {
@@ -573,9 +656,9 @@ function closeLoginModal() {
     syncModalPauseState();
   }
   const clientForgotPanel = document.getElementById('forgot-password-panel');
-  const producerForgotPanel = document.getElementById('producer-forgot-password-panel');
+  const producerForgotView = document.getElementById('producer-forgot-password-view') || document.getElementById('producer-forgot-password-panel');
   if ((clientForgotPanel && !clientForgotPanel.classList.contains('hidden')) || 
-      (producerForgotPanel && !producerForgotPanel.classList.contains('hidden'))) {
+      (producerForgotView && !producerForgotView.classList.contains('hidden'))) {
     switchToLoginView();
   }
 }
@@ -593,10 +676,85 @@ function safeEscapeHtml(str) {
 }
 
 /**
+ * Copia el correo de soporte al portapapeles y ofrece retroalimentación visual inmediata
+ */
+function copyProducerSupportEmail() {
+  const email = 'campomax82@gmail.com';
+  const labelEl = document.getElementById('copy-email-label');
+  const iconEl = document.getElementById('copy-email-icon');
+  const labelElMarket = document.getElementById('copy-email-label-market');
+  const iconElMarket = document.getElementById('copy-email-icon-market');
+
+  const updateUI = () => {
+    if (labelEl) labelEl.textContent = '¡Copiado!';
+    if (iconEl) iconEl.textContent = '✓';
+    if (labelElMarket) labelElMarket.textContent = '¡Copiado!';
+    if (iconElMarket) iconElMarket.textContent = '✓';
+
+    setTimeout(() => {
+      if (labelEl) labelEl.textContent = 'Copiar';
+      if (iconEl) iconEl.textContent = '📋';
+      if (labelElMarket) labelElMarket.textContent = 'Copiar';
+      if (iconElMarket) iconElMarket.textContent = '📋';
+    }, 2500);
+  };
+
+  const fallbackCopyText = (text) => {
+    try {
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'fixed';
+      textArea.style.top = '-9999px';
+      textArea.style.left = '-9999px';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    } catch (err) {
+      console.warn('Fallback copy error:', err);
+    }
+  };
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(email).then(updateUI).catch(() => {
+      fallbackCopyText(email);
+      updateUI();
+    });
+  } else {
+    fallbackCopyText(email);
+    updateUI();
+  }
+}
+window.copyProducerSupportEmail = copyProducerSupportEmail;
+
+/**
+ * Abre el cliente de correo predeterminado del usuario con plantilla prellenada hacia campomax82@gmail.com
+ */
+function sendProducerSupportMail() {
+  const userInput = document.getElementById('auth-username') || document.getElementById('login-email');
+  const userVal = (userInput && userInput.value) ? userInput.value.trim() : '';
+
+  const subject = 'Restablecimiento de contraseña - Portal Productores (Raíz & Barrio)';
+  const bodyText = 'Hola equipo de soporte técnico de Raíz & Barrio,\r\n\r\n' +
+    'Solicito ayuda para restablecer la contraseña de mi cuenta de productor.\r\n\r\n' +
+    '- Nombre de la finca o productor:\r\n' +
+    `- Usuario o correo registrado: ${userVal}\r\n` +
+    '- Teléfono de contacto:\r\n\r\n' +
+    'Muchas gracias.';
+
+  const mailtoUrl = `mailto:campomax82@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(bodyText)}`;
+  window.location.href = mailtoUrl;
+}
+window.sendProducerSupportMail = sendProducerSupportMail;
+
+/**
  * Cambia suavemente la vista del modal al panel de Recuperar Contraseña,
- * diferenciando entre Comprador / Vecino (automático vía n8n) y Soy Productor (asistencia técnica / agrónomo)
+ * diferenciando de forma infalible entre Comprador / Vecino (automático vía n8n) y Soy Productor (soporte campomax82@gmail.com)
  */
 function switchToForgotPasswordView() {
+  const isProducer = isProducerAuthActive();
+
   const tabsWrapper = document.getElementById('auth-modal-tabs-wrapper');
   const badgeEl = document.getElementById('auth-modal-badge');
   const titleEl = document.getElementById('auth-modal-title');
@@ -604,28 +762,28 @@ function switchToForgotPasswordView() {
   const loginForm = document.getElementById('login-auth-form');
   const errorBox = document.getElementById('auth-error-box');
   const clientForgotPanel = document.getElementById('forgot-password-panel');
-  const producerForgotPanel = document.getElementById('producer-forgot-password-panel');
+  const producerForgotView = document.getElementById('producer-forgot-password-view') || document.getElementById('producer-forgot-password-panel');
+  const modalHeader = document.getElementById('auth-modal-header');
 
   if (tabsWrapper) tabsWrapper.classList.add('hidden');
-  if (badgeEl) badgeEl.classList.add('hidden');
   if (loginForm) loginForm.classList.add('hidden');
   if (errorBox) errorBox.classList.add('hidden');
 
-  if (currentAuthType === 'productor') {
+  if (isProducer) {
     // =========================================================================
-    // MODO 2: Soy Productor -> Canal de Soporte Agronómico / Director Técnico
+    // MODO 2: Soy Productor -> Exclusivamente Soporte Técnico campomax82@gmail.com
+    // REGLA ESTRICTA: NUNCA mostrar formulario verde con input de correo
     // =========================================================================
     if (clientForgotPanel) clientForgotPanel.classList.add('hidden');
-    if (producerForgotPanel) producerForgotPanel.classList.remove('hidden');
-
-    if (titleEl) titleEl.textContent = 'Soporte y Acceso Productor';
-    if (descEl) descEl.textContent = 'Gestión agronómica y técnica de credenciales para familias campesinas.';
+    if (modalHeader) modalHeader.classList.add('hidden');
+    if (producerForgotView) producerForgotView.classList.remove('hidden');
   } else {
     // =========================================================================
     // MODO 1: Comprador / Vecino -> Recuperación Automática n8n
     // =========================================================================
-    if (producerForgotPanel) producerForgotPanel.classList.add('hidden');
-    if (clientForgotPanel) clientForgotPanel.classList.remove('hidden');
+    if (producerForgotView) producerForgotView.classList.add('hidden');
+    if (modalHeader) modalHeader.classList.remove('hidden');
+    if (badgeEl) badgeEl.classList.add('hidden');
 
     if (titleEl) titleEl.textContent = 'Recuperar contraseña';
     if (descEl) descEl.textContent = 'Ingresa el correo con el que te registraste y te enviaremos un enlace seguro para crear una nueva clave.';
@@ -652,27 +810,31 @@ function switchToForgotPasswordView() {
       }
     }
 
+    if (clientForgotPanel) clientForgotPanel.classList.remove('hidden');
     if (emailInput) emailInput.focus();
   }
 }
 
 /**
  * Regresa a la vista normal de inicio de sesión dentro del modal
+ * @param {'cliente' | 'productor'} [preferredRole]
  */
-function switchToLoginView() {
+function switchToLoginView(preferredRole) {
   const tabsWrapper = document.getElementById('auth-modal-tabs-wrapper');
   const badgeEl = document.getElementById('auth-modal-badge');
+  const modalHeader = document.getElementById('auth-modal-header');
   const loginForm = document.getElementById('login-auth-form');
   const clientForgotPanel = document.getElementById('forgot-password-panel');
-  const producerForgotPanel = document.getElementById('producer-forgot-password-panel');
+  const producerForgotView = document.getElementById('producer-forgot-password-view') || document.getElementById('producer-forgot-password-panel');
   const emailInput = document.getElementById('forgot-email-input');
   const submitBtn = document.getElementById('forgot-submit-btn');
 
   if (tabsWrapper) tabsWrapper.classList.remove('hidden');
+  if (modalHeader) modalHeader.classList.remove('hidden');
   if (badgeEl) badgeEl.classList.remove('hidden');
   if (loginForm) loginForm.classList.remove('hidden');
   if (clientForgotPanel) clientForgotPanel.classList.add('hidden');
-  if (producerForgotPanel) producerForgotPanel.classList.add('hidden');
+  if (producerForgotView) producerForgotView.classList.add('hidden');
 
   if (emailInput) {
     emailInput.disabled = false;
@@ -684,11 +846,8 @@ function switchToLoginView() {
   }
 
   // Re-aplicar configuración según tipo de usuario activo ('cliente' o 'productor')
-  if (typeof currentAuthType !== 'undefined') {
-    openLoginModal(currentAuthType);
-  } else {
-    openLoginModal('cliente');
-  }
+  const targetRole = preferredRole || (isProducerAuthActive() ? 'productor' : 'cliente');
+  openLoginModal(targetRole);
 }
 
 /**
@@ -784,8 +943,10 @@ async function handleForgotPasswordSubmit(event) {
 
 // Funciones equivalentes para mercado.html
 function switchToForgotPasswordViewMarket() {
+  const isProducer = isProducerAuthActive();
   const formLogin = document.getElementById('form-login');
   const forgotPanel = document.getElementById('forgot-password-panel-market');
+  const producerForgotView = document.getElementById('producer-forgot-password-view-market') || document.getElementById('producer-forgot-password-view');
   const emailInput = document.getElementById('forgot-email-input-market');
   const loginEmail = document.getElementById('login-email');
   const title = document.getElementById('auth-modal-title');
@@ -794,21 +955,31 @@ function switchToForgotPasswordViewMarket() {
 
   if (formLogin) formLogin.classList.add('hidden');
   if (tabsWrapper) tabsWrapper.classList.add('hidden');
-  if (forgotPanel) forgotPanel.classList.remove('hidden');
 
-  if (title) title.textContent = 'Recuperar contraseña';
-  if (subtitle) subtitle.textContent = 'Ingresa el correo con el que te registraste y te enviaremos un enlace seguro para crear una nueva clave.';
+  if (isProducer) {
+    if (forgotPanel) forgotPanel.classList.add('hidden');
+    if (title) title.textContent = 'Contacta al Directorio Técnico';
+    if (subtitle) subtitle.textContent = 'Por seguridad y validación de nuestras fincas verificadas, el restablecimiento de contraseña para productores se realiza directamente con el equipo de soporte técnico del sitio web.';
+    if (producerForgotView) producerForgotView.classList.remove('hidden');
+  } else {
+    if (producerForgotView) producerForgotView.classList.add('hidden');
+    if (forgotPanel) forgotPanel.classList.remove('hidden');
 
-  if (loginEmail && emailInput) {
-    const val = loginEmail.value.trim();
-    if (val.includes('@')) emailInput.value = val;
+    if (title) title.textContent = 'Recuperar contraseña';
+    if (subtitle) subtitle.textContent = 'Ingresa el correo con el que te registraste y te enviaremos un enlace seguro para crear una nueva clave.';
+
+    if (loginEmail && emailInput) {
+      const val = loginEmail.value.trim();
+      if (val.includes('@')) emailInput.value = val;
+    }
+    if (emailInput) emailInput.focus();
   }
-  if (emailInput) emailInput.focus();
 }
 
 function switchToLoginViewMarket() {
   const formLogin = document.getElementById('form-login');
   const forgotPanel = document.getElementById('forgot-password-panel-market');
+  const producerForgotView = document.getElementById('producer-forgot-password-view-market') || document.getElementById('producer-forgot-password-view');
   const title = document.getElementById('auth-modal-title');
   const subtitle = document.getElementById('auth-modal-subtitle');
   const tabsWrapper = document.querySelector('#auth-modal .flex.border-b');
@@ -816,6 +987,7 @@ function switchToLoginViewMarket() {
   const submitBtn = document.getElementById('forgot-submit-btn-market');
 
   if (forgotPanel) forgotPanel.classList.add('hidden');
+  if (producerForgotView) producerForgotView.classList.add('hidden');
   if (formLogin) formLogin.classList.remove('hidden');
   if (tabsWrapper) tabsWrapper.classList.remove('hidden');
 

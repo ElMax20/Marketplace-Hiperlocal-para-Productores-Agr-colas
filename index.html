@@ -62,7 +62,7 @@
 
   <!-- Supabase & Auth Zero-Flicker Hydration -->
   <script src="js/supabase.js?v=5.1"></script>
-  <script src="js/auth.js?v=5.1"></script>
+  <script src="js/auth.js?v=5.2"></script>
 
   <!-- Estilos para scroll fluido en modales -->
   <style>
@@ -1291,7 +1291,7 @@
         </div>
       </form>
 
-      <!-- Panel de Recuperar Contraseña -->
+      <!-- Panel de Recuperar Contraseña (Comprador / Vecino) -->
       <div id="forgot-password-panel" class="hidden">
         <div id="forgot-error-box" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium"></div>
         <div id="forgot-success-box" class="hidden mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-medium leading-relaxed"></div>
@@ -1319,7 +1319,7 @@
           <div class="pt-2 text-center">
             <button 
               type="button" 
-              onclick="switchToLoginView()" 
+              onclick="switchToLoginView('cliente')" 
               class="text-xs font-medium text-[#143628] hover:underline transition inline-flex items-center gap-1 cursor-pointer"
             >
               <span>← Volver a iniciar sesión</span>
@@ -1328,49 +1328,68 @@
         </form>
       </div>
 
-      <!-- Panel de Asistencia y Recuperación para Productores Agrícolas -->
-      <div id="producer-forgot-password-panel" class="hidden space-y-4">
-        <div class="bg-[#FAF7F2] p-4 rounded-2xl border border-stone-200 text-left">
-          <div class="flex items-center gap-2 mb-2">
-            <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-[#faece6] text-[#c85a32] border border-[#f3d9ce]">
-              Validación Agronómica
-            </span>
-          </div>
-          <p class="text-xs text-stone-700 leading-relaxed font-medium">
-            Por trazabilidad de cosechas y seguridad de pagos campesinos, el restablecimiento de claves para <strong>fincas registradas</strong> se coordina de manera asistida con nuestra Dirección Técnica.
+      <!-- =======================================================================
+           Vista Exclusiva de Soporte para Productores Agrícolas (#producer-forgot-password-view)
+           Paleta terracota: #C85A28 y fondo cálido: #FDF6F0
+           ======================================================================= -->
+      <div id="producer-forgot-password-view" class="hidden space-y-4 text-left">
+        <!-- Badge superior -->
+        <div>
+          <span class="inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#FDF6F0] text-[#C85A28] border border-[#f3d9ce]">
+            SOPORTE PORTAL PRODUCTORES
+          </span>
+        </div>
+
+        <!-- Título y Descripción -->
+        <div>
+          <h3 class="font-serif text-2xl text-stone-900 font-bold mt-1">Contacta al Directorio Técnico</h3>
+          <p class="text-xs text-stone-600 mt-1.5 leading-relaxed">
+            Por seguridad y validación de nuestras fincas verificadas, el restablecimiento de contraseña para productores se realiza directamente con el equipo de soporte técnico del sitio web.
           </p>
         </div>
 
-        <div class="space-y-2.5">
-          <!-- Botón WhatsApp Soporte Técnico -->
-          <a 
-            href="https://wa.me/593999999999?text=Hola%2C%20soy%20productor%20de%20Ra%C3%ADz%20%26%20Barrio%20y%20necesito%20asistencia%20para%20restablecer%20mi%20contrase%C3%B1a." 
-            target="_blank" 
-            rel="noopener noreferrer"
-            class="w-full bg-[#c85a32] hover:bg-[#b04a25] text-white py-3 rounded-full font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
-          >
-            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.669-.699c.969.57 1.761.854 2.791.854 3.18 0 5.767-2.587 5.768-5.766 0-3.18-2.587-5.768-5.768-5.768zm0-2.172c4.418 0 8 3.582 8 8s-3.582 8-8 8c-1.393 0-2.697-.361-3.834-.99l-4.197 1.1 1.119-4.092c-.689-1.168-1.088-2.531-1.088-3.998 0-4.418 3.582-8 8-8z"/></svg>
-            <span>Contactar al Director Técnico (WhatsApp)</span>
-          </a>
-
-          <!-- Botón Solicitar Verificación en Plataforma -->
+        <!-- Recuadro con correo de soporte y botón copiar -->
+        <div class="bg-[#FDF6F0] p-4 rounded-2xl border border-[#f3d9ce] flex items-center justify-between gap-3">
+          <div class="flex items-center gap-3 min-w-0">
+            <div class="w-9 h-9 rounded-xl bg-white text-[#C85A28] flex items-center justify-center shrink-0 border border-[#f3d9ce] shadow-xs text-base">
+              ✉️
+            </div>
+            <div class="min-w-0">
+              <p class="text-[10px] text-stone-500 uppercase tracking-wider font-semibold">Correo de Soporte Técnico</p>
+              <p id="producer-support-email-text" class="text-xs sm:text-sm font-bold text-stone-900 truncate select-all">campomax82@gmail.com</p>
+            </div>
+          </div>
           <button 
             type="button" 
-            onclick="closeLoginModal(); openProducerTechnicalModal();" 
-            class="w-full bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 py-2.5 rounded-full font-bold text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+            id="btn-copy-producer-email"
+            onclick="copyProducerSupportEmail()" 
+            class="px-3.5 py-1.5 bg-white hover:bg-stone-50 text-[#C85A28] border border-[#f3d9ce] rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1.5 shrink-0 cursor-pointer"
+            title="Copiar correo al portapapeles"
           >
-            <svg class="w-4 h-4 text-[#c85a32]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-            <span>Abrir Formulario de Acreditación Técnica</span>
+            <span id="copy-email-icon">📋</span>
+            <span id="copy-email-label">Copiar</span>
           </button>
         </div>
 
+        <!-- Botón principal terracota #C85A28 bordes pill -->
+        <div>
+          <button 
+            type="button" 
+            onclick="sendProducerSupportMail()" 
+            class="w-full bg-[#C85A28] hover:bg-[#b04a20] text-white py-3 rounded-full font-bold text-xs shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <span>✉️ Enviar correo al equipo de soporte</span>
+          </button>
+        </div>
+
+        <!-- Enlace inferior para regresar -->
         <div class="pt-2 text-center">
           <button 
             type="button" 
-            onclick="switchToLoginView()" 
+            onclick="switchToLoginView('productor')" 
             class="text-xs font-medium text-stone-600 hover:text-stone-900 hover:underline transition inline-flex items-center gap-1 cursor-pointer"
           >
-            <span>← Volver a iniciar sesión</span>
+            <span>← Volver al inicio de sesión</span>
           </button>
         </div>
       </div>
