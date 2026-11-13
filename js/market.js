@@ -2574,9 +2574,25 @@ async function handleLogin(e) {
 }
 
 // Cerrar Sesión (vuelve a ser invitado)
-function handleLogout() {
-  localStorage.removeItem('rb_current_user');
-  localStorage.removeItem('raiz_user');
+async function handleLogout() {
+  if (typeof logoutUser === 'function') {
+    await logoutUser();
+    return;
+  }
+  if (typeof clearAllAuthTokens === 'function') {
+    clearAllAuthTokens();
+  } else {
+    localStorage.removeItem('rb_current_user');
+    localStorage.removeItem('raiz_user');
+    localStorage.removeItem('rb_cached_profile');
+    localStorage.removeItem('selected_address');
+    localStorage.removeItem('delivery_address');
+    localStorage.removeItem('active_node');
+    localStorage.removeItem('raiz_delivery_preference');
+  }
+  if (typeof resetHeaderLocationToDefault === 'function') {
+    resetHeaderLocationToDefault();
+  }
   checkAuthStatus();
   showToast('Has cerrado sesión. Ahora navegas como invitado.');
 }

@@ -94,21 +94,66 @@ function ensureSupabaseAuthToken(user) {
 window.ensureSupabaseAuthToken = ensureSupabaseAuthToken;
 
 /**
- * Limpia todas las claves de sesión y caché de perfil al cerrar sesión
+ * Limpia todas las claves de sesión, caché de perfil y direcciones personales al cerrar sesión
  */
 function clearAllAuthTokens() {
   try {
+    // 1. Claves de usuario y sesión
     localStorage.removeItem('rb_cached_profile');
     localStorage.removeItem('rb_current_user');
     localStorage.removeItem('raiz_user');
+
+    // 2. Claves de direcciones y preferencias de entrega personales
+    localStorage.removeItem('selected_address');
+    localStorage.removeItem('delivery_address');
+    localStorage.removeItem('active_node');
+    localStorage.removeItem('raiz_delivery_preference');
+
+    // 3. Limpiar claves dinámicas y tokens de Supabase
     const keysToRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if (k && ((k.startsWith('sb-') && k.includes('auth-token')) || k === 'supabase.auth.token')) {
-        keysToRemove.push(k);
+      if (k) {
+        if ((k.startsWith('sb-') && k.includes('auth-token')) || 
+            k === 'supabase.auth.token' || 
+            k.startsWith('rb_delivery_addresses') ||
+            k.startsWith('selected_address') ||
+            k.startsWith('delivery_address')) {
+          keysToRemove.push(k);
+        }
       }
     }
     keysToRemove.forEach(k => localStorage.removeItem(k));
+
+    // 4. Limpiar sessionStorage
+    try {
+      sessionStorage.removeItem('rb_cached_profile');
+      sessionStorage.removeItem('rb_current_user');
+      sessionStorage.removeItem('raiz_user');
+      sessionStorage.removeItem('selected_address');
+      sessionStorage.removeItem('delivery_address');
+      sessionStorage.removeItem('active_node');
+      sessionStorage.removeItem('raiz_delivery_preference');
+    } catch (_) {}
+
+    // 5. Restablecer el selector de entrega en cabecera al nodo oficial por defecto (Sede Urdesa)
+    if (typeof window.resetHeaderLocationToDefault === 'function') {
+      window.resetHeaderLocationToDefault();
+    } else {
+      const defaultNode = {
+        type: 'node',
+        id: 'e0177a54-9cbc-4426-a538-1d630f852ac1',
+        name: 'Sede Urdesa · Espacio Verde',
+        detail: 'Av. Víctor Emilio Estrada y Bálsamos · Guayaquil'
+      };
+      try {
+        localStorage.setItem('raiz_delivery_preference', JSON.stringify(defaultNode));
+      } catch (_) {}
+      ['header-node-name', 'index-header-node-name', 'mis-pedidos-header-node-name', 'nav-user-node'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = 'Sede Urdesa';
+      });
+    }
   } catch (e) {
     console.error('Error limpiando sesión en localStorage:', e);
   }

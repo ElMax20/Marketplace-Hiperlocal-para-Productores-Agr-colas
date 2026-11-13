@@ -350,7 +350,7 @@ function renderProfileUI(u) {
   }
 
   const navNode = document.getElementById('nav-user-node');
-  if (navNode) navNode.textContent = (u.preferredNode || 'Nodo Central').split('·')[0].trim();
+  if (navNode) navNode.textContent = (u.preferredNode || 'Sede Urdesa').split('·')[0].trim();
 
   const navRoleLabel = document.getElementById('nav-user-role-label');
   if (navRoleLabel) navRoleLabel.textContent = `Mi cuenta · ${roleText}`;
@@ -2216,11 +2216,27 @@ function editAddressModal() {
   openAddressModal();
 }
 
-function handleLogout() {
+async function handleLogout() {
   if (confirm('¿Estás seguro de que deseas cerrar sesión?')) {
-    localStorage.removeItem('rb_current_user');
-    localStorage.removeItem('raiz_user');
-    window.location.href = 'mercado.html';
+    if (typeof logoutUser === 'function') {
+      await logoutUser();
+    } else {
+      if (typeof clearAllAuthTokens === 'function') {
+        clearAllAuthTokens();
+      } else {
+        localStorage.removeItem('rb_current_user');
+        localStorage.removeItem('raiz_user');
+        localStorage.removeItem('rb_cached_profile');
+        localStorage.removeItem('selected_address');
+        localStorage.removeItem('delivery_address');
+        localStorage.removeItem('active_node');
+        localStorage.removeItem('raiz_delivery_preference');
+      }
+      if (typeof resetHeaderLocationToDefault === 'function') {
+        resetHeaderLocationToDefault();
+      }
+      window.location.href = 'index.html';
+    }
   }
 }
 
