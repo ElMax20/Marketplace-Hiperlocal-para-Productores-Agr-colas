@@ -282,7 +282,7 @@ function renderProfileHTML(profile) {
           <p class="text-[10px] text-stone-500 capitalize">${role}</p>
         </div>
         ${roleBadge}
-        <a href="pedidos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+        <a href="mis-pedidos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
           <span>📦</span>
           <span>Mis pedidos</span>
         </a>

@@ -923,11 +923,18 @@ async function executePurchase() {
     }
 
     // 3. Guardar orden en localStorage para respaldo y vaciar carrito
-    localStorage.setItem('rb_last_order', JSON.stringify({
+    const savedOrder = {
       ...orderRecord,
       id: createdOrderId || transactionId,
       created_at: new Date().toISOString()
-    }));
+    };
+    localStorage.setItem('rb_last_order', JSON.stringify(savedOrder));
+    try {
+      const historyKey = userId ? `rb_orders_${userId}` : 'rb_orders_history';
+      const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
+      existingHistory.unshift(savedOrder);
+      localStorage.setItem(historyKey, JSON.stringify(existingHistory));
+    } catch (_) {}
     localStorage.removeItem('rb_cart');
     localStorage.setItem('raiz_cart', '[]');
 
