@@ -108,6 +108,7 @@ function clearAllAuthTokens() {
     localStorage.removeItem('delivery_address');
     localStorage.removeItem('active_node');
     localStorage.removeItem('raiz_delivery_preference');
+    localStorage.removeItem('raiz_favorites');
 
     // 3. Limpiar claves dinámicas y tokens de Supabase
     const keysToRemove = [];
@@ -331,7 +332,7 @@ function renderProfileHTML(profile) {
           <span>📦</span>
           <span>Mis pedidos</span>
         </a>
-        <a href="favoritos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+        <a href="mis-favoritos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
           <span>❤️</span>
           <span>Mis favoritos</span>
         </a>

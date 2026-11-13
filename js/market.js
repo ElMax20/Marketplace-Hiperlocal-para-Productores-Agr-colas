@@ -1040,13 +1040,27 @@ window.goToPage = goToPage;
 // =============================================================================
 // Helper: Manejo de Favoritos Persistentes
 // =============================================================================
-function initFavoritesFromStorage() {
+async function initFavoritesFromStorage() {
   try {
     const raw = localStorage.getItem('raiz_favorites');
     favorites = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(favorites)) favorites = [];
   } catch (e) {
     favorites = [];
+  }
+
+  // Sincronizar en segundo plano con Supabase si el usuario está conectado
+  const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  if (user && user.id && window.supabase && typeof window.supabase.fetchApi === 'function') {
+    try {
+      const res = await window.supabase.fetchApi(`favorites?user_id=eq.${user.id}&select=product_id`);
+      if (Array.isArray(res) && res.length > 0) {
+        const dbIds = res.map(r => String(r.product_id)).filter(Boolean);
+        favorites = dbIds;
+        localStorage.setItem('raiz_favorites', JSON.stringify(favorites));
+        renderProducts();
+      }
+    } catch (_) {}
   }
 }
 
@@ -1074,10 +1088,18 @@ function isProductFavorite(productId) {
 /**
  * Alternar producto en favoritos, colorear corazón y fijar al primer espacio
  */
-function toggleProductFavorite(productId, event) {
+async function toggleProductFavorite(productId, event) {
   if (event) {
     event.stopPropagation();
     event.preventDefault();
+  }
+
+  // Validar si el usuario está autenticado
+  const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  if (!user || !user.loggedIn) {
+    openAuthModal('login');
+    showToast('Inicia sesión para guardar productos en tus favoritos.');
+    return;
   }
 
   const p = PRODUCTS_DATA.find(item => item.id === productId || String(item.numericId) === String(productId));
@@ -1089,15 +1111,34 @@ function toggleProductFavorite(productId, event) {
   if (isFav) {
     // Quitar de favoritos
     favorites = favorites.filter(id => id !== primaryId && id !== numId);
-    if (typeof showToast === 'function') {
-      showToast(`${p ? p.title : 'Producto'} eliminado de favoritos`);
+    showToast(`${p ? p.title : 'Producto'} eliminado de favoritos`);
+
+    // Eliminar en Supabase
+    if (window.supabase && typeof window.supabase.fetchApi === 'function' && user.id) {
+      try {
+        await window.supabase.fetchApi(`favorites?user_id=eq.${user.id}&product_id=eq.${encodeURIComponent(primaryId)}`, { method: 'DELETE' });
+        if (numId) {
+          await window.supabase.fetchApi(`favorites?user_id=eq.${user.id}&product_id=eq.${encodeURIComponent(numId)}`, { method: 'DELETE' });
+        }
+      } catch (_) {}
     }
   } else {
     // Agregar al inicio para fijarlo en el primer espacio del catálogo
     favorites = favorites.filter(id => id !== primaryId && id !== numId);
     favorites.unshift(primaryId);
-    if (typeof showToast === 'function') {
-      showToast(`❤️ ¡${p ? p.title : 'Producto'} fijado en el primer espacio del catálogo!`);
+    showToast(`❤️ ¡${p ? p.title : 'Producto'} fijado en el primer espacio del catálogo!`);
+
+    // Guardar en Supabase
+    if (window.supabase && typeof window.supabase.fetchApi === 'function' && user.id) {
+      try {
+        await window.supabase.fetchApi('favorites', {
+          method: 'POST',
+          body: {
+            user_id: user.id,
+            product_id: primaryId
+          }
+        });
+      } catch (_) {}
     }
   }
 
@@ -1106,6 +1147,13 @@ function toggleProductFavorite(productId, event) {
   } catch (e) {}
 
   renderProducts();
+
+  // Disparar evento para sincronizar con otras pestañas / vistas
+  if (typeof CustomEvent === 'function' && typeof window.dispatchEvent === 'function') {
+    window.dispatchEvent(new CustomEvent('favorites-updated', {
+      detail: { productId: primaryId, isFavorite: !isFav, favorites }
+    }));
+  }
 }
 window.toggleProductFavorite = toggleProductFavorite;
 window.isProductFavorite = isProductFavorite;

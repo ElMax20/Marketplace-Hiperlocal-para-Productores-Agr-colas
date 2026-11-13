@@ -481,6 +481,37 @@ GRANT ALL ON TABLE public.producer_applications TO anon, authenticated, service_
 ALTER TABLE public.profiles ADD CONSTRAINT profiles_email_key UNIQUE (email);
 ALTER TABLE public.profiles ALTER COLUMN avatar_url SET DEFAULT NULL;
 
+-- =============================================================================
+-- 16. TABLA: favorites (Productos favoritos / Wishlist de Compradores)
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.favorites (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+    product_id text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT unique_user_product_favorite UNIQUE (user_id, product_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON public.favorites(user_id);
+CREATE INDEX IF NOT EXISTS idx_favorites_product_id ON public.favorites(product_id);
+
+ALTER TABLE public.favorites ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir select favorites para usuarios" ON public.favorites;
+CREATE POLICY "Permitir select favorites para usuarios" ON public.favorites
+    FOR SELECT TO anon, authenticated, public USING (true);
+
+DROP POLICY IF EXISTS "Permitir insert favorites para usuarios" ON public.favorites;
+CREATE POLICY "Permitir insert favorites para usuarios" ON public.favorites
+    FOR INSERT TO anon, authenticated, public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir delete favorites para usuarios" ON public.favorites;
+CREATE POLICY "Permitir delete favorites para usuarios" ON public.favorites
+    FOR DELETE TO anon, authenticated, public USING (true);
+
+GRANT ALL ON TABLE public.favorites TO anon, authenticated, service_role;
+
+
 
 
 

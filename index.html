@@ -658,6 +658,18 @@
               <span class="absolute top-4 left-4 bg-[#c85a32] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow">
                 Más Popular
               </span>
+              <button 
+                type="button" 
+                onclick="toggleProductFavorite('canasta-huerto-familiar', event)" 
+                data-favorite-btn="canasta-huerto-familiar" 
+                class="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/95 hover:bg-white shadow-md flex items-center justify-center text-stone-400 hover:text-[#c85a32] transition cursor-pointer z-20"
+                title="Agregar a favoritos" 
+                aria-label="Agregar a favoritos"
+              >
+                <svg class="w-4 h-4 text-stone-400 hover:text-[#c85a32]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+              </button>
             </div>
             <div class="p-6 sm:p-8 sm:w-1/2 flex flex-col justify-between">
               <div>
@@ -709,6 +721,18 @@
               <span class="absolute top-4 left-4 bg-[#24503E] text-white text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow">
                 Ideal para parejas
               </span>
+              <button 
+                type="button" 
+                onclick="toggleProductFavorite('canasta-agroecologica-esencial', event)" 
+                data-favorite-btn="canasta-agroecologica-esencial" 
+                class="absolute top-4 right-4 w-9 h-9 rounded-full bg-white/95 hover:bg-white shadow-md flex items-center justify-center text-stone-400 hover:text-[#c85a32] transition cursor-pointer z-20"
+                title="Agregar a favoritos" 
+                aria-label="Agregar a favoritos"
+              >
+                <svg class="w-4 h-4 text-stone-400 hover:text-[#c85a32]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+              </button>
             </div>
             <div class="p-6 sm:p-8 sm:w-1/2 flex flex-col justify-between">
               <div>
@@ -1611,6 +1635,8 @@
   </div>
 
   <!-- Scripts de componentes -->
+  <script src="js/products-data.js?v=1.0"></script>
+  <script src="js/favorites-service.js?v=1.0"></script>
   <script src="js/header-location.js?v=5.0"></script>
   <script src="js/hero-slider.js?v=5.0"></script>
   <script src="js/app.js?v=5.0"></script>

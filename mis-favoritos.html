@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mis favoritos | Raíz & Barrio</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/styles.css?v=5.3">
+
+  <style>
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    .font-serif { font-family: 'Playfair Display', serif; }
+  </style>
+
+  <script>
+    (function preloadActiveUser() {
+      try {
+        const raw = localStorage.getItem('rb_cached_profile') || 
+                    localStorage.getItem('rb_current_user') || 
+                    localStorage.getItem('raiz_user');
+        if (raw) {
+          window.__PRELOADED_USER = JSON.parse(raw);
+        }
+      } catch(e) {}
+    })();
+  </script>
+
+  <!-- Supabase & Auth Zero-Flicker Hydration -->
+  <script src="js/supabase.js?v=5.1"></script>
+  <script src="js/auth.js?v=5.3"></script>
+  <script src="js/header-location.js?v=5.0"></script>
+  <script src="js/products-data.js?v=1.0"></script>
+  <script src="js/favorites-service.js?v=1.0"></script>
+  <script src="js/mis-favoritos.js?v=1.0" defer></script>
+</head>
+<body class="bg-[#FAF8F5] min-h-screen text-stone-800 antialiased selection:bg-[#143628] selection:text-white flex flex-col justify-between">
+
+  <!-- =======================================================================
+       1. FRANJA SUPERIOR DE ANUNCIOS
+       ======================================================================= -->
+  <aside class="bg-[#143628] text-white text-[11px] py-1.5 px-4 text-center font-medium tracking-wide">
+    <div class="max-w-7xl mx-auto flex items-center justify-center gap-1.5">
+      <svg class="w-3.5 h-3.5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0"/>
+      </svg>
+      <span>Entregas consolidadas esta semana | Puntos de recolección disponibles</span>
+      <a href="index.html#nodos" class="underline hover:text-emerald-200 transition font-semibold ml-1">Conoce tu nodo →</a>
+    </div>
+  </aside>
+
+  <!-- =======================================================================
+       2. BARRA DE NAVEGACIÓN PRINCIPAL
+       ======================================================================= -->
+  <header class="bg-white border-b border-stone-200/80 sticky top-0 z-40 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 gap-4">
+        
+        <!-- Logo y enlace de retorno al mercado -->
+        <div class="flex items-center gap-3">
+          <a href="index.html" class="flex items-center gap-2.5 shrink-0 group">
+            <div class="w-8 h-8 rounded-lg bg-[#143628] text-emerald-200 flex items-center justify-center font-bold text-base shadow-xs group-hover:bg-[#1f4e3b] transition">
+              🌱
+            </div>
+            <div>
+              <span class="font-serif text-lg font-bold text-stone-900 leading-none block">raíz & barrio</span>
+              <span class="text-[9px] font-bold uppercase tracking-widest text-[#c85a32] block -mt-0.5">MERCADO DE CERCANÍA</span>
+            </div>
+          </a>
+
+          <a href="mercado.html" class="hidden sm:inline-flex items-center gap-1 text-xs font-semibold text-stone-600 hover:text-[#143628] transition py-1.5 px-3 rounded-full hover:bg-stone-50 border border-transparent hover:border-stone-200">
+            <span>←</span>
+            <span>Volver al mercado</span>
+          </a>
+        </div>
+
+        <!-- Acciones: Selector de Nodo + Perfil + Carrito -->
+        <div class="flex items-center gap-2.5 sm:gap-3 shrink-0">
+          
+          <!-- Selector interactivo de entrega en nodo -->
+          <div class="relative hidden md:block">
+            <button 
+              type="button" 
+              id="header-location-btn" 
+              onclick="toggleHeaderLocationDropdown(event)" 
+              class="flex items-center gap-1.5 border border-stone-200 rounded-full px-3 py-1.5 bg-stone-50 hover:bg-stone-100 transition cursor-pointer text-xs group"
+              title="Cambiar punto de recolección"
+            >
+              <svg class="w-3.5 h-3.5 text-[#c85a32]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+              </svg>
+              <span class="text-stone-400 text-[10px] uppercase font-semibold">Entregar en:</span>
+              <span id="header-node-name" class="font-bold text-[#143628] text-xs max-w-[140px] truncate">Sede Urdesa</span>
+              <span class="text-stone-400 text-[10px]">▾</span>
+            </button>
+
+            <!-- Dropdown Flotante de Ubicación -->
+            <div 
+              id="header-location-dropdown" 
+              class="hidden absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white rounded-3xl shadow-2xl border border-stone-200 p-4 z-50 text-xs text-left"
+            >
+              <div class="pb-3 border-b border-stone-100 flex items-center justify-between">
+                <div>
+                  <h4 class="font-bold text-stone-900 text-xs">Elige dónde recibir tu mercado</h4>
+                  <p class="text-[11px] text-stone-400 mt-0.5">Adaptamos los días de entrega y cosechas a tu zona</p>
+                </div>
+                <button type="button" onclick="closeHeaderLocationDropdown()" class="text-stone-400 hover:text-stone-600 text-sm p-1 cursor-pointer">✕</button>
+              </div>
+
+              <!-- Sección 1: Nodos Comunitarios (Recogida Gratis) -->
+              <div class="mt-3">
+                <div class="flex items-center justify-between mb-1.5 px-1">
+                  <span class="font-bold text-[10px] uppercase tracking-wider text-[#143628] flex items-center gap-1">
+                    <span>🏛️</span> Nodos Comunitarios (Gratis)
+                  </span>
+                </div>
+                <div id="header-dropdown-nodes-list" class="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                  <p class="text-[11px] text-stone-400 p-2">Cargando nodos...</p>
+                </div>
+              </div>
+
+              <!-- Sección 2: Direcciones a Domicilio -->
+              <div class="mt-3 pt-3 border-t border-stone-100">
+                <div class="flex items-center justify-between mb-1.5 px-1">
+                  <span class="font-bold text-[10px] uppercase tracking-wider text-[#c85a32] flex items-center gap-1">
+                    <span>🏡</span> A Domicilio ($2.50)
+                  </span>
+                  <a href="perfil.html" class="text-[10px] font-bold text-[#143628] hover:underline">
+                    + Administrar
+                  </a>
+                </div>
+                <div id="header-dropdown-addrs-list" class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                  <p class="text-[11px] text-stone-400 p-2">Inicia sesión para ver tus direcciones guardadas.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Perfil / Autenticación -->
+          <div id="auth-buttons-container" class="flex items-center gap-2 sm:gap-2.5">
+            <script>
+              if (window.renderNavbarAuthSync) {
+                window.renderNavbarAuthSync('auth-buttons-container', 'favoritos');
+              }
+            </script>
+          </div>
+
+          <!-- Carrito de compras -->
+          <a 
+            href="mercado.html?openCart=1" 
+            class="relative p-2 sm:p-2.5 text-stone-700 hover:text-[#143628] rounded-full hover:bg-stone-100 transition flex items-center justify-center" 
+            aria-label="Abrir carrito"
+          >
+            <svg class="w-5 h-5 text-stone-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+            </svg>
+            <span id="cart-badge" class="absolute -top-0.5 -right-0.5 bg-[#c85a32] text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center shadow-xs" style="display: none;">0</span>
+          </a>
+
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- =======================================================================
+       3. CONTENIDO PRINCIPAL: MIS FAVORITOS
+       ======================================================================= -->
+  <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+
+    <!-- Breadcrumb / Migas de pan -->
+    <nav class="flex items-center gap-2 text-xs text-stone-400 mb-3" aria-label="Migas de pan">
+      <a href="mercado.html" class="hover:text-stone-600 transition">Mercado</a>
+      <span>›</span>
+      <span class="text-stone-800 font-medium">Mis favoritos</span>
+    </nav>
+
+    <!-- Cabecera de Página con Badge de Confianza -->
+    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 border-b border-stone-200/80 mb-8">
+      <div>
+        <span class="text-[10px] font-bold uppercase tracking-wider text-[#c85a32] block">
+          MIS FAVORITOS
+        </span>
+        <h1 class="font-serif text-3xl sm:text-4xl lg:text-5xl text-[#143628] font-normal tracking-tight mt-1">
+          Favoritos guardados
+        </h1>
+        <p class="text-xs sm:text-sm text-stone-500 mt-2 max-w-xl">
+          Aquí encuentras los productos que has guardado para volver a ellos cuando quieras.
+        </p>
+      </div>
+
+      <!-- Badge de Protección -->
+      <div class="inline-flex items-center gap-1.5 bg-[#E8F3EC] text-[#143628] text-xs font-semibold px-3.5 py-1.5 rounded-full border border-[#c3e3ce] shadow-2xs shrink-0 self-start sm:self-center">
+        <span class="text-xs font-bold">✓</span>
+        <span>Tu información está protegida</span>
+      </div>
+    </div>
+
+    <!-- Título de Sección de Productos -->
+    <div class="flex items-center justify-between gap-3 mb-6">
+      <div class="flex items-center gap-2.5">
+        <h2 class="font-bold text-stone-900 text-base sm:text-lg">
+          Tus productos guardados
+        </h2>
+        <span id="fav-count-pill" class="text-xs bg-stone-100 text-stone-700 px-2.5 py-0.5 rounded-full font-semibold">
+          0 favoritos
+        </span>
+      </div>
+    </div>
+
+    <!-- ESTADO 1: Con Productos Guardados (Grid de 3 columnas) -->
+    <div id="favorites-grid-container" class="hidden">
+      <div id="favorites-products-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- Renderizado dinámicamente por js/mis-favoritos.js -->
+      </div>
+
+      <!-- Pie de Listado -->
+      <div class="mt-10 pt-4 border-t border-stone-200/80 flex flex-col sm:flex-row items-center justify-between text-xs text-stone-400 gap-2">
+        <span id="favorites-count-footer">Mostrando tus productos guardados</span>
+        <span>Precios en dólares estadounidenses (USD)</span>
+      </div>
+      <p class="text-[11px] text-stone-400 mt-2 text-center sm:text-left">
+        Guardar un producto no reserva unidades. El precio y la disponibilidad se confirman al añadirlo a tu compra.
+      </p>
+    </div>
+
+    <!-- ESTADO 2: Sin Favoritos Guardados (Estado Vacío según Mis favoritos · Vacío.png) -->
+    <div id="favorites-empty-container" class="hidden">
+      <div class="bg-[#F7F2EA] rounded-3xl border border-stone-200/80 overflow-hidden shadow-xs">
+        
+        <!-- Cabecera interna del bloque vacío -->
+        <div class="px-6 py-4 border-b border-stone-200/60 flex items-center justify-between text-xs">
+          <span class="font-semibold text-stone-700">Tu selección del mercado</span>
+          <span class="text-stone-400 font-medium">0 productos guardados</span>
+        </div>
+
+        <!-- Contenido central vacío -->
+        <div class="py-16 sm:py-20 px-6 text-center max-w-lg mx-auto">
+          
+          <!-- Ícono circular blanco con corazón delineado -->
+          <div class="w-16 h-16 rounded-full bg-white shadow-xs border border-stone-200/60 flex items-center justify-center mx-auto mb-5 text-stone-700">
+            <svg class="w-8 h-8 text-stone-700" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+            </svg>
+          </div>
+
+          <h2 class="font-serif text-2xl sm:text-3xl font-bold text-[#143628] mb-2.5">
+            Aún no tienes favoritos guardados
+          </h2>
+          <p class="text-xs sm:text-sm text-stone-500 leading-relaxed mb-7 max-w-md mx-auto">
+            Dale al corazón a los productos que te gusten. Cuando lo hagas, aparecerán aquí para que los encuentres rápidamente.
+          </p>
+
+          <a 
+            href="mercado.html" 
+            class="inline-flex items-center gap-2 bg-[#143628] hover:bg-[#204a37] text-white text-xs sm:text-sm font-semibold px-6 py-3 rounded-full shadow-sm hover:shadow transition active:scale-95 cursor-pointer"
+          >
+            <span>→</span>
+            <span>Explorar el mercado</span>
+          </a>
+        </div>
+
+        <!-- Franja inferior blanca aclaratoria -->
+        <div class="bg-white border-t border-stone-200/70 px-6 py-3.5 flex items-center gap-2 text-xs text-stone-500">
+          <svg class="w-4 h-4 text-stone-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+          </svg>
+          <span>Guardar un producto no lo añade al carrito.</span>
+        </div>
+
+      </div>
+    </div>
+
+  </main>
+
+  <!-- =======================================================================
+       4. TOAST DE RETROALIMENTACIÓN
+       ======================================================================= -->
+  <div 
+    id="toast" 
+    class="fixed bottom-6 right-6 bg-[#143628] text-white px-5 py-3 rounded-2xl shadow-xl text-xs sm:text-sm font-semibold transition-all duration-300 transform translate-y-10 opacity-0 pointer-events-none z-50 flex items-center gap-2"
+  >
+    <span id="toast-message">Mensaje</span>
+  </div>
+
+  <!-- =======================================================================
+       5. PIE DE PÁGINA
+       ======================================================================= -->
+  <footer class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 border-t border-stone-200/80 mt-12 w-full flex flex-col sm:flex-row items-center justify-between text-xs text-stone-400 gap-3">
+    <div>
+      © 2026 Raíz & Barrio · Guayaquil y su tierra cercana.
+    </div>
+    <div class="flex items-center gap-4">
+      <a href="index.html#ayuda" class="hover:text-stone-700 transition">Ayuda</a>
+      <a href="index.html#privacidad" class="hover:text-stone-700 transition">Privacidad</a>
+      <button onclick="logoutUser()" class="hover:text-red-600 transition text-red-500 font-semibold cursor-pointer">
+        Cerrar sesión
+      </button>
+    </div>
+  </footer>
+
+</body>
+</html>
