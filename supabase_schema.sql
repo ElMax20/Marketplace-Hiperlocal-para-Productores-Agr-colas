@@ -229,6 +229,41 @@ CREATE POLICY "Permitir delete password_change_requests" ON public.password_chan
 GRANT ALL ON TABLE public.password_change_requests TO anon, authenticated, service_role;
 
 -- =============================================================================
+-- 10.1. Tabla de Solicitudes de Recuperación de Contraseña vía Webhook n8n
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.password_reset_requests (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id uuid REFERENCES public.profiles(id) ON DELETE CASCADE,
+    email text NOT NULL,
+    token text NOT NULL UNIQUE,
+    expires_at timestamptz NOT NULL DEFAULT (now() + interval '30 minutes'),
+    used boolean NOT NULL DEFAULT false,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_requests_token 
+ON public.password_reset_requests (token);
+
+CREATE INDEX IF NOT EXISTS idx_password_reset_requests_email 
+ON public.password_reset_requests (email);
+
+ALTER TABLE public.password_reset_requests ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir select password_reset_requests" ON public.password_reset_requests;
+CREATE POLICY "Permitir select password_reset_requests" ON public.password_reset_requests FOR SELECT TO public USING (true);
+
+DROP POLICY IF EXISTS "Permitir insert password_reset_requests" ON public.password_reset_requests;
+CREATE POLICY "Permitir insert password_reset_requests" ON public.password_reset_requests FOR INSERT TO public WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir update password_reset_requests" ON public.password_reset_requests;
+CREATE POLICY "Permitir update password_reset_requests" ON public.password_reset_requests FOR UPDATE TO public USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir delete password_reset_requests" ON public.password_reset_requests;
+CREATE POLICY "Permitir delete password_reset_requests" ON public.password_reset_requests FOR DELETE TO public USING (true);
+
+GRANT ALL ON TABLE public.password_reset_requests TO anon, authenticated, service_role;
+
+-- =============================================================================
 -- 11. Tabla de Métodos de Pago Tokenizados ('public.payment_methods')
 -- =============================================================================
 CREATE TABLE IF NOT EXISTS public.payment_methods (

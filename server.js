@@ -29,6 +29,8 @@ const server = http.createServer((req, res) => {
     });
     res.end();
     return;
+  } else if (reqPath === '/reset-password' || reqPath === '/reset-password/') {
+    reqPath = '/reset-password.html';
   } else if (reqPath === '/verify-email' || reqPath === '/verify-email/' || reqPath === '/verify-email.html') {
     // Redirigir de inmediato a la página de perfil en GitHub Pages con los parámetros del token
     const searchParams = req.url.includes('?') ? req.url.substring(req.url.indexOf('?')) : '';

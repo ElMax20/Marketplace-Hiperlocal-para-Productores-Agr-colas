@@ -596,6 +596,193 @@ class SupabaseService {
   }
 
   /**
+   * Solicita la recuperación de contraseña:
+   * 1. Verifica en profiles si existe el email.
+   * 2. Si no existe, lanza error 'No encontramos ninguna cuenta registrada con ese correo electrónico.'
+   * 3. Si existe, genera token único crypto.randomUUID().
+   * 4. Registra la solicitud en Supabase con expiración de 30 min (password_reset_requests / fallback password_change_requests).
+   * 5. Dispara petición POST en JSON al webhook de producción de n8n:
+   *    https://elmaxi.app.n8n.cloud/webhook/recuperar-contrasena
+   */
+  async requestPasswordReset(email) {
+    if (!email || !email.includes('@')) {
+      throw new Error('Por favor ingresa un correo electrónico válido.');
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const encodedEmail = encodeURIComponent(cleanEmail);
+
+    // 1. Verificar si existe en la tabla profiles
+    const users = await this.fetchApi(`profiles?email=ilike.${encodedEmail}&select=id,full_name,email,username`);
+
+    if (!users || users.length === 0) {
+      throw new Error('No encontramos ninguna cuenta registrada con ese correo electrónico.');
+    }
+
+    const targetUser = users[0];
+
+    // 2. Generar token seguro único
+    let token = '';
+    if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+      token = window.crypto.randomUUID();
+    } else {
+      token = 'rb-' + Math.random().toString(36).substring(2, 15) + '-' + Date.now().toString(36);
+    }
+
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+    // 3. Guardar registro en Supabase (password_reset_requests o fallback en password_change_requests)
+    try {
+      await this.fetchApi('password_reset_requests', {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify({
+          user_id: targetUser.id,
+          email: targetUser.email,
+          token: token,
+          expires_at: expiresAt,
+          used: false
+        })
+      });
+    } catch (errTable) {
+      console.warn('Tabla password_reset_requests no disponible directamente, usando fallback en password_change_requests:', errTable);
+      try {
+        await this.fetchApi('password_change_requests', {
+          method: 'POST',
+          headers: { 'Prefer': 'return=representation' },
+          body: JSON.stringify({
+            user_id: targetUser.id,
+            current_email: targetUser.email,
+            new_password_hash: 'PENDING_RESET',
+            otp_code: token,
+            expires_at: expiresAt,
+            used: false
+          })
+        });
+      } catch (errFallback) {
+        console.error('Error al registrar solicitud en password_change_requests:', errFallback);
+      }
+    }
+
+    // 4. Disparar petición POST en JSON al webhook de producción de n8n
+    const webhookUrl = 'https://elmaxi.app.n8n.cloud/webhook/recuperar-contrasena';
+    const resetUrl = `https://elmax20.github.io/Marketplace-Hiperlocal-para-Productores-Agr-colas/reset-password.html?token=${token}`;
+
+    const payload = {
+      email: targetUser.email,
+      full_name: targetUser.full_name || targetUser.username || 'Usuario',
+      token: token,
+      reset_url: resetUrl
+    };
+
+    try {
+      await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (webhookErr) {
+      console.warn('Advertencia al enviar webhook n8n:', webhookErr);
+    }
+
+    return {
+      success: true,
+      email: targetUser.email,
+      full_name: targetUser.full_name || targetUser.username,
+      token: token,
+      reset_url: resetUrl
+    };
+  }
+
+  /**
+   * Valida un token de recuperación y actualiza la contraseña del usuario en Supabase
+   */
+  async resetPasswordWithToken(token, newPassword) {
+    if (!token || token.trim().length === 0) {
+      throw new Error('El token de recuperación no es válido.');
+    }
+    if (!newPassword || newPassword.trim().length < 6) {
+      throw new Error('La nueva contraseña debe tener al menos 6 caracteres.');
+    }
+
+    const cleanToken = token.trim();
+    let targetUserId = null;
+    let targetEmail = null;
+    let requestTable = '';
+    let requestId = null;
+
+    // 1. Buscar en password_reset_requests
+    try {
+      const records = await this.fetchApi(`password_reset_requests?token=eq.${encodeURIComponent(cleanToken)}&used=eq.false&select=*`);
+      if (records && records.length > 0) {
+        const req = records[0];
+        if (new Date(req.expires_at) < new Date()) {
+          throw new Error('El enlace de recuperación ha expirado. Por favor solicita uno nuevo.');
+        }
+        targetUserId = req.user_id;
+        targetEmail = req.email;
+        requestTable = 'password_reset_requests';
+        requestId = req.id;
+      }
+    } catch (e1) {
+      console.warn('Consulta en password_reset_requests no exitosa, buscando en password_change_requests:', e1);
+    }
+
+    // Si no se encontró, buscar en password_change_requests (fallback)
+    if (!targetUserId) {
+      try {
+        const records = await this.fetchApi(`password_change_requests?otp_code=eq.${encodeURIComponent(cleanToken)}&used=eq.false&select=*`);
+        if (records && records.length > 0) {
+          const req = records[0];
+          if (new Date(req.expires_at) < new Date()) {
+            throw new Error('El enlace de recuperación ha expirado. Por favor solicita uno nuevo.');
+          }
+          targetUserId = req.user_id;
+          targetEmail = req.current_email;
+          requestTable = 'password_change_requests';
+          requestId = req.id;
+        }
+      } catch (e2) {
+        console.error('Error buscando token en fallback:', e2);
+      }
+    }
+
+    if (!targetUserId && !targetEmail) {
+      throw new Error('El enlace de recuperación es inválido, ya fue utilizado o ha expirado.');
+    }
+
+    // 2. Hashear nueva contraseña
+    const hashedPassword = await this.hashPassword(newPassword.trim());
+
+    // 3. Actualizar contraseña en profiles
+    if (targetUserId) {
+      await this.fetchApi(`profiles?id=eq.${targetUserId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ password: hashedPassword })
+      });
+    } else if (targetEmail) {
+      await this.fetchApi(`profiles?email=ilike.${encodeURIComponent(targetEmail)}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ password: hashedPassword })
+      });
+    }
+
+    // 4. Marcar token como utilizado
+    if (requestTable && requestId) {
+      try {
+        await this.fetchApi(`${requestTable}?id=eq.${requestId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ used: true })
+        });
+      } catch (e3) {
+        console.warn('No se pudo marcar solicitud como usada:', e3);
+      }
+    }
+
+    return { success: true };
+  }
+
+  /**
    * Sube un archivo a un bucket de Supabase Storage (por defecto 'avatars' o 'assets')
    */
   async uploadFile(bucket = 'avatars', path, file) {

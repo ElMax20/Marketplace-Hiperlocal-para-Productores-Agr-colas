@@ -572,9 +572,326 @@ function closeLoginModal() {
     document.body.style.overflow = '';
     syncModalPauseState();
   }
+  const forgotPanel = document.getElementById('forgot-password-panel');
+  if (forgotPanel && !forgotPanel.classList.contains('hidden')) {
+    switchToLoginView();
+  }
 }
 window.openLoginModal = openLoginModal;
 window.closeLoginModal = closeLoginModal;
+
+function safeEscapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/**
+ * Cambia suavemente la vista del modal al panel de Recuperar Contraseña
+ */
+function switchToForgotPasswordView() {
+  const tabsWrapper = document.getElementById('auth-modal-tabs-wrapper');
+  const badgeEl = document.getElementById('auth-modal-badge');
+  const titleEl = document.getElementById('auth-modal-title');
+  const descEl = document.getElementById('auth-modal-desc');
+  const loginForm = document.getElementById('login-auth-form');
+  const errorBox = document.getElementById('auth-error-box');
+  const forgotPanel = document.getElementById('forgot-password-panel');
+  const emailInput = document.getElementById('forgot-email-input');
+  const userInput = document.getElementById('auth-username');
+  const forgotErrorBox = document.getElementById('forgot-error-box');
+  const forgotSuccessBox = document.getElementById('forgot-success-box');
+
+  if (tabsWrapper) tabsWrapper.classList.add('hidden');
+  if (badgeEl) badgeEl.classList.add('hidden');
+  if (loginForm) loginForm.classList.add('hidden');
+  if (errorBox) errorBox.classList.add('hidden');
+
+  if (titleEl) titleEl.textContent = 'Recuperar contraseña';
+  if (descEl) descEl.textContent = 'Ingresa el correo con el que te registraste y te enviaremos un enlace seguro para crear una nueva clave.';
+
+  if (forgotErrorBox) {
+    forgotErrorBox.classList.add('hidden');
+    forgotErrorBox.textContent = '';
+  }
+  if (forgotSuccessBox) {
+    forgotSuccessBox.classList.add('hidden');
+    forgotSuccessBox.innerHTML = '';
+  }
+
+  // Pre-llenar si el usuario ya escribió su correo en el campo de usuario
+  if (userInput && emailInput) {
+    const val = userInput.value.trim();
+    if (val.includes('@')) {
+      emailInput.value = val;
+    }
+  }
+
+  if (forgotPanel) forgotPanel.classList.remove('hidden');
+  if (emailInput) emailInput.focus();
+}
+
+/**
+ * Regresa a la vista normal de inicio de sesión dentro del modal
+ */
+function switchToLoginView() {
+  const tabsWrapper = document.getElementById('auth-modal-tabs-wrapper');
+  const badgeEl = document.getElementById('auth-modal-badge');
+  const loginForm = document.getElementById('login-auth-form');
+  const forgotPanel = document.getElementById('forgot-password-panel');
+  const emailInput = document.getElementById('forgot-email-input');
+  const submitBtn = document.getElementById('forgot-submit-btn');
+
+  if (tabsWrapper) tabsWrapper.classList.remove('hidden');
+  if (badgeEl) badgeEl.classList.remove('hidden');
+  if (loginForm) loginForm.classList.remove('hidden');
+  if (forgotPanel) forgotPanel.classList.add('hidden');
+
+  if (emailInput) {
+    emailInput.disabled = false;
+  }
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.className = 'w-full bg-[#143628] hover:bg-[#1f4e3b] text-white py-3 rounded-full font-bold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer';
+    submitBtn.innerHTML = '<span>Enviar enlace de recuperación</span>';
+  }
+
+  // Re-aplicar configuración según tipo de usuario activo
+  if (typeof currentAuthType !== 'undefined') {
+    openLoginModal(currentAuthType);
+  } else {
+    openLoginModal('cliente');
+  }
+}
+
+/**
+ * Maneja el envío del formulario de recuperación en el modal de index.html
+ */
+async function handleForgotPasswordSubmit(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const emailInput = document.getElementById('forgot-email-input');
+  const submitBtn = document.getElementById('forgot-submit-btn');
+  const errorBox = document.getElementById('forgot-error-box');
+  const successBox = document.getElementById('forgot-success-box');
+
+  const email = emailInput ? emailInput.value.trim() : '';
+
+  if (errorBox) {
+    errorBox.classList.add('hidden');
+    errorBox.textContent = '';
+  }
+  if (successBox) {
+    successBox.classList.add('hidden');
+    successBox.innerHTML = '';
+  }
+
+  if (!email || !email.includes('@')) {
+    if (errorBox) {
+      errorBox.textContent = 'Por favor ingresa un correo electrónico válido.';
+      errorBox.classList.remove('hidden');
+    }
+    return;
+  }
+
+  const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = `
+      <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      <span>Verificando cuenta...</span>
+    `;
+  }
+
+  try {
+    if (!window.supabase || typeof window.supabase.requestPasswordReset !== 'function') {
+      throw new Error('El servicio de recuperación no está disponible temporalmente.');
+    }
+
+    const res = await window.supabase.requestPasswordReset(email);
+
+    if (successBox) {
+      successBox.innerHTML = `
+        <div class="flex items-start gap-2.5">
+          <span class="text-base text-emerald-600 font-bold shrink-0">✓</span>
+          <div>
+            <p class="font-bold text-emerald-900 text-xs">¡Enlace de recuperación enviado!</p>
+            <p class="mt-1 text-emerald-800 text-[11px] leading-relaxed">
+              Hemos enviado un enlace seguro a <strong>${safeEscapeHtml(res.email)}</strong>. 
+              Por favor revisa tu bandeja de entrada o carpeta de spam para crear tu nueva contraseña.
+            </p>
+          </div>
+        </div>
+      `;
+      successBox.classList.remove('hidden');
+    }
+
+    if (emailInput) emailInput.disabled = true;
+    if (submitBtn) {
+      submitBtn.innerHTML = '<span>✓ Enlace enviado con éxito</span>';
+      submitBtn.classList.remove('bg-[#143628]', 'hover:bg-[#1f4e3b]');
+      submitBtn.classList.add('bg-emerald-700');
+    }
+
+    if (typeof showToast === 'function') {
+      showToast('Enlace de recuperación enviado a tu correo.');
+    }
+  } catch (err) {
+    console.error('Error al solicitar recuperación de contraseña:', err);
+    if (errorBox) {
+      errorBox.textContent = err.message || 'No encontramos ninguna cuenta registrada con ese correo electrónico.';
+      errorBox.classList.remove('hidden');
+    }
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+    }
+  }
+}
+
+// Funciones equivalentes para mercado.html
+function switchToForgotPasswordViewMarket() {
+  const formLogin = document.getElementById('form-login');
+  const forgotPanel = document.getElementById('forgot-password-panel-market');
+  const emailInput = document.getElementById('forgot-email-input-market');
+  const loginEmail = document.getElementById('login-email');
+  const title = document.getElementById('auth-modal-title');
+  const subtitle = document.getElementById('auth-modal-subtitle');
+  const tabsWrapper = document.querySelector('#auth-modal .flex.border-b');
+
+  if (formLogin) formLogin.classList.add('hidden');
+  if (tabsWrapper) tabsWrapper.classList.add('hidden');
+  if (forgotPanel) forgotPanel.classList.remove('hidden');
+
+  if (title) title.textContent = 'Recuperar contraseña';
+  if (subtitle) subtitle.textContent = 'Ingresa el correo con el que te registraste y te enviaremos un enlace seguro para crear una nueva clave.';
+
+  if (loginEmail && emailInput) {
+    const val = loginEmail.value.trim();
+    if (val.includes('@')) emailInput.value = val;
+  }
+  if (emailInput) emailInput.focus();
+}
+
+function switchToLoginViewMarket() {
+  const formLogin = document.getElementById('form-login');
+  const forgotPanel = document.getElementById('forgot-password-panel-market');
+  const title = document.getElementById('auth-modal-title');
+  const subtitle = document.getElementById('auth-modal-subtitle');
+  const tabsWrapper = document.querySelector('#auth-modal .flex.border-b');
+  const emailInput = document.getElementById('forgot-email-input-market');
+  const submitBtn = document.getElementById('forgot-submit-btn-market');
+
+  if (forgotPanel) forgotPanel.classList.add('hidden');
+  if (formLogin) formLogin.classList.remove('hidden');
+  if (tabsWrapper) tabsWrapper.classList.remove('hidden');
+
+  if (emailInput) emailInput.disabled = false;
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.className = 'w-full mt-2 bg-[#143628] hover:bg-[#1f4e3b] text-white font-bold py-3 rounded-full shadow-md transition text-xs flex items-center justify-center gap-1.5 cursor-pointer';
+    submitBtn.innerHTML = '<span>Enviar enlace de recuperación</span>';
+  }
+
+  if (title) title.textContent = 'Inicia sesión en tu cuenta';
+  if (subtitle) subtitle.textContent = 'Ingresa con tus credenciales para acceder a tus pedidos y puntos de recolección.';
+}
+
+async function handleForgotPasswordSubmitMarket(event) {
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
+  const emailInput = document.getElementById('forgot-email-input-market');
+  const submitBtn = document.getElementById('forgot-submit-btn-market');
+  const errorBox = document.getElementById('forgot-error-box-market');
+  const successBox = document.getElementById('forgot-success-box-market');
+
+  const email = emailInput ? emailInput.value.trim() : '';
+
+  if (errorBox) {
+    errorBox.classList.add('hidden');
+    errorBox.textContent = '';
+  }
+  if (successBox) {
+    successBox.classList.add('hidden');
+    successBox.innerHTML = '';
+  }
+
+  if (!email || !email.includes('@')) {
+    if (errorBox) {
+      errorBox.textContent = 'Por favor ingresa un correo electrónico válido.';
+      errorBox.classList.remove('hidden');
+    }
+    return;
+  }
+
+  const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span>Verificando...</span>';
+  }
+
+  try {
+    if (!window.supabase || typeof window.supabase.requestPasswordReset !== 'function') {
+      throw new Error('Servicio de autenticación no disponible temporalmente.');
+    }
+
+    const res = await window.supabase.requestPasswordReset(email);
+
+    if (successBox) {
+      successBox.innerHTML = `
+        <div class="flex items-start gap-2">
+          <span class="text-base text-emerald-600 font-bold">✓</span>
+          <div>
+            <p class="font-bold text-emerald-900 text-xs">¡Enlace de recuperación enviado!</p>
+            <p class="mt-1 text-emerald-800 text-[11px] leading-relaxed">
+              Hemos enviado un enlace seguro a <strong>${safeEscapeHtml(res.email)}</strong>. 
+              Revisa tu bandeja de entrada o spam para crear tu nueva contraseña.
+            </p>
+          </div>
+        </div>
+      `;
+      successBox.classList.remove('hidden');
+    }
+
+    if (emailInput) emailInput.disabled = true;
+    if (submitBtn) {
+      submitBtn.innerHTML = '<span>✓ Enlace enviado con éxito</span>';
+      submitBtn.classList.remove('bg-[#143628]', 'hover:bg-[#1f4e3b]');
+      submitBtn.classList.add('bg-emerald-700');
+    }
+  } catch (err) {
+    console.error('Error al recuperar contraseña en mercado:', err);
+    if (errorBox) {
+      errorBox.textContent = err.message || 'No encontramos ninguna cuenta registrada con ese correo electrónico.';
+      errorBox.classList.remove('hidden');
+    }
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalBtnHtml;
+    }
+  }
+}
+
+window.safeEscapeHtml = safeEscapeHtml;
+window.switchToForgotPasswordView = switchToForgotPasswordView;
+window.switchToLoginView = switchToLoginView;
+window.handleForgotPasswordSubmit = handleForgotPasswordSubmit;
+window.switchToForgotPasswordViewMarket = switchToForgotPasswordViewMarket;
+window.switchToLoginViewMarket = switchToLoginViewMarket;
+window.handleForgotPasswordSubmitMarket = handleForgotPasswordSubmitMarket;
 
 /**
  * Valida las credenciales ingresadas contra Supabase (con fallback local)
