@@ -9,6 +9,10 @@ const SUPABASE_CONFIG = {
   anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2anFndnBsYm1zaHB1Y251emZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5OTcyMDgsImV4cCI6MjEwOTU3MzIwOH0.cEWJYxNjq04f8auZzK9PoGlQUa_EnRtORxT6z85LmLU'
 };
 
+// URL pública oficial de producción en GitHub Pages (sin barra final)
+window.PUBLIC_SITE_URL = window.PUBLIC_SITE_URL || 'https://elmax20.github.io/Marketplace-Hiperlocal-para-Productores-Agr-colas';
+var PUBLIC_SITE_URL = window.PUBLIC_SITE_URL;
+
 // =============================================================================
 // CACHÉ EN MEMORIA Y SESSIONSTORAGE (TTL 5 minutos para pickup_nodes y categories)
 // =============================================================================
@@ -106,6 +110,91 @@ class SupabaseService {
       },
       onAuthStateChange: (callback) => {
         return { data: { subscription: { unsubscribe: () => {} } } };
+      },
+      resetPasswordForEmail: async (email, options = {}) => {
+        try {
+          let redirectTo = options.redirectTo || `${PUBLIC_SITE_URL}/perfil.html`;
+          redirectTo = redirectTo.replace(/^https?:\/\/(localhost(:\d+)?|127\.0\.0\.1(:\d+)?)/i, PUBLIC_SITE_URL);
+          const resp = await fetch(`${SUPABASE_CONFIG.url}/auth/v1/recover`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_CONFIG.anonKey,
+              'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email: (email || '').trim().toLowerCase(),
+              gotrue_meta_security: {}
+            })
+          });
+          if (!resp.ok) {
+            const err = await resp.json().catch(() => ({ message: 'Error en recuperación de contraseña' }));
+            return { data: null, error: err };
+          }
+          const data = await resp.json().catch(() => ({}));
+          return { data, error: null };
+        } catch (err) {
+          return { data: null, error: err };
+        }
+      },
+      signUp: async (credentials = {}, options = {}) => {
+        try {
+          let emailRedirectTo = options.options?.emailRedirectTo || options.emailRedirectTo || `${PUBLIC_SITE_URL}/perfil.html`;
+          emailRedirectTo = emailRedirectTo.replace(/^https?:\/\/(localhost(:\d+)?|127\.0\.0\.1(:\d+)?)/i, PUBLIC_SITE_URL);
+          const resp = await fetch(`${SUPABASE_CONFIG.url}/auth/v1/signup`, {
+            method: 'POST',
+            headers: {
+              'apikey': SUPABASE_CONFIG.anonKey,
+              'Authorization': `Bearer ${SUPABASE_CONFIG.anonKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email: credentials.email,
+              password: credentials.password,
+              data: credentials.options?.data || {},
+              gotrue_meta_security: {}
+            })
+          });
+          if (!resp.ok) {
+            const err = await resp.json().catch(() => ({ message: 'Error en registro' }));
+            return { data: null, error: err };
+          }
+          const data = await resp.json().catch(() => ({}));
+          return { data, error: null };
+        } catch (err) {
+          return { data: null, error: err };
+        }
+      },
+      updateUser: async (attributes = {}, options = {}) => {
+        try {
+          let emailRedirectTo = options.emailRedirectTo || `${PUBLIC_SITE_URL}/perfil.html`;
+          emailRedirectTo = emailRedirectTo.replace(/^https?:\/\/(localhost(:\d+)?|127\.0\.0\.1(:\d+)?)/i, PUBLIC_SITE_URL);
+          let token = SUPABASE_CONFIG.anonKey;
+          try {
+            const tokenInfo = typeof getSupabaseAuthTokenInfo === 'function' ? getSupabaseAuthTokenInfo() : null;
+            if (tokenInfo?.session?.access_token) token = tokenInfo.session.access_token;
+          } catch (_) {}
+          const resp = await fetch(`${SUPABASE_CONFIG.url}/auth/v1/user`, {
+            method: 'PUT',
+            headers: {
+              'apikey': SUPABASE_CONFIG.anonKey,
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              ...attributes,
+              email_change_confirm: true
+            })
+          });
+          if (!resp.ok) {
+            const err = await resp.json().catch(() => ({ message: 'Error al actualizar usuario' }));
+            return { data: null, error: err };
+          }
+          const data = await resp.json().catch(() => ({}));
+          return { data, error: null };
+        } catch (err) {
+          return { data: null, error: err };
+        }
       }
     };
 

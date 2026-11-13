@@ -9,7 +9,9 @@
   <script>
     (function() {
       var query = window.location.search || '';
-      window.location.replace('https://elmax20.github.io/Marketplace-Hiperlocal-para-Productores-Agr-colas/perfil.html' + query);
+      var PUBLIC_SITE_URL = window.PUBLIC_SITE_URL || 'https://elmax20.github.io/Marketplace-Hiperlocal-para-Productores-Agr-colas';
+      window.PUBLIC_SITE_URL = PUBLIC_SITE_URL;
+      window.location.replace(PUBLIC_SITE_URL + '/perfil.html' + query);
     })();
   </script>
 

@@ -5,6 +5,10 @@
  * Conexión completa con LocalStorage, Supabase y Cropper de Foto Anti-Descuadre.
  */
 
+// URL pública oficial de producción en GitHub Pages (sin barra final)
+window.PUBLIC_SITE_URL = window.PUBLIC_SITE_URL || 'https://elmax20.github.io/Marketplace-Hiperlocal-para-Productores-Agr-colas';
+var PUBLIC_SITE_URL = window.PUBLIC_SITE_URL;
+
 const NEUTRAL_AVATAR_FALLBACK = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='32' fill='%23e7e5e4'/><path d='M32 32a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0 6c-8.84 0-20 4.48-20 12v4h40v-4c0-7.52-11.16-12-20-12z' fill='%23a8a29e'/></svg>";
 const DEFAULT_AVATAR = NEUTRAL_AVATAR_FALLBACK;
 
@@ -17,7 +21,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initProfilePage() {
-  // 1. Obtener usuario en sesión
+  // 1. Verificar si viene de un enlace de confirmación por correo desde GitHub Pages
+  const urlParams = new URLSearchParams(window.location.search);
+  const verifyToken = urlParams.get('verify_email_token') || urlParams.get('token');
+  const newEmailParam = urlParams.get('new_email');
+  if (verifyToken) {
+    await confirmEmailVerification(verifyToken, newEmailParam);
+  }
+
+  // 2. Obtener usuario en sesión
   let user = null;
   try {
     const raw = localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
@@ -26,7 +38,7 @@ async function initProfilePage() {
     console.warn('Error leyendo usuario:', e);
   }
 
-  // 2. Si no hay usuario en sesión, redirigir al mercado para iniciar sesión real
+  // Si no hay usuario en sesión, redirigir al mercado para iniciar sesión real
   if (!user || !user.loggedIn) {
     window.location.replace('mercado.html?openLogin=true');
     return;
@@ -42,15 +54,7 @@ async function initProfilePage() {
   initPaymentMethods();
   initDeliverySection();
 
-  // 4. Verificar si viene de un enlace de confirmación por correo desde GitHub
-  const urlParams = new URLSearchParams(window.location.search);
-  const verifyToken = urlParams.get('verify_email_token') || urlParams.get('token');
-  const newEmailParam = urlParams.get('new_email');
-  if (verifyToken) {
-    await confirmEmailVerification(verifyToken, newEmailParam);
-  }
-
-  // 5. Sincronizar en segundo plano con Supabase si está disponible
+  // 4. Sincronizar en segundo plano con Supabase si está disponible
   if (window.supabase && typeof window.supabase.fetchApi === 'function' && user.username) {
     try {
       const endpoint = `profiles?username=ilike.${encodeURIComponent(user.username)}&select=*`;
@@ -1318,7 +1322,7 @@ async function handleRequestEmailChange() {
     }
 
     // Enlace exclusivo hacia la página de configuración del usuario en GitHub Pages
-    const githubPagesConfirmUrl = `https://elmax20.github.io/Marketplace-Hiperlocal-para-Productores-Agr-colas/perfil.html?token=${encodeURIComponent(token)}`;
+    const verificationUrl = `${PUBLIC_SITE_URL}/perfil.html?verify_email_token=${encodeURIComponent(token)}`;
 
     // Inserción en Supabase tabla email_change_requests
     if (window.supabase && typeof window.supabase.fetchApi === 'function') {
@@ -1331,15 +1335,15 @@ async function handleRequestEmailChange() {
         console.warn('Advertencia al limpiar solicitudes pendientes:', cleanErr);
       }
 
-      // Insertar nuevo registro con los campos requeridos y el enlace de GitHub Pages para n8n
+      // Insertar nuevo registro con los campos requeridos y el enlace de GitHub Pages para n8n / webhook
       const insertData = {
         user_id: userId,
         current_email: currentEmail || (currentUser?.username + '@raizybarrio.co'),
         new_email: newEmail,
         verification_token: token,
         expires_at: expiresAt,
-        confirmation_url: githubPagesConfirmUrl,
-        verification_url: githubPagesConfirmUrl
+        confirmation_url: verificationUrl,
+        verification_url: verificationUrl
       };
 
       await window.supabase.fetchApi('email_change_requests', {
@@ -1449,7 +1453,11 @@ async function confirmEmailVerification(token, explicitEmail) {
     if (currentUser) {
       currentUser.email = targetEmail;
       currentUser.email_verified = true;
-      if (originalUserData) originalUserData.email = targetEmail;
+      currentUser.loggedIn = true;
+      if (originalUserData) {
+        originalUserData.email = targetEmail;
+        originalUserData.loggedIn = true;
+      }
       localStorage.setItem('rb_current_user', JSON.stringify(currentUser));
       localStorage.setItem('raiz_user', JSON.stringify(currentUser));
       if (typeof setCurrentUser === 'function') setCurrentUser(currentUser);
@@ -1481,6 +1489,8 @@ async function confirmEmailVerification(token, explicitEmail) {
 window.handleRequestEmailChange = handleRequestEmailChange;
 window.handleSendEmailVerification = handleRequestEmailChange;
 window.confirmEmailVerification = confirmEmailVerification;
+window.handlePhotoFileSelected = handlePhotoFileSelected;
+window.handleRemovePhoto = handleRemovePhoto;
 window.cancelPendingEmailVerification = function() {};
 window.copyVerificationLink = function() {};
 window.restorePendingEmailVerificationUI = function() {};

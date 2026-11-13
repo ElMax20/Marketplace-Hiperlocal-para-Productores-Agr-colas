@@ -89,7 +89,7 @@ def test_cropper():
         call('Page.enable')
 
         # Pre-seed localStorage with user 'Max Campoverde' without photo
-        call('Page.addScriptToEvaluateOnNewDocument', {'source': """
+        script_res = call('Page.addScriptToEvaluateOnNewDocument', {'source': """
             const testUser = {
                 id: '00000000-0000-0000-0000-000000000001',
                 username: 'max',
@@ -111,6 +111,7 @@ def test_cropper():
                 username: testUser.username
             }));
         """})
+        script_id = script_res.get('result', {}).get('identifier')
 
         call('Page.navigate', {'url': 'http://localhost:5500/perfil.html'})
         time.sleep(2.5)
@@ -358,6 +359,8 @@ def test_cropper():
 
         # 7. TEST RECARGA DE PÁGINA (perfil.html) - PERSISTENCIA DE AVATAR SIN REGRESAR A "M"
         print("\n--- TEST 7: Recarga de perfil.html (Verificar que NO regrese al círculo verde con 'M') ---")
+        if script_id:
+            call('Page.removeScriptToEvaluateOnNewDocument', {'identifier': script_id})
         call('Page.reload')
         time.sleep(2.5) # Esperar hidratación síncrona y sincronización en segundo plano con Supabase
 

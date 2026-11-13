@@ -3,6 +3,10 @@
  * Autenticación 100% real conectada directamente a Supabase
  */
 
+// URL pública oficial de producción en GitHub Pages (sin barra final)
+window.PUBLIC_SITE_URL = window.PUBLIC_SITE_URL || 'https://elmax20.github.io/Marketplace-Hiperlocal-para-Productores-Agr-colas';
+var PUBLIC_SITE_URL = window.PUBLIC_SITE_URL;
+
 window.DEFAULT_USER_AVATAR = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='32' r='32' fill='%23e7e5e4'/><path d='M32 32a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0 6c-8.84 0-20 4.48-20 12v4h40v-4c0-7.52-11.16-12-20-12z' fill='%23a8a29e'/></svg>";
 var DEFAULT_USER_AVATAR = window.DEFAULT_USER_AVATAR;
 
@@ -2168,15 +2172,63 @@ function updateClientPassword() {
   return saveAllClientSettings();
 }
 
-function requestClientEmailChange() {
+async function requestClientEmailChange() {
   const emailInput = document.getElementById('client-new-email');
-  const email = emailInput ? emailInput.value.trim() : '';
-  if (!email || !email.includes('@') || !email.includes('.')) {
-    alert('Por favor ingresa un correo electrónico válido.');
+  const newEmail = emailInput ? emailInput.value.trim().toLowerCase() : '';
+  const emailCheck = window.validateEmail ? window.validateEmail(newEmail) : { valid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail), message: 'Ingresa un correo electrónico con un dominio válido.' };
+  if (!emailCheck.valid) {
+    alert(emailCheck.message || 'Por favor ingresa un correo electrónico válido.');
     if (emailInput) emailInput.focus();
     return;
   }
-  alert(`Hemos enviado un enlace de confirmación a ${email}. Hasta que lo verifiques, seguirás usando tu correo actual.`);
+
+  const user = getCurrentUser();
+  const currentEmail = (user?.email || '').trim().toLowerCase();
+  if (currentEmail && currentEmail === newEmail) {
+    alert('El nuevo correo no puede ser idéntico al correo actual.');
+    if (emailInput) emailInput.focus();
+    return;
+  }
+
+  try {
+    let token = '';
+    if (window.crypto && window.crypto.randomUUID) {
+      token = (window.crypto.randomUUID().replace(/-/g, '') + Date.now().toString(16)).padEnd(32, '0');
+    } else {
+      token = (Math.random().toString(36).substring(2) + Date.now().toString(16)).padEnd(32, '0');
+    }
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    const userId = user?.id || '00000000-0000-0000-0000-000000000001';
+    const siteUrl = window.PUBLIC_SITE_URL || 'https://elmax20.github.io/Marketplace-Hiperlocal-para-Productores-Agr-colas';
+    const verificationUrl = `${siteUrl}/perfil.html?verify_email_token=${encodeURIComponent(token)}`;
+
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      try {
+        await window.supabase.fetchApi(`email_change_requests?user_id=eq.${userId}`, {
+          method: 'DELETE'
+        });
+      } catch (_) {}
+
+      await window.supabase.fetchApi('email_change_requests', {
+        method: 'POST',
+        body: JSON.stringify({
+          user_id: userId,
+          current_email: currentEmail || (user?.username ? user.username + '@raizybarrio.co' : 'max@raizybarrio.co'),
+          new_email: newEmail,
+          verification_token: token,
+          expires_at: expiresAt,
+          confirmation_url: verificationUrl,
+          verification_url: verificationUrl
+        })
+      });
+    }
+
+    alert(`Hemos enviado un enlace de confirmación a ${newEmail}. Por favor revisa tu bandeja de entrada (el enlace vence en 15 minutos).`);
+    if (emailInput) emailInput.value = '';
+  } catch (err) {
+    console.error('Error al registrar solicitud de cambio de correo:', err);
+    alert('No se pudo procesar la solicitud en este momento. Intenta más tarde.');
+  }
 }
 
 // =============================================================================
