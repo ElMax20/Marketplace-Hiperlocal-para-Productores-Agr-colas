@@ -125,6 +125,12 @@
             <span>Publicar nuevo producto</span>
           </button>
 
+          <!-- 3. Mi economía -->
+          <button onclick="switchProducerTab('mi-economia')" data-tab="mi-economia" class="nav-producer-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition text-left cursor-pointer">
+            <span class="w-4 h-4 flex items-center justify-center font-bold text-sm leading-none text-stone-600">$</span>
+            <span>Mi economía</span>
+          </button>
+
           <!-- 3. Mi perfil y seguridad -->
           <button onclick="switchProducerTab('perfil-seguridad')" data-tab="perfil-seguridad" class="nav-producer-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition text-left">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1049,11 +1055,570 @@
 
       </section>
 
+    
+      <!-- =====================================================================
+           VISTA 4: MI ECONOMÍA (DASHBOARD FINANCIERO Y CONTROL DE FINCA)
+           ===================================================================== -->
+      <section id="view-mi-economia" class="hidden">
+        
+        <!-- Cabecera de la sección -->
+        <div class="mb-6">
+          <span class="text-[10px] uppercase tracking-wider font-extrabold text-[#c85a32] block mb-1">
+            <span class="producer-farm-display uppercase">HACIENDA SAN JOSÉ</span> · DAULE, GUAYAS
+          </span>
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 class="font-serif text-3xl font-bold text-stone-900 tracking-tight">Mi economía</h1>
+              <p class="text-xs text-stone-500 mt-1">Tu cosecha también da frutos en las cuentas. Lleva el control de tu finca.</p>
+            </div>
+            <div class="flex items-center gap-2.5 shrink-0">
+              <button type="button" onclick="exportEconomyCSV()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold transition shadow-2xs cursor-pointer">
+                <svg class="w-3.5 h-3.5 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"/>
+                </svg>
+                <span>Exportar CSV</span>
+              </button>
+              <button type="button" onclick="openExpenseForm()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#143628] hover:bg-[#1f4a38] text-white text-xs font-bold transition shadow-2xs cursor-pointer">
+                <span class="text-sm font-bold leading-none">+</span>
+                <span>Registrar gasto</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filtros de Período -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <div class="inline-flex items-center p-1 bg-stone-100 rounded-xl gap-1 text-xs">
+            <button type="button" onclick="setEconomyPeriod('7d')" id="econ-period-7d" class="econ-period-btn px-3.5 py-1.5 rounded-lg font-bold text-stone-600 hover:text-stone-900 transition cursor-pointer">
+              7 días
+            </button>
+            <button type="button" onclick="setEconomyPeriod('30d')" id="econ-period-30d" class="econ-period-btn px-3.5 py-1.5 rounded-lg font-bold bg-[#143628] text-white shadow-2xs transition cursor-pointer">
+              30 días
+            </button>
+            <button type="button" onclick="setEconomyPeriod('1y')" id="econ-period-1y" class="econ-period-btn px-3.5 py-1.5 rounded-lg font-bold text-stone-600 hover:text-stone-900 transition cursor-pointer">
+              1 año
+            </button>
+            <button type="button" onclick="toggleCustomPeriodModal()" id="econ-period-custom" class="econ-period-btn px-3.5 py-1.5 rounded-lg font-bold text-stone-600 hover:text-stone-900 transition cursor-pointer">
+              Personalizado
+            </button>
+          </div>
+          <div class="text-xs text-stone-500 font-medium">
+            <span id="econ-period-range-display">8 oct. – 6 nov. 2026</span> · USD · <span class="text-stone-400">Datos en tiempo real</span>
+          </div>
+        </div>
+
+        <!-- Fila de 4 Tarjetas KPI -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <!-- 1. Ventas netas -->
+          <div class="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs">
+            <span class="text-xs text-stone-500 font-medium block mb-1.5">Ventas netas</span>
+            <div class="font-serif text-3xl font-bold text-stone-900 tracking-tight" id="econ-kpi-ventas-netas">$1,600.00</div>
+            <p class="text-[11px] text-stone-400 mt-2 truncate" id="econ-kpi-ventas-sub">Tras $20.00 en devoluciones</p>
+          </div>
+
+          <!-- 2. Ganancia estimada (Destacada en Verde Bosque #143628) -->
+          <div class="bg-[#143628] rounded-2xl p-5 shadow-sm text-white">
+            <span class="text-xs text-emerald-200/80 font-medium block mb-1.5">Ganancia estimada</span>
+            <div class="font-serif text-3xl font-bold text-white tracking-tight" id="econ-kpi-ganancia">$900.00</div>
+            <p class="text-[11px] text-emerald-100/70 mt-2 truncate" id="econ-kpi-ganancia-sub">Margen del 56.3% · antes de impuestos</p>
+          </div>
+
+          <!-- 3. Presentaciones vendidas -->
+          <div class="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs">
+            <span class="text-xs text-stone-500 font-medium block mb-1.5">Presentaciones vendidas</span>
+            <div class="font-serif text-3xl font-bold text-stone-900 tracking-tight" id="econ-kpi-presentaciones">420</div>
+            <p class="text-[11px] text-stone-400 mt-2 truncate" id="econ-kpi-presentaciones-sub">300 paquetes de 1 kg + 120 manojos</p>
+          </div>
+
+          <!-- 4. Por cobrar -->
+          <div class="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs">
+            <span class="text-xs text-stone-500 font-medium block mb-1.5">Por cobrar</span>
+            <div class="font-serif text-3xl font-bold text-stone-900 tracking-tight" id="econ-kpi-por-cobrar">$240.00</div>
+            <p class="text-[11px] text-stone-400 mt-2 truncate" id="econ-kpi-por-cobrar-sub">6 pedidos pendientes de pago</p>
+          </div>
+        </div>
+
+        <!-- 2 Columnas: Gráficos de Ventas y Desglose de Inversión -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+          
+          <!-- Izquierda (7 cols): Así van tus ventas -->
+          <div class="lg:col-span-7 bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <h3 class="font-serif font-bold text-base text-stone-900">Así van tus ventas</h3>
+                <span id="econ-chart-total" class="text-xs font-bold text-stone-900">Total · $1,600.00</span>
+              </div>
+              <p class="text-xs text-stone-400 mb-6" id="econ-chart-subtitle">Ventas netas por tramo · últimos 30 días</p>
+              
+              <!-- Contenedor del gráfico de barras verticales -->
+              <div id="econ-bar-chart-container" class="relative h-48 flex items-end justify-between gap-3 pt-6 pb-2 px-2 border-b border-stone-100">
+                <!-- Se inyecta dinámicamente con las barras y etiquetas -->
+              </div>
+            </div>
+            <p class="text-[11px] text-stone-400 mt-4">Cada barra agrupa las ventas según la fecha de entrega del pedido.</p>
+          </div>
+
+          <!-- Derecha (5 cols): ¿En qué has invertido? -->
+          <div class="lg:col-span-5 bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs flex flex-col justify-between">
+            <div>
+              <h3 class="font-serif font-bold text-base text-stone-900 mb-1">¿En qué has invertido?</h3>
+              <p class="text-xs text-stone-400 mb-6" id="econ-expenses-subtitle">Gastos registrados · 30 días</p>
+
+              <!-- Barras de progreso de categorías -->
+              <div class="space-y-4">
+                <!-- Insumos y cultivo -->
+                <div>
+                  <div class="flex items-center justify-between text-xs mb-1.5 font-medium">
+                    <span class="text-stone-700">Insumos y cultivo</span>
+                    <span class="font-bold text-stone-900" id="econ-cat-insumos-amount">$360.00</span>
+                  </div>
+                  <div class="w-full bg-stone-100 rounded-full h-2 overflow-hidden">
+                    <div id="econ-cat-insumos-bar" class="bg-[#143628] h-full rounded-full transition-all duration-500" style="width: 58%;"></div>
+                  </div>
+                </div>
+
+                <!-- Transporte -->
+                <div>
+                  <div class="flex items-center justify-between text-xs mb-1.5 font-medium">
+                    <span class="text-stone-700">Transporte</span>
+                    <span class="font-bold text-stone-900" id="econ-cat-transporte-amount">$180.00</span>
+                  </div>
+                  <div class="w-full bg-stone-100 rounded-full h-2 overflow-hidden">
+                    <div id="econ-cat-transporte-bar" class="bg-[#A3B899] h-full rounded-full transition-all duration-500" style="width: 29%;"></div>
+                  </div>
+                </div>
+
+                <!-- Empaques -->
+                <div>
+                  <div class="flex items-center justify-between text-xs mb-1.5 font-medium">
+                    <span class="text-stone-700">Empaques</span>
+                    <span class="font-bold text-stone-900" id="econ-cat-empaques-amount">$80.00</span>
+                  </div>
+                  <div class="w-full bg-stone-100 rounded-full h-2 overflow-hidden">
+                    <div id="econ-cat-empaques-bar" class="bg-[#c85a32] h-full rounded-full transition-all duration-500" style="width: 13%;"></div>
+                  </div>
+                </div>
+
+                <!-- Otros / Mantenimiento -->
+                <div>
+                  <div class="flex items-center justify-between text-xs mb-1.5 font-medium">
+                    <span class="text-stone-700">Otros</span>
+                    <span class="font-bold text-stone-900" id="econ-cat-otros-amount">$0.00</span>
+                  </div>
+                  <div class="w-full bg-stone-100 rounded-full h-2 overflow-hidden">
+                    <div id="econ-cat-otros-bar" class="bg-stone-300 h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Total de gastos -->
+              <div class="flex items-baseline justify-between pt-5 mt-5 border-t border-stone-100">
+                <span class="text-xs font-bold text-stone-800">Total de gastos</span>
+                <span class="font-serif text-xl font-bold text-stone-900" id="econ-total-gastos">$620.00</span>
+              </div>
+            </div>
+
+            <p class="text-[11px] text-stone-400 mt-4 pt-3 border-t border-stone-100" id="econ-comision-nota">
+              Comisión de la plataforma: $80.00 adicionales.
+            </p>
+          </div>
+
+        </div>
+
+        <!-- Tabla 1: Tu finca en perspectiva -->
+        <div class="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs mb-6 overflow-hidden">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-serif font-bold text-base text-stone-900">Tu finca en perspectiva</h3>
+            <span class="text-[11px] text-stone-400">Cifras acumuladas · USD</span>
+          </div>
+          <div class="overflow-x-auto -mx-5 px-5">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+              <thead>
+                <tr class="text-[11px] font-bold text-stone-400 border-b border-stone-100">
+                  <th class="py-2.5 font-semibold">Período</th>
+                  <th class="py-2.5 font-semibold">Ventas netas</th>
+                  <th class="py-2.5 font-semibold">Gastos + comisión</th>
+                  <th class="py-2.5 font-semibold">Ganancia estimada</th>
+                  <th class="py-2.5 font-semibold text-right">Presentaciones</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-stone-100" id="econ-perspective-tbody">
+                <!-- Filas 7 días, 30 días, 1 año inyectadas dinámicamente -->
+              </tbody>
+            </table>
+          </div>
+          <p class="text-[11px] text-stone-400 mt-3 pt-3 border-t border-stone-100">
+            Ganancia estimada = ventas netas − gastos registrados − comisión. No equivale al dinero disponible.
+          </p>
+        </div>
+
+        <!-- Tabla 2: Lo que ha vendido tu finca -->
+        <div class="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs mb-6 overflow-hidden">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="font-serif font-bold text-base text-stone-900">Lo que ha vendido tu finca</h3>
+            <span class="text-[11px] text-stone-400" id="econ-sold-products-count">30 días · 2 productos con ventas</span>
+          </div>
+          <div class="overflow-x-auto -mx-5 px-5">
+            <table class="w-full text-left text-xs whitespace-nowrap">
+              <thead>
+                <tr class="text-[11px] font-bold text-stone-400 border-b border-stone-100">
+                  <th class="py-2.5 font-semibold">Producto</th>
+                  <th class="py-2.5 font-semibold">Presentación</th>
+                  <th class="py-2.5 font-semibold text-center">Cantidad vendida</th>
+                  <th class="py-2.5 font-semibold">Precio por presentación</th>
+                  <th class="py-2.5 font-semibold text-right">Ventas brutas</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-stone-100" id="econ-sold-products-tbody">
+                <!-- Se inyecta dinámicamente con productos vendidos -->
+              </tbody>
+            </table>
+          </div>
+          <div class="mt-3 pt-3 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div id="econ-formula-resumen" class="font-semibold text-stone-800">
+              Ventas brutas: $1,620.00 − Devoluciones: $20.00 = Ventas netas: $1,600.00
+            </div>
+          </div>
+          <p class="text-[11px] text-stone-400 mt-2">
+            Se suman presentaciones comerciales, no kilos y manojos. Los pedidos cancelados no cuentan como venta.
+          </p>
+        </div>
+
+        <!-- 2 Columnas Inferiores: Movimientos recientes & Cuentas por atender -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-6">
+          
+          <!-- Izquierda (7 cols): Movimientos recientes -->
+          <div class="lg:col-span-7 bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-3">
+                <h3 class="font-serif font-bold text-base text-stone-900">Movimientos recientes</h3>
+                <span class="text-[11px] text-stone-400" id="econ-movements-count-label">5 de 24 · 30 días</span>
+              </div>
+
+              <!-- Filtro y Búsqueda -->
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-2 mb-4">
+                <div class="sm:col-span-7">
+                  <input type="text" id="econ-movements-search" oninput="handleMovementsSearch(this.value)" placeholder="Buscar concepto o referencia..." class="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-[#143628] focus:border-transparent outline-none">
+                </div>
+                <div class="sm:col-span-5">
+                  <select id="econ-movements-filter" onchange="handleMovementsTypeFilter(this.value)" class="w-full px-3 py-2 rounded-xl border border-stone-200 text-xs focus:ring-2 focus:ring-[#143628] focus:border-transparent outline-none cursor-pointer bg-white">
+                    <option value="todos">Todos los tipos</option>
+                    <option value="ventas">Ventas</option>
+                    <option value="gastos">Gastos</option>
+                    <option value="devoluciones">Devoluciones</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Cabecera de la lista -->
+              <div class="flex items-center justify-between text-[10px] font-bold text-stone-400 uppercase tracking-wider pb-2 border-b border-stone-100">
+                <span>Fecha / Concepto</span>
+                <span>Importe y estado</span>
+              </div>
+
+              <!-- Lista de movimientos -->
+              <div class="divide-y divide-stone-100" id="econ-movements-list">
+                <!-- Se inyecta dinámicamente con movimientos -->
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between pt-4 mt-4 border-t border-stone-100 text-xs">
+              <button type="button" onclick="toggleAllMovementsModal()" class="font-bold text-[#143628] hover:underline cursor-pointer flex items-center gap-1">
+                <span>Ver todos los movimientos</span>
+                <span>→</span>
+              </button>
+              <span class="text-[11px] text-stone-400">Con soporte descargable</span>
+            </div>
+          </div>
+
+          <!-- Derecha (5 cols): Cuentas por atender -->
+          <div class="lg:col-span-5 space-y-4">
+            
+            <div class="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs">
+              <div class="mb-4">
+                <h3 class="font-serif font-bold text-base text-stone-900">Cuentas por atender</h3>
+                <p class="text-xs text-stone-400 mt-0.5">Lo pendiente no es dinero disponible.</p>
+              </div>
+
+              <!-- Tarjeta Por cobrar -->
+              <div class="bg-[#eef5f0] border border-emerald-100 rounded-2xl p-4 mb-4">
+                <span class="text-xs font-bold text-emerald-900 block" id="econ-por-cobrar-badge">Por cobrar · 6 pedidos</span>
+                <div class="font-serif text-3xl font-bold text-stone-900 my-1.5" id="econ-por-cobrar-amount">$240.00</div>
+                <p class="text-[11px] text-stone-500" id="econ-por-cobrar-date">Cobro previsto: 7–10 nov. 2026</p>
+                <button type="button" onclick="showPendingOrdersModal()" class="text-xs font-bold text-emerald-900 hover:text-[#143628] inline-flex items-center gap-1 mt-2.5 transition cursor-pointer">
+                  <span>Ver pedidos pendientes</span>
+                  <span>→</span>
+                </button>
+              </div>
+
+              <!-- Tarjeta Por pagar -->
+              <div class="bg-[#fdf6f0] border border-[#f5dfd5] rounded-2xl p-4 mb-4">
+                <span class="text-xs font-bold text-[#943b1c] block" id="econ-por-pagar-badge">Por pagar · 2 gastos</span>
+                <div class="font-serif text-3xl font-bold text-stone-900 my-1.5" id="econ-por-pagar-amount">$100.00</div>
+                
+                <!-- Desglose de gastos por pagar -->
+                <div class="space-y-1.5 my-2.5 text-xs" id="econ-pending-expenses-list">
+                  <!-- Se inyecta dinámicamente con los gastos pendientes y botón de pagar -->
+                </div>
+
+                <button type="button" onclick="openExpenseForm()" class="text-xs font-bold text-[#c85a32] hover:text-[#943b1c] inline-flex items-center gap-1 mt-1 transition cursor-pointer">
+                  <span>Revisar pagos / Registrar gasto</span>
+                  <span>+</span>
+                </button>
+              </div>
+
+              <!-- Tarjeta Flujo de caja del período -->
+              <div class="pt-3 border-t border-stone-100">
+                <span class="text-xs font-bold text-stone-800 block">Flujo de caja del período</span>
+                <p class="text-[11px] text-stone-400 mt-0.5" id="econ-flujo-caja-sub">Cobrado $1,360.00 − pagado $600.00</p>
+                <div class="font-serif text-2xl font-bold text-emerald-800 mt-1" id="econ-flujo-caja-amount">+$760.00</div>
+                <p class="text-[10px] text-stone-400 mt-1 leading-snug">
+                  Incluye gastos y comisión pagados. No incluye saldo inicial ni impuestos.
+                </p>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- Recuadro Legal/Contable Inferior -->
+        <div class="bg-[#F4EFE6] border border-[#EAE4D7] rounded-2xl p-5 mb-8 text-xs text-stone-600">
+          <h4 class="font-bold text-stone-900 mb-1">Tus cuentas, con claridad</h4>
+          <p class="leading-relaxed">
+            Resumen por fecha de entrega. La ganancia incluye gastos pagados y por pagar; el flujo de caja solo cobros y pagos realizados. Los impuestos y retenciones no están incluidos: valida el cierre con tu contador.
+          </p>
+        </div>
+
+      </section>
+
+      <!-- =====================================================================
+           VISTA 5: REGISTRAR GASTO
+           ===================================================================== -->
+      <section id="view-registrar-gasto" class="hidden">
+        
+        <!-- Enlace superior para volver -->
+        <button type="button" onclick="switchProducerTab('mi-economia')" class="text-xs font-bold text-stone-600 hover:text-stone-900 inline-flex items-center gap-1.5 mb-3 transition cursor-pointer">
+          <span>←</span>
+          <span>Volver a mi economía</span>
+        </button>
+
+        <!-- Cabecera -->
+        <div class="mb-6">
+          <span class="text-[10px] uppercase tracking-wider font-extrabold text-[#c85a32] block mb-1">
+            <span class="producer-farm-display uppercase">HACIENDA SAN JOSÉ</span> · CONTROL DE GASTOS
+          </span>
+          <h1 class="font-serif text-3xl font-bold text-stone-900 tracking-tight">Registrar gasto</h1>
+          <p class="text-xs text-stone-500 mt-1">Guarda cada inversión de tu finca, aunque todavía no la hayas pagado.</p>
+        </div>
+
+        <!-- 2 Columnas: Formulario y Panel "Antes de guardar" -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-12">
+          
+          <!-- Columna Izquierda (8 cols): Formulario -->
+          <div class="lg:col-span-8 bg-white rounded-2xl border border-stone-200/90 p-6 sm:p-7 shadow-2xs space-y-5">
+            
+            <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+              <h3 class="font-serif font-bold text-base text-stone-900">Datos del gasto</h3>
+              <span class="text-[11px] text-stone-400">* Campos obligatorios · Importes en dólares (USD)</span>
+            </div>
+
+            <!-- Fila 1: Fecha y Categoría -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="expense-form-date" class="block text-xs font-bold text-stone-700 mb-1.5">
+                  Fecha del gasto *
+                </label>
+                <input type="date" id="expense-form-date" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs font-medium focus:ring-2 focus:ring-[#143628] focus:border-transparent outline-none">
+              </div>
+
+              <div>
+                <label for="expense-form-category" class="block text-xs font-bold text-stone-700 mb-1.5">
+                  Categoría *
+                </label>
+                <select id="expense-form-category" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs font-medium focus:ring-2 focus:ring-[#143628] focus:border-transparent outline-none cursor-pointer bg-white">
+                  <option value="Insumos y cultivo">Insumos y cultivo</option>
+                  <option value="Transporte">Transporte</option>
+                  <option value="Empaques">Empaques</option>
+                  <option value="Mano de obra">Mano de obra</option>
+                  <option value="Mantenimiento">Mantenimiento</option>
+                  <option value="Otros">Otros</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Fila 2: Concepto -->
+            <div>
+              <label for="expense-form-concept" class="block text-xs font-bold text-stone-700 mb-1.5">
+                Concepto *
+              </label>
+              <input type="text" id="expense-form-concept" placeholder="Abono orgánico para la próxima siembra" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs font-medium focus:ring-2 focus:ring-[#143628] focus:border-transparent outline-none">
+            </div>
+
+            <!-- Fila 3: Importe Total y Proveedor -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="expense-form-amount" class="block text-xs font-bold text-stone-700 mb-1.5">
+                  Importe total *
+                </label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-2.5 text-xs font-bold text-stone-400">$</span>
+                  <input type="text" id="expense-form-amount" oninput="handleExpenseAmountChange(this.value)" placeholder="85.00" class="w-full pl-7 pr-3.5 py-2.5 rounded-xl border border-stone-200 text-xs font-bold focus:ring-2 focus:ring-[#143628] focus:border-transparent outline-none">
+                </div>
+                <p class="text-[11px] text-stone-400 mt-1">Incluye los impuestos de tu comprobante.</p>
+              </div>
+
+              <div>
+                <label for="expense-form-supplier" class="block text-xs font-bold text-stone-700 mb-1.5">
+                  Proveedor
+                </label>
+                <input type="text" id="expense-form-supplier" placeholder="Agroinsumos La Semilla" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs font-medium focus:ring-2 focus:ring-[#143628] focus:border-transparent outline-none">
+              </div>
+            </div>
+
+            <!-- Fila 4: Estado del Pago (Segmented Toggle) -->
+            <div>
+              <label class="block text-xs font-bold text-stone-700 mb-1.5">
+                Estado del pago *
+              </label>
+              <div class="grid grid-cols-2 gap-3 p-1 bg-stone-100 rounded-xl">
+                <button type="button" id="expense-btn-paid" onclick="setExpensePaymentStatus('paid')" class="py-2.5 px-3 rounded-lg text-xs font-bold text-stone-700 hover:text-stone-900 transition cursor-pointer">
+                  Ya lo pagué
+                </button>
+                <button type="button" id="expense-btn-pending" onclick="setExpensePaymentStatus('pending')" class="py-2.5 px-3 rounded-lg text-xs font-bold bg-[#143628] text-white shadow-2xs transition cursor-pointer">
+                  Pendiente de pago
+                </button>
+              </div>
+            </div>
+
+            <!-- Fila 5: Vencimiento y Referencia de Factura (Condicional si es Pendiente) -->
+            <div id="expense-pending-fields" class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              <div>
+                <label for="expense-form-due-date" class="block text-xs font-bold text-stone-700 mb-1.5">
+                  Fecha de vencimiento *
+                </label>
+                <input type="date" id="expense-form-due-date" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs font-medium focus:ring-2 focus:ring-[#143628] focus:border-transparent outline-none">
+              </div>
+
+              <div>
+                <label for="expense-form-invoice-ref" class="block text-xs font-bold text-stone-700 mb-1.5">
+                  Referencia de factura
+                </label>
+                <input type="text" id="expense-form-invoice-ref" placeholder="FACT-0081" class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs font-medium focus:ring-2 focus:ring-[#143628] focus:border-transparent outline-none">
+              </div>
+            </div>
+
+            <!-- Fila 6: Comprobante Opcional -->
+            <div class="bg-[#F9F6F0] border border-stone-200/80 rounded-2xl p-4 sm:p-5">
+              <span class="text-xs font-bold text-stone-800 block mb-1">Comprobante · opcional</span>
+              <p class="text-xs text-stone-500 mb-3">Adjunta una factura, recibo o foto del soporte.</p>
+              
+              <div class="flex items-center gap-3">
+                <input type="file" id="expense-form-receipt-file" onchange="handleExpenseReceiptFile(this)" accept=".pdf,image/jpeg,image/png,image/webp" class="hidden">
+                <button type="button" onclick="document.getElementById('expense-form-receipt-file').click()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white border border-stone-200 hover:bg-stone-50 text-xs font-bold text-stone-700 shadow-2xs transition cursor-pointer">
+                  <span>+ Adjuntar comprobante</span>
+                </button>
+                <span id="expense-receipt-filename" class="text-xs text-stone-400 italic">Ningún archivo seleccionado</span>
+              </div>
+              <p class="text-[10px] text-stone-400 mt-2">PDF, JPG o PNG · máximo 10 MB</p>
+            </div>
+
+            <!-- Fila 7: Notas Opcionales -->
+            <div>
+              <label for="expense-form-notes" class="block text-xs font-bold text-stone-700 mb-1.5">
+                Notas · opcional
+              </label>
+              <input type="text" id="expense-form-notes" placeholder="Abono para el lote de zanahoria de noviembre." class="w-full px-3.5 py-2.5 rounded-xl border border-stone-200 text-xs font-medium focus:ring-2 focus:ring-[#143628] focus:border-transparent outline-none">
+            </div>
+
+            <!-- Fila 8: Botones de Acción -->
+            <div class="flex items-center justify-between pt-4 border-t border-stone-100">
+              <button type="button" onclick="switchProducerTab('mi-economia')" class="px-4 py-2.5 rounded-xl text-xs font-bold text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition cursor-pointer">
+                Cancelar
+              </button>
+
+              <button type="button" id="btn-save-expense" onclick="saveProducerExpense()" class="px-6 py-2.5 rounded-xl bg-[#143628] hover:bg-[#1f4a38] text-white text-xs font-bold shadow-2xs transition cursor-pointer flex items-center gap-2">
+                <span id="btn-save-expense-icon">✓</span>
+                <span id="btn-save-expense-label">Guardar gasto</span>
+              </button>
+            </div>
+
+            <p class="text-[11px] text-stone-400 text-right">
+              Ejemplo sin guardar: este importe aún no se suma al resumen.
+            </p>
+
+          </div>
+
+          <!-- Columna Derecha (4 cols): Antes de guardar & Cada gasto cuenta -->
+          <div class="lg:col-span-4 space-y-4">
+            
+            <!-- Card 1: Antes de guardar (En vivo) -->
+            <div class="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs">
+              <h3 class="font-serif font-bold text-base text-stone-900">Antes de guardar</h3>
+              <p class="text-xs text-stone-400 mt-0.5">Vista previa · 30 días</p>
+              <p class="text-[11px] text-stone-400 mb-4" id="expense-preview-range">8 oct. – 6 nov. 2026</p>
+
+              <div class="space-y-3.5 text-xs">
+                <div>
+                  <span class="text-stone-500 block">Nuevo gasto</span>
+                  <div class="font-serif text-2xl font-bold text-stone-900 mt-0.5" id="expense-preview-new-amount">$85.00</div>
+                </div>
+
+                <div class="pt-3 border-t border-stone-100">
+                  <span class="text-stone-500 block mb-1">Gastos registrados</span>
+                  <div class="font-bold text-stone-900 flex items-center gap-1.5" id="expense-preview-total-comp">
+                    <span class="text-stone-500">$620.00</span>
+                    <span class="text-stone-400">→</span>
+                    <span class="text-stone-900 font-extrabold">$705.00</span>
+                  </div>
+                </div>
+
+                <div class="pt-3 border-t border-stone-100">
+                  <span class="text-stone-500 block mb-1">Ganancia estimada</span>
+                  <div class="font-bold text-stone-900 flex items-center gap-1.5" id="expense-preview-profit-comp">
+                    <span class="text-stone-500">$900.00</span>
+                    <span class="text-stone-400">→</span>
+                    <span class="text-emerald-800 font-extrabold">$815.00</span>
+                  </div>
+                </div>
+
+                <div class="pt-3 border-t border-stone-100">
+                  <span class="text-stone-500 block mb-1">Por pagar</span>
+                  <div class="font-bold text-stone-900 flex items-center gap-1.5" id="expense-preview-pending-comp">
+                    <span class="text-stone-500">$100.00</span>
+                    <span class="text-stone-400">→</span>
+                    <span class="text-[#c85a32] font-extrabold">$185.00</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 2: Cada gasto cuenta -->
+            <div class="bg-[#eef5f0] border border-emerald-100 rounded-2xl p-5 text-xs text-stone-600 space-y-2.5">
+              <h4 class="font-bold text-stone-900 text-sm">Cada gasto cuenta</h4>
+              <p class="leading-relaxed">
+                Un gasto pendiente reduce la ganancia estimada desde su fecha de registro. Solo afectará al flujo de caja cuando se pague.
+              </p>
+              <p class="leading-relaxed">
+                El vencimiento aparecerá en tus cuentas por pagar para que no se te pase.
+              </p>
+              <p class="leading-relaxed">
+                Conserva el comprobante para conciliar tus cuentas y preparar el cierre con tu contador.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
     </main>
 
     <!-- Pie de página (Footer) -->
     <footer class="border-t border-stone-200/90 py-5 px-6 sm:px-8 text-xs text-stone-400 flex flex-col sm:flex-row items-center justify-between gap-3 bg-white">
-      <div>© 2026 Raíz & Barrio · Guayaquil y la Cuenca del Guayas.</div>
+      <div>© 2026 Raíz & Barrio · Guayaquil y su tierra cercana.</div>
       <div class="flex items-center gap-4 text-stone-500">
         <a href="#" class="hover:underline">Ayuda</a>
         <span>·</span>

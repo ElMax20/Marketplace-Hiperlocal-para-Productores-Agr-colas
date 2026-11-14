@@ -307,6 +307,10 @@ function renderProfileHTML(profile) {
       <span>➕</span>
       <span>Publicar producto</span>
     </a>
+    <a href="productor.html#mi-economia" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+      <span class="font-bold text-xs">$</span>
+      <span>Mi economía</span>
+    </a>
     <a href="productor.html#perfil-seguridad" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
       <span>⚙️</span>
       <span>Configuración</span>

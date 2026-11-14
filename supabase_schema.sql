@@ -696,10 +696,95 @@ SET is_seasonal = true,
     season_label = 'Últimas semanas'
 WHERE id IN (21, 28, 35);
 
+-- =============================================================================
+-- 18. MÓDULO FINANCIERO DEL PRODUCTOR: MI ECONOMÍA Y GASTOS (producer_expenses)
+-- =============================================================================
 
+-- 18.1 Tabla de Gastos de Productor
+CREATE TABLE IF NOT EXISTS public.producer_expenses (
+    id BIGSERIAL PRIMARY KEY,
+    producer_id UUID NOT NULL,
+    expense_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    category TEXT NOT NULL CHECK (category IN ('Insumos y cultivo', 'Transporte', 'Empaques', 'Mano de obra', 'Mantenimiento', 'Otros')),
+    concept TEXT NOT NULL,
+    amount NUMERIC(10, 2) NOT NULL CHECK (amount >= 0),
+    supplier TEXT,
+    payment_status TEXT NOT NULL DEFAULT 'paid' CHECK (payment_status IN ('paid', 'pending')),
+    due_date DATE,
+    invoice_ref TEXT,
+    receipt_url TEXT,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
 
+-- Índices de consulta rápida
+CREATE INDEX IF NOT EXISTS idx_producer_expenses_producer ON public.producer_expenses(producer_id);
+CREATE INDEX IF NOT EXISTS idx_producer_expenses_date ON public.producer_expenses(expense_date DESC);
+CREATE INDEX IF NOT EXISTS idx_producer_expenses_status ON public.producer_expenses(payment_status);
 
+-- Seguridad a Nivel de Fila (RLS)
+ALTER TABLE public.producer_expenses ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "producer_expenses_select" ON public.producer_expenses;
+CREATE POLICY "producer_expenses_select" ON public.producer_expenses
+    FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "producer_expenses_insert" ON public.producer_expenses;
+CREATE POLICY "producer_expenses_insert" ON public.producer_expenses
+    FOR INSERT WITH CHECK (true);
 
+DROP POLICY IF EXISTS "producer_expenses_update" ON public.producer_expenses;
+CREATE POLICY "producer_expenses_update" ON public.producer_expenses
+    FOR UPDATE USING (true);
 
+DROP POLICY IF EXISTS "producer_expenses_delete" ON public.producer_expenses;
+CREATE POLICY "producer_expenses_delete" ON public.producer_expenses
+    FOR DELETE USING (true);
+
+-- 18.2 Publicación Realtime para producer_expenses
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_publication_tables 
+            WHERE pubname = 'supabase_realtime' 
+            AND schemaname = 'public' 
+            AND tablename = 'producer_expenses'
+        ) THEN
+            ALTER PUBLICATION supabase_realtime ADD TABLE public.producer_expenses;
+        END IF;
+    END IF;
+END $$;
+
+-- 18.3 Bucket de Almacenamiento: expense-receipts
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('expense-receipts', 'expense-receipts', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+DROP POLICY IF EXISTS "expense_receipts_public_select" ON storage.objects;
+CREATE POLICY "expense_receipts_public_select" ON storage.objects
+    FOR SELECT USING (bucket_id = 'expense-receipts');
+
+DROP POLICY IF EXISTS "expense_receipts_public_insert" ON storage.objects;
+CREATE POLICY "expense_receipts_public_insert" ON storage.objects
+    FOR INSERT WITH CHECK (bucket_id = 'expense-receipts');
+
+DROP POLICY IF EXISTS "expense_receipts_public_update" ON storage.objects;
+CREATE POLICY "expense_receipts_public_update" ON storage.objects
+    FOR UPDATE USING (bucket_id = 'expense-receipts');
+
+DROP POLICY IF EXISTS "expense_receipts_public_delete" ON storage.objects;
+CREATE POLICY "expense_receipts_public_delete" ON storage.objects
+    FOR DELETE USING (bucket_id = 'expense-receipts');
+
+-- 18.4 Datos Semilla de Gastos (Max Productor · 30 días base)
+INSERT INTO public.producer_expenses (producer_id, expense_date, category, concept, amount, supplier, payment_status, due_date, invoice_ref, notes)
+VALUES
+    ('00000000-0000-0000-0000-000000000002', '2026-10-18', 'Insumos y cultivo', 'Semillas agroecológicas certificadas', 120.00, 'AgroBio Daule', 'paid', NULL, 'FACT-0062', 'Semillas de rábano y acelga'),
+    ('00000000-0000-0000-0000-000000000002', '2026-10-24', 'Insumos y cultivo', 'Compost orgánico y biol fermentado', 170.00, 'Finca La Esperanza', 'paid', NULL, 'FACT-0071', 'Abono para lote 3'),
+    ('00000000-0000-0000-0000-000000000002', '2026-10-28', 'Transporte', 'Flete de cosecha hacia centro de acopio', 150.00, 'Cooperativa Daule Express', 'paid', NULL, 'FAC-0988', 'Viaje Daule - Guayaquil'),
+    ('00000000-0000-0000-0000-000000000002', '2026-11-03', 'Empaques', 'Compra de cajas de cartón y atados de yute', 50.00, 'Empaques Ecológicos del Guayas', 'paid', NULL, 'FACT-0079', 'Empaques para canastas'),
+    ('00000000-0000-0000-0000-000000000002', '2026-11-03', 'Empaques', 'Compra de empaques biodegradables', 30.00, 'Suministros Agrícolas Guayas', 'paid', NULL, 'GAS-023', 'Suministros para entregas'),
+    ('00000000-0000-0000-0000-000000000002', '2026-11-05', 'Transporte', 'Transporte al nodo Urdesa', 30.00, 'Logística local Express', 'pending', '2026-11-15', 'GAS-038', 'Entrega de nodos semanales'),
+    ('00000000-0000-0000-0000-000000000002', '2026-11-04', 'Insumos y cultivo', 'Mangueras de riego por goteo', 70.00, 'Agroinsumos La Semilla', 'pending', '2026-11-09', 'FACT-0081', 'Mantenimiento del sector norte')
+ON CONFLICT DO NOTHING;
