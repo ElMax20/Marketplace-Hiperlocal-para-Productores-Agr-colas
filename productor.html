@@ -142,10 +142,10 @@
       <div class="flex items-center justify-between pt-1">
         <div class="flex items-center gap-2.5 cursor-pointer" onclick="switchProducerTab('perfil-seguridad')">
           <div class="w-9 h-9 rounded-full overflow-hidden bg-[#e0ded8] border border-stone-200 shrink-0">
-            <img id="producer-sidebar-avatar" src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg" alt="Elena Moreno" class="w-full h-full object-cover">
+            <img id="producer-sidebar-avatar" src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/agricultor_1.jpg" alt="Max Productor" class="w-full h-full object-cover">
           </div>
           <div class="truncate">
-            <span class="producer-name-display text-xs font-bold text-stone-800 block truncate">Elena Moreno</span>
+            <span class="producer-name-display text-xs font-bold text-stone-800 block truncate">Max Productor</span>
             <span class="text-[10px] text-stone-400 block">Productor</span>
           </div>
         </div>
@@ -204,8 +204,9 @@
           </svg>
           <span class="absolute top-1 right-1 w-1.5 h-1.5 bg-[#c85a32] rounded-full"></span>
         </button>
-        <div onclick="switchProducerTab('perfil-seguridad')" class="w-8 h-8 rounded-full bg-[#faece6] text-[#c85a32] font-bold flex items-center justify-center text-xs border border-[#eedfc9] cursor-pointer hover:ring-2 hover:ring-[#1a3d2f]/30 transition" id="header-user-initials">
-          EM
+        <div onclick="switchProducerTab('perfil-seguridad')" class="w-8 h-8 rounded-full bg-[#faece6] text-[#c85a32] font-bold flex items-center justify-center text-xs border border-[#eedfc9] cursor-pointer hover:ring-2 hover:ring-[#1a3d2f]/30 transition overflow-hidden" id="header-user-initials" title="Max Productor">
+          <img id="header-user-avatar" src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/agricultor_1.jpg" alt="Max Productor" class="w-full h-full object-cover hidden">
+          <span id="header-user-initials-text">MP</span>
         </div>
       </div>
     </header>
@@ -228,7 +229,7 @@
               Mis productos
             </h1>
             <p class="text-xs sm:text-sm text-stone-500">
-              Hola, <span class="producer-name-display font-medium text-stone-700">Elena</span>. Tu cosecha tiene un lugar en la mesa del barrio.
+              Hola, <span class="producer-name-display font-medium text-stone-700">Max Productor</span>. Tu cosecha tiene un lugar en la mesa del barrio.
             </p>
           </div>
 
@@ -295,7 +296,7 @@
             <svg class="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
             </svg>
-            <input type="text" placeholder="Buscar en mis productos..." class="w-full pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">
+            <input type="text" id="producer-search-input" oninput="handleProducerSearch(this.value)" placeholder="Buscar en mis productos..." class="w-full pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">
           </div>
 
           <div class="flex items-center gap-2 text-xs">
@@ -854,7 +855,7 @@
       </section>
 
       <!-- =====================================================================
-           PESTAÑA 4: MI PERFIL Y SEGURIDAD (media_1794011666332_f5e770f2.jpg)
+           PESTAÑA 4: MI PERFIL Y SEGURIDAD (media_1794690208665_35472ea4.png)
            ===================================================================== -->
       <section id="view-perfil-seguridad" class="hidden">
         
@@ -867,7 +868,7 @@
             Tu perfil, tu tranquilidad
           </h1>
           <p class="text-xs sm:text-sm text-stone-500">
-            <span class="producer-name-display font-medium text-stone-700">Elena</span>, mantén tus datos al día para seguir conectando tu huerta con el barrio.
+            <span class="producer-name-display font-medium text-stone-700">Max Productor</span>, mantén tus datos al día para seguir conectando tu huerta con el barrio.
           </p>
         </div>
 
@@ -881,22 +882,25 @@
             <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs text-center">
               <h3 class="font-bold text-stone-900 text-sm mb-4 text-left">Tu foto de perfil</h3>
               
-              <div class="w-20 h-20 mx-auto rounded-full overflow-hidden border-2 border-stone-200 shadow-sm mb-3">
-                <img src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/elena_moreno.jpg" alt="Elena Moreno" class="w-full h-full object-cover">
+              <div class="relative w-20 h-20 mx-auto rounded-full overflow-hidden border-2 border-stone-200 shadow-sm mb-3 bg-stone-100 flex items-center justify-center">
+                <img id="producer-profile-avatar" src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/agricultor_1.jpg" alt="Max Productor" class="w-full h-full object-cover">
               </div>
 
-              <h4 class="producer-name-display font-serif font-bold text-lg text-stone-900">Elena Moreno</h4>
+              <h4 class="producer-name-display font-serif font-bold text-lg text-stone-900">Max Productor</h4>
               <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-stone-100 text-stone-600 mt-1 mb-4">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                 <span>Productor</span>
               </div>
 
+              <!-- Input invisible para selección de foto con avatar cropper -->
+              <input type="file" id="producer-photo-input" accept="image/*" class="hidden" onchange="handleProducerPhotoSelected(event)">
+
               <div class="space-y-2">
-                <button onclick="alert('Funcionalidad de cambio de foto disponible en el próximo despliegue')" class="w-full border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5">
+                <button type="button" onclick="document.getElementById('producer-photo-input').click()" class="w-full border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold py-2 rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs">
                   <span>📷</span>
                   <span>Cambiar foto</span>
                 </button>
-                <button onclick="alert('Foto restablecida al valor por defecto')" class="text-xs font-medium text-red-600 hover:text-red-700 transition">
+                <button type="button" onclick="removeProducerPhoto()" class="text-xs font-medium text-red-600 hover:text-red-700 transition cursor-pointer">
                   Eliminar foto
                 </button>
               </div>
@@ -937,7 +941,7 @@
 
           </div>
 
-          <!-- Columna Derecha: Edición de Datos, Correo y Contraseña (2 cols) -->
+          <!-- Columna Derecha: Edición de Datos, Correo, Contraseña y Métodos de Cobro (2 cols) -->
           <div class="lg:col-span-2 space-y-6">
             
             <!-- Card 1: Datos personales -->
@@ -948,7 +952,7 @@
               <div class="space-y-4">
                 <div>
                   <label class="block text-xs font-bold text-stone-700 mb-1.5">Nombre visible *</label>
-                  <input type="text" id="producer-profile-name" value="Elena Moreno" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">
+                  <input type="text" id="producer-profile-name" value="Max Productor" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">
                 </div>
 
                 <div>
@@ -959,7 +963,7 @@
 
                 <div class="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <span class="text-[10px] text-stone-400">El nombre y la foto se actualizarán al guardar.</span>
-                  <button onclick="saveProducerPersonalData()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-xs transition">
+                  <button type="button" onclick="saveProducerPersonalData()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-xs transition cursor-pointer">
                     Guardar datos personales
                   </button>
                 </div>
@@ -975,7 +979,7 @@
                 <div>
                   <label class="block text-xs font-bold text-stone-700 mb-1.5">Correo actual</label>
                   <div class="relative">
-                    <input type="email" value="elena@elrenacer.co" readonly class="w-full pl-3.5 pr-24 py-2.5 bg-stone-100 border border-stone-200 rounded-xl text-xs text-stone-600 cursor-not-allowed">
+                    <input type="email" id="producer-current-email" value="campomax46@gmail.com" readonly class="w-full pl-3.5 pr-24 py-2.5 bg-stone-100 border border-stone-200 rounded-xl text-xs text-stone-600 cursor-not-allowed">
                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                       • Verificado
                     </span>
@@ -985,7 +989,7 @@
                 <div>
                   <label class="block text-xs font-bold text-stone-700 mb-1.5">Nuevo correo electrónico</label>
                   <div class="relative">
-                    <input type="email" placeholder="Escribe tu nuevo correo electrónico" class="w-full pl-3.5 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <input type="email" id="producer-new-email" placeholder="Escribe tu nuevo correo electrónico" class="w-full pl-3.5 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
                     <span class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs">✉</span>
                   </div>
                 </div>
@@ -1003,14 +1007,14 @@
                   <span class="text-[10px] text-stone-400 max-w-sm">
                     Enviaremos un enlace al nuevo correo. Hasta confirmarlo, seguirás entrando con tu correo actual.
                   </span>
-                  <button onclick="alert('Enlace de verificación enviado a tu nuevo correo.')" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2 rounded-xl transition shadow-2xs shrink-0">
-                    Enviar enlace de verificación
+                  <button id="btn-producer-email" onclick="requestProducerEmailChange()" type="button" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2 rounded-xl transition shadow-2xs shrink-0 cursor-pointer">
+                    <span id="btn-producer-email-text">Enviar enlace de verificación</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            <!-- Card 3: Cambiar contraseña -->
+            <!-- Card 3: Cambiar contraseña (con 2FA OTP) -->
             <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
               <h3 class="font-bold text-stone-900 text-sm mb-1">Cambiar contraseña</h3>
               <p class="text-[11px] text-stone-400 mb-4">Cuida el acceso a tu cuenta. Nunca compartas tu contraseña.</p>
@@ -1019,8 +1023,8 @@
                 <div>
                   <label class="block text-xs font-bold text-stone-700 mb-1.5">Contraseña actual *</label>
                   <div class="relative">
-                    <input type="password" value="............" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                    <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs">👁</button>
+                    <input type="password" id="producer-pass-current" placeholder="Ingresa tu contraseña actual" class="w-full pl-3.5 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <button type="button" onclick="togglePassVisibility('producer-pass-current', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs cursor-pointer">👁</button>
                   </div>
                 </div>
 
@@ -1028,32 +1032,103 @@
                   <div>
                     <label class="block text-xs font-bold text-stone-700 mb-1.5">Nueva contraseña *</label>
                     <div class="relative">
-                      <input type="password" value="............" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                      <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs">👁</button>
+                      <input type="password" id="producer-pass-new" placeholder="Mínimo 12 caracteres (Mayús, minús, número, símbolo)" class="w-full pl-3.5 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                      <button type="button" onclick="togglePassVisibility('producer-pass-new', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs cursor-pointer">👁</button>
                     </div>
                   </div>
                   <div>
                     <label class="block text-xs font-bold text-stone-700 mb-1.5">Confirmar nueva contraseña *</label>
                     <div class="relative">
-                      <input type="password" value="............" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                      <button type="button" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs">👁</button>
+                      <input type="password" id="producer-pass-confirm" placeholder="Repite la nueva contraseña" class="w-full pl-3.5 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                      <button type="button" onclick="togglePassVisibility('producer-pass-confirm', this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs cursor-pointer">👁</button>
                     </div>
                   </div>
                 </div>
 
-                <p class="text-[10px] text-stone-400">
-                  Usa al menos 12 caracteres, con mayúsculas, minúsculas, números y un símbolo. No reutilices tu contraseña anterior.
-                </p>
+                <!-- Requisitos de seguridad -->
+                <div class="bg-emerald-50/70 border border-emerald-200/80 rounded-xl p-3 text-[11px] text-stone-600 space-y-1">
+                  <p class="font-bold text-emerald-950 flex items-center gap-1.5">
+                    <span>✓</span> Requisitos de seguridad (2FA por código OTP)
+                  </p>
+                  <ul class="text-[10px] text-stone-600 space-y-0.5 ml-4 list-disc">
+                    <li>Mínimo 12 caracteres</li>
+                    <li>Incluye mayúsculas, minúsculas, números y símbolo</li>
+                    <li>La confirmación coincide</li>
+                    <li>Se enviará un código OTP de 6 dígitos a tu correo registrado</li>
+                  </ul>
+                </div>
 
                 <div class="pt-2 flex items-center justify-between border-t border-stone-100">
                   <div class="flex items-center gap-1.5 text-[10px] text-stone-400">
                     <span>🔒</span>
-                    <span>Las contraseñas permanecen ocultas.</span>
+                    <span>Las contraseñas permanecen ocultas y cifradas.</span>
                   </div>
-                  <button onclick="alert('Contraseña actualizada correctamente en Supabase.')" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-xs transition">
-                    Actualizar contraseña
+                  <button id="btn-producer-pass" onclick="handleProducerPasswordUpdate()" type="button" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-xs transition cursor-pointer">
+                    <span id="btn-producer-pass-text">Actualizar contraseña</span>
                   </button>
                 </div>
+              </div>
+            </div>
+
+            <!-- Card 4: Tarjeta y cuenta para recibir pagos (Image 2 style) -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+              <div class="flex items-center justify-between gap-2 mb-1">
+                <h3 class="font-bold text-stone-900 text-sm">Tarjeta y cuenta para recibir pagos</h3>
+                <span class="text-[10px] font-bold text-emerald-800 bg-[#E8F3EC] px-2.5 py-0.5 rounded-md border border-emerald-200">
+                  PAGOS VERIFICADOS
+                </span>
+              </div>
+              <p class="text-[11px] text-stone-400 mb-4">Elige dónde deseas recibir las transferencias de tus ventas en el mercado.</p>
+
+              <!-- Contenedor dinámico de método de cobro -->
+              <div id="producer-payout-display">
+                <!-- Estado vacío (Empty State) -->
+                <div id="payout-empty-state" class="border-2 border-dashed border-stone-200 hover:border-[#1a3d2f] rounded-2xl p-6 text-center transition bg-stone-50/50">
+                  <div class="w-12 h-12 mx-auto mb-2 text-stone-400 flex items-center justify-center text-2xl bg-stone-100 rounded-full">
+                    💳
+                  </div>
+                  <h4 class="text-xs font-bold text-stone-800">No tienes una cuenta de cobro configurada</h4>
+                  <p class="text-[11px] text-stone-400 mt-1 max-w-sm mx-auto">
+                    Añade tu cuenta bancaria o tarjeta preferida para recibir las transferencias quincenales de tus cosechas.
+                  </p>
+                  <button onclick="openPayoutMethodModal()" type="button" class="mt-4 bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-4 py-2 rounded-xl shadow-xs transition inline-flex items-center gap-1.5 cursor-pointer">
+                    <span>+</span>
+                    <span>Configurar tarjeta de cobro</span>
+                  </button>
+                </div>
+
+                <!-- Estado configurado (Card State) -->
+                <div id="payout-configured-state" class="hidden border border-emerald-200 bg-emerald-50/30 rounded-2xl p-4 sm:p-5 transition">
+                  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                      <div class="w-10 h-10 rounded-xl bg-white border border-emerald-200 shadow-2xs flex items-center justify-center text-xl shrink-0">
+                        🏦
+                      </div>
+                      <div>
+                        <div class="flex items-center gap-2">
+                          <span id="payout-bank-display" class="text-xs font-bold text-stone-900">Banco Pichincha</span>
+                          <span id="payout-type-display" class="text-[10px] font-bold text-emerald-800 bg-[#E8F3EC] px-2 py-0.5 rounded">Cuenta de Ahorros</span>
+                        </div>
+                        <p id="payout-number-display" class="text-xs font-mono font-bold text-stone-700 mt-0.5">•••• •••• •••• 4892</p>
+                        <p id="payout-holder-display" class="text-[10px] text-stone-500 mt-0.5">Titular: Max Productor</p>
+                      </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 self-end sm:self-center">
+                      <button onclick="openPayoutMethodModal()" type="button" class="text-xs font-bold text-stone-700 bg-white border border-stone-200 hover:bg-stone-50 px-3 py-1.5 rounded-lg transition shadow-2xs cursor-pointer">
+                        Editar
+                      </button>
+                      <button onclick="removePayoutMethod()" type="button" class="text-xs font-bold text-red-600 hover:text-red-700 px-2 py-1.5 transition cursor-pointer">
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[10px] text-stone-400">
+                <span class="text-stone-500 font-medium">Configuración visual — Próximamente disponible para liquidaciones automáticas</span>
+                <span class="text-stone-400">🔒 PCI-DSS Cifrado</span>
               </div>
             </div>
 
@@ -1077,6 +1152,171 @@
       </div>
     </footer>
 
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DE CONFIGURACIÓN DE CUENTA / TARJETA DE COBRO (Image 2 style)       -->
+  <!-- ========================================================================= -->
+  <div id="modal-payout-method" class="hidden fixed inset-0 z-[85] flex items-center justify-center p-3 sm:p-4 bg-black/50 select-none">
+    <div class="bg-white rounded-3xl max-w-sm sm:max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Encabezado del modal -->
+      <div class="bg-stone-50 border-b border-stone-200 px-5 py-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-sm font-bold shadow-2xs">🏦</span>
+          <div>
+            <h3 class="font-serif font-bold text-stone-900 text-base">Cuenta y Tarjeta de Cobro</h3>
+            <p class="text-[11px] text-stone-500">Configuración de liquidaciones para productor</p>
+          </div>
+        </div>
+        <button type="button" onclick="closePayoutMethodModal()" class="w-8 h-8 rounded-full bg-white hover:bg-stone-200 text-stone-500 flex items-center justify-center text-sm font-bold transition shadow-xs cursor-pointer" title="Cerrar">
+          ✕
+        </button>
+      </div>
+
+      <!-- Formulario del modal -->
+      <form id="payout-method-form" onsubmit="savePayoutMethod(event)" class="p-6 space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">Titular de la cuenta *</label>
+          <input type="text" id="payout-form-holder" required value="Max Productor" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-stone-700 mb-1">Banco en Ecuador *</label>
+            <select id="payout-form-bank" required class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+              <option value="Banco Pichincha" selected>Banco Pichincha</option>
+              <option value="Banco Guayaquil">Banco Guayaquil</option>
+              <option value="Banco del Pacífico">Banco del Pacífico</option>
+              <option value="Produbanco">Produbanco</option>
+              <option value="Banco Bolivariano">Banco Bolivariano</option>
+              <option value="Cooperativa JEP">Cooperativa JEP</option>
+              <option value="Banco Internacional">Banco Internacional</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-stone-700 mb-1">Tipo de instrumento *</label>
+            <select id="payout-form-type" required class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+              <option value="Cuenta de Ahorros" selected>Cuenta de Ahorros</option>
+              <option value="Cuenta Corriente">Cuenta Corriente</option>
+              <option value="Tarjeta de Débito">Tarjeta de Débito</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">Número de cuenta o tarjeta (últimos 4 dígitos requeridos) *</label>
+          <input type="text" id="payout-form-account" required placeholder="ej. 22005432 o terminada en 4892" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs font-mono text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-stone-700 mb-1">Cédula o RUC del titular</label>
+          <input type="text" id="payout-form-doc" placeholder="0999999999" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+        </div>
+
+        <!-- Aviso visual -->
+        <div class="bg-[#fbf5ee] border border-[#f3dfcf] p-3 rounded-xl text-[11px] text-stone-600 leading-snug">
+          <span class="font-bold text-[#c85a32]">Aviso:</span> Configuración visual — Próximamente disponible para liquidaciones automáticas.
+        </div>
+
+        <!-- Botones -->
+        <div class="flex items-center justify-end gap-2 pt-2">
+          <button type="button" onclick="closePayoutMethodModal()" class="px-4 py-2 text-xs font-semibold text-stone-600 hover:text-stone-900 rounded-xl transition cursor-pointer">
+            Cancelar
+          </button>
+          <button type="submit" class="px-5 py-2.5 bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold rounded-xl shadow-md transition cursor-pointer">
+            Guardar preferencia (Vista previa)
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- ========================================================================= -->
+  <!-- MODAL DE VERIFICACIÓN 2FA OTP PARA CAMBIO DE CONTRASEÑA EN PRODUCTOR     -->
+  <!-- ========================================================================= -->
+  <div id="modal-otp-password" class="hidden fixed inset-0 z-[85] flex items-center justify-center p-3 sm:p-4 bg-black/50 select-none">
+    <div class="bg-white rounded-3xl max-w-sm sm:max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-150">
+      
+      <!-- Encabezado del modal -->
+      <div class="bg-stone-50 border-b border-stone-200 px-5 py-4 flex items-center justify-between shrink-0">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center text-sm font-bold shadow-2xs">🔐</span>
+          <div>
+            <h3 class="font-serif font-bold text-stone-900 text-base">Confirma tu identidad</h3>
+            <p class="text-[11px] text-stone-500">Verificación de seguridad temporal (OTP)</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeProducerOtpModal()" class="w-8 h-8 rounded-full bg-white hover:bg-stone-200 text-stone-500 flex items-center justify-center text-sm font-bold transition shadow-xs cursor-pointer" title="Cerrar">
+          ✕
+        </button>
+      </div>
+
+      <!-- Contenido del modal -->
+      <div class="p-6 space-y-4">
+        <p class="text-xs text-stone-600 leading-relaxed text-center">
+          Hemos enviado un código de seguridad de 6 dígitos a tu correo registrado. Ingrésalo para autorizar el cambio de tu contraseña de productor.
+        </p>
+
+        <div class="flex justify-center">
+          <span id="otp-modal-target-email" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-100 text-[11px] font-semibold text-stone-700">
+            ✉ <span id="otp-user-email-text">campomax46@gmail.com</span>
+          </span>
+        </div>
+
+        <!-- Entrada del código OTP de 6 dígitos -->
+        <div class="space-y-2">
+          <label for="input-otp-code" class="block text-center text-xs font-bold text-stone-700 uppercase tracking-wider">Código de seguridad (6 dígitos)</label>
+          <input 
+            type="text" 
+            id="input-otp-code" 
+            maxlength="6" 
+            inputmode="numeric" 
+            pattern="[0-9]*" 
+            autocomplete="one-time-code" 
+            placeholder="000000" 
+            class="w-full text-center font-mono text-2xl tracking-[0.5em] font-bold py-3 px-4 rounded-2xl border-2 border-stone-300 focus:border-[#1a3d2f] focus:bg-white focus:outline-none bg-stone-50 transition shadow-inner"
+          >
+          <!-- Mensaje de error de intentos -->
+          <p id="otp-error-msg" class="text-xs text-red-600 font-semibold text-center hidden"></p>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="space-y-2.5 pt-2">
+          <button 
+            type="button" 
+            id="btn-verify-otp" 
+            onclick="submitProducerOtpVerification()" 
+            class="w-full py-3 bg-[#1a3d2f] hover:bg-[#255240] text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span id="btn-verify-otp-text">Confirmar cambio</span>
+          </button>
+
+          <!-- Reenviar código con cooldown de 60s -->
+          <div class="text-center">
+            <button 
+              type="button" 
+              id="btn-resend-otp" 
+              onclick="resendProducerOtp()" 
+              disabled 
+              class="text-xs text-stone-500 font-semibold hover:text-[#1a3d2f] transition disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+            >
+              Reenviar código <span id="otp-resend-countdown" class="font-mono text-stone-500">(60s)</span>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Pie del modal -->
+      <div class="bg-stone-50 border-t border-stone-200 px-5 py-3 flex items-center justify-between text-[11px] text-stone-500">
+        <span>⏱ Expira en 10 minutos</span>
+        <span>Máximo 3 intentos</span>
+      </div>
+
+    </div>
   </div>
 
   <!-- Scripts -->

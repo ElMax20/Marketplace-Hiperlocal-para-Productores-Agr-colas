@@ -44,6 +44,13 @@ async function initProfilePage() {
     return;
   }
 
+  // Si el usuario autenticado es Productor, redirigir a su espacio exclusivo
+  const userRole = (user.role || '').toLowerCase();
+  if (userRole === 'productor' || userRole === 'producer' || userRole.includes('productor')) {
+    window.location.replace('productor.html#perfil-seguridad');
+    return;
+  }
+
   currentUser = user;
   originalUserData = JSON.parse(JSON.stringify(currentUser));
 

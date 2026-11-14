@@ -5,7 +5,7 @@ window.PRODUCTS_DATA = [
   {
     id: "canasta-huerto-familiar",
     numericId: 11,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 1,
     title: "Canasta Huerto Familiar",
     category: "canastas",
@@ -25,7 +25,7 @@ window.PRODUCTS_DATA = [
   {
     id: "canasta-agroecologica-esencial",
     numericId: 12,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 1,
     title: "Canasta Agroecológica Esencial",
     category: "canastas",
@@ -45,7 +45,7 @@ window.PRODUCTS_DATA = [
   {
     id: "canasta-cosecha-campesina",
     numericId: 47,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 1,
     title: "Canasta Cosecha Campesina",
     category: "canastas",
@@ -65,7 +65,7 @@ window.PRODUCTS_DATA = [
   {
     id: "canasta-huerta-y-frutas",
     numericId: 48,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 1,
     title: "Canasta Huerta & Frutas",
     category: "canastas",
@@ -85,7 +85,7 @@ window.PRODUCTS_DATA = [
   {
     id: "tomate-de-huerta",
     numericId: 1,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Tomate de huerta",
     category: "verduras",
@@ -105,7 +105,7 @@ window.PRODUCTS_DATA = [
   {
     id: "zanahoria-de-tierra",
     numericId: 3,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Zanahoria de tierra",
     category: "verduras",
@@ -125,7 +125,7 @@ window.PRODUCTS_DATA = [
   {
     id: "papa-criolla-nativa",
     numericId: 5,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Papa criolla nativa",
     category: "verduras",
@@ -145,7 +145,7 @@ window.PRODUCTS_DATA = [
   {
     id: "rabanos-de-temporada",
     numericId: 13,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Rábanos de temporada",
     category: "verduras",
@@ -165,7 +165,7 @@ window.PRODUCTS_DATA = [
   {
     id: "cebolla-colorada",
     numericId: 14,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Cebolla colorada",
     category: "verduras",
@@ -185,7 +185,7 @@ window.PRODUCTS_DATA = [
   {
     id: "cebolla-blanca-de-rama",
     numericId: 15,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Cebolla blanca de rama",
     category: "verduras",
@@ -205,7 +205,7 @@ window.PRODUCTS_DATA = [
   {
     id: "pimiento-verde-criollo",
     numericId: 16,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Pimiento verde criollo",
     category: "verduras",
@@ -225,7 +225,7 @@ window.PRODUCTS_DATA = [
   {
     id: "pimiento-rojo-dulce",
     numericId: 17,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Pimiento rojo dulce",
     category: "verduras",
@@ -245,7 +245,7 @@ window.PRODUCTS_DATA = [
   {
     id: "lechuga-crespa-verde",
     numericId: 18,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Lechuga crespa verde",
     category: "verduras",
@@ -265,7 +265,7 @@ window.PRODUCTS_DATA = [
   {
     id: "lechuga-romana",
     numericId: 19,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Lechuga romana",
     category: "verduras",
@@ -285,7 +285,7 @@ window.PRODUCTS_DATA = [
   {
     id: "espinaca-baby-de-huerta",
     numericId: 20,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Espinaca baby de huerta",
     category: "verduras",
@@ -305,7 +305,7 @@ window.PRODUCTS_DATA = [
   {
     id: "acelga-arcoiris-organica",
     numericId: 21,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Acelga arcoíris orgánica",
     category: "verduras",
@@ -325,7 +325,7 @@ window.PRODUCTS_DATA = [
   {
     id: "cilantro-fresco-de-huerta",
     numericId: 22,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Cilantro fresco de huerta",
     category: "verduras",
@@ -345,7 +345,7 @@ window.PRODUCTS_DATA = [
   {
     id: "albahaca-genovesa",
     numericId: 23,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Albahaca genovesa",
     category: "verduras",
@@ -365,7 +365,7 @@ window.PRODUCTS_DATA = [
   {
     id: "brocoli-campesino",
     numericId: 24,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 2,
     title: "Brócoli campesino",
     category: "verduras",
@@ -385,7 +385,7 @@ window.PRODUCTS_DATA = [
   {
     id: "aguacate-hass",
     numericId: 2,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 3,
     title: "Aguacate Hass",
     category: "frutas",
@@ -405,7 +405,7 @@ window.PRODUCTS_DATA = [
   {
     id: "fresas-de-temporada",
     numericId: 4,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 3,
     title: "Fresas de temporada",
     category: "frutas",
@@ -425,7 +425,7 @@ window.PRODUCTS_DATA = [
   {
     id: "banano-criollo-de-ladera",
     numericId: 6,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 3,
     title: "Banano criollo de ladera",
     category: "frutas",
@@ -445,7 +445,7 @@ window.PRODUCTS_DATA = [
   {
     id: "platano-verde-barraganete",
     numericId: 25,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 3,
     title: "Plátano verde barraganete",
     category: "frutas",
@@ -465,7 +465,7 @@ window.PRODUCTS_DATA = [
   {
     id: "platano-maduro-dulce",
     numericId: 26,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 3,
     title: "Plátano maduro dulce",
     category: "frutas",
@@ -485,7 +485,7 @@ window.PRODUCTS_DATA = [
   {
     id: "pina-dulce-golden",
     numericId: 27,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 3,
     title: "Piña dulce Golden",
     category: "frutas",
@@ -505,7 +505,7 @@ window.PRODUCTS_DATA = [
   {
     id: "papaya-hawaiana-de-huerta",
     numericId: 28,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 3,
     title: "Papaya hawaiana de huerta",
     category: "frutas",
@@ -525,7 +525,7 @@ window.PRODUCTS_DATA = [
   {
     id: "mango-tommy-atkins",
     numericId: 29,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 3,
     title: "Mango Tommy Atkins",
     category: "frutas",
@@ -545,7 +545,7 @@ window.PRODUCTS_DATA = [
   {
     id: "naranja-valenciana-para-jugo",
     numericId: 30,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 3,
     title: "Naranja valenciana para jugo",
     category: "frutas",
@@ -565,7 +565,7 @@ window.PRODUCTS_DATA = [
   {
     id: "limon-sutil-criollo",
     numericId: 31,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 3,
     title: "Limón sutil criollo",
     category: "frutas",
@@ -585,7 +585,7 @@ window.PRODUCTS_DATA = [
   {
     id: "mandarina-criolla-de-temporada",
     numericId: 32,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 3,
     title: "Mandarina criolla de temporada",
     category: "frutas",
@@ -605,7 +605,7 @@ window.PRODUCTS_DATA = [
   {
     id: "maracuya-de-la-costa",
     numericId: 33,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 3,
     title: "Maracuyá de la costa",
     category: "frutas",
@@ -625,7 +625,7 @@ window.PRODUCTS_DATA = [
   {
     id: "sandia-baby-dulce",
     numericId: 34,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 3,
     title: "Sandía baby dulce",
     category: "frutas",
@@ -645,7 +645,7 @@ window.PRODUCTS_DATA = [
   {
     id: "melon-cantaloupe",
     numericId: 35,
-    producer_id: "00000000-0000-0000-0000-000000000005",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 3,
     title: "Melón cantaloupe",
     category: "frutas",
@@ -665,7 +665,7 @@ window.PRODUCTS_DATA = [
   {
     id: "queso-campesino-artesanal",
     numericId: 7,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 4,
     title: "Queso campesino artesanal",
     category: "lacteos",
@@ -685,7 +685,7 @@ window.PRODUCTS_DATA = [
   {
     id: "yogur-de-pastoreo",
     numericId: 8,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 4,
     title: "Yogur de pastoreo",
     category: "lacteos",
@@ -705,7 +705,7 @@ window.PRODUCTS_DATA = [
   {
     id: "queso-madurado-de-finca",
     numericId: 36,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 4,
     title: "Queso madurado de finca",
     category: "lacteos",
@@ -725,7 +725,7 @@ window.PRODUCTS_DATA = [
   {
     id: "leche-entera-de-pastoreo",
     numericId: 37,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 4,
     title: "Leche entera de pastoreo",
     category: "lacteos",
@@ -745,7 +745,7 @@ window.PRODUCTS_DATA = [
   {
     id: "yogur-artesanal-de-frutos-rojos",
     numericId: 38,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 4,
     title: "Yogur artesanal de frutos rojos",
     category: "lacteos",
@@ -765,7 +765,7 @@ window.PRODUCTS_DATA = [
   {
     id: "huevos-criollos-de-pastoreo",
     numericId: 39,
-    producer_id: "00000000-0000-0000-0000-000000000004",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 4,
     title: "Huevos criollos de pastoreo",
     category: "lacteos",
@@ -785,7 +785,7 @@ window.PRODUCTS_DATA = [
   {
     id: "mantequilla-de-campo-artesanal",
     numericId: 40,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 4,
     title: "Mantequilla de campo artesanal",
     category: "lacteos",
@@ -805,7 +805,7 @@ window.PRODUCTS_DATA = [
   {
     id: "cuajada-fresca-tradicional",
     numericId: 41,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 4,
     title: "Cuajada fresca tradicional",
     category: "lacteos",
@@ -825,7 +825,7 @@ window.PRODUCTS_DATA = [
   {
     id: "miel-de-abeja-silvestre",
     numericId: 9,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 5,
     title: "Miel de abeja silvestre",
     category: "despensa",
@@ -845,7 +845,7 @@ window.PRODUCTS_DATA = [
   {
     id: "mermelada-artesanal-de-mora",
     numericId: 10,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 5,
     title: "Mermelada artesanal de mora",
     category: "despensa",
@@ -865,7 +865,7 @@ window.PRODUCTS_DATA = [
   {
     id: "polen-de-flores-nativas",
     numericId: 42,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 5,
     title: "Polen de flores nativas",
     category: "despensa",
@@ -885,7 +885,7 @@ window.PRODUCTS_DATA = [
   {
     id: "cacao-fino-de-aroma-100",
     numericId: 43,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 5,
     title: "Cacao fino de aroma 100%",
     category: "despensa",
@@ -905,7 +905,7 @@ window.PRODUCTS_DATA = [
   {
     id: "panela-granulada-organica",
     numericId: 44,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 5,
     title: "Panela granulada orgánica",
     category: "despensa",
@@ -925,7 +925,7 @@ window.PRODUCTS_DATA = [
   {
     id: "cafe-de-especialidad-de-altura",
     numericId: 45,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 5,
     title: "Café de especialidad de altura",
     category: "despensa",
@@ -945,7 +945,7 @@ window.PRODUCTS_DATA = [
   {
     id: "chocolate-artesanal-al-70",
     numericId: 46,
-    producer_id: "00000000-0000-0000-0000-000000000006",
+    producer_id: "00000000-0000-0000-0000-000000000002",
     category_id: 5,
     title: "Chocolate artesanal al 70%",
     category: "despensa",

@@ -276,24 +276,56 @@ function renderProfileHTML(profile) {
   
   let profileLink = '#';
   let profileLabel = 'Mi perfil';
-  if (role === 'admin' || role === 'administrador') {
+  const isProducer = role === 'productor' || role === 'producer' || role.includes('productor');
+  const isAdmin = role === 'admin' || role === 'administrador';
+
+  if (isAdmin) {
     profileLink = 'admin.html';
     profileLabel = 'Panel de Administración';
-  } else if (role === 'productor') {
+  } else if (isProducer) {
     profileLink = 'productor.html';
     profileLabel = 'Espacio de Productor';
   }
 
-  const roleLabelDesc = role === 'productor' 
+  const roleLabelDesc = isProducer 
     ? 'Mi cuenta · Productor' 
-    : (role === 'admin' || role === 'administrador' ? 'Mi cuenta · Admin' : 'Mi cuenta · Comprador');
+    : (isAdmin ? 'Mi cuenta · Admin' : 'Mi cuenta · Comprador');
 
-  const roleBadge = (role === 'admin' || role === 'administrador' || role === 'productor') ? `
+  const roleBadge = isAdmin ? `
     <a href="${profileLink}" class="flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition">
       <span>📊</span>
       <span>${profileLabel}</span>
     </a>
   ` : '';
+
+  const menuOptionsHTML = isProducer ? `
+    <a href="productor.html#mis-productos" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+      <span>📦</span>
+      <span>Mi panel / Mis productos</span>
+    </a>
+    <a href="productor.html#nuevo-producto" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+      <span>➕</span>
+      <span>Publicar producto</span>
+    </a>
+    <a href="productor.html#perfil-seguridad" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+      <span>⚙️</span>
+      <span>Configuración</span>
+    </a>
+  ` : `
+    ${roleBadge}
+    <a href="mis-pedidos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+      <span>📦</span>
+      <span>Mis pedidos</span>
+    </a>
+    <a href="mis-favoritos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+      <span>❤️</span>
+      <span>Mis favoritos</span>
+    </a>
+    <a href="perfil.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
+      <span>⚙️</span>
+      <span>Configuración</span>
+    </a>
+  `;
 
   return `
     <div class="relative flex items-center gap-2">
@@ -327,19 +359,7 @@ function renderProfileHTML(profile) {
           <p class="font-bold text-stone-900 truncate">${userName}</p>
           <p class="text-[10px] text-stone-500 capitalize">${role}</p>
         </div>
-        ${roleBadge}
-        <a href="mis-pedidos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
-          <span>📦</span>
-          <span>Mis pedidos</span>
-        </a>
-        <a href="mis-favoritos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
-          <span>❤️</span>
-          <span>Mis favoritos</span>
-        </a>
-        <a href="perfil.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
-          <span>⚙️</span>
-          <span>Configuración</span>
-        </a>
+        ${menuOptionsHTML}
         <div class="my-1 border-t border-stone-100"></div>
         <button onclick="logoutUser()" class="w-full text-left flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 transition cursor-pointer font-medium">
           <span>🚪</span>
