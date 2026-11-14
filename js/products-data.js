@@ -964,3 +964,35 @@ window.PRODUCTS_DATA = [
   }
 ];;
 var PRODUCTS_DATA = window.PRODUCTS_DATA;
+
+// Enriquecimiento automático de Canastas y Estacionalidad para catálogo local
+(function() {
+  if (!Array.isArray(window.PRODUCTS_DATA)) return;
+  const defaultBasketItems = [
+    { product_id: 'PR-001', name: 'Zanahorias Daule', quantity_label: '1 kg', price: 0.35, units: 1 },
+    { product_id: 'PR-002', name: 'Rábanos de temporada', quantity_label: '1 manojo', price: 0.28, units: 1 },
+    { product_id: 'PR-003', name: 'Tomate riñón fresco', quantity_label: '1 kg', price: 0.45, units: 1 },
+    { product_id: 'PR-004', name: 'Cebolla blanca en rama', quantity_label: '1 manojo', price: 0.30, units: 1 },
+    { product_id: 'PR-005', name: 'Cilantro fresco', quantity_label: '1 atado', price: 0.20, units: 1 }
+  ];
+
+  window.PRODUCTS_DATA.forEach(p => {
+    const isB = p.category === 'canastas' || p.category_id === 1 || String(p.id).includes('canasta');
+    if (isB) {
+      p.is_basket = true;
+      p.basket_savings_percent = p.basket_savings_percent || 15;
+      if (!p.basket_items || p.basket_items.length === 0) {
+        p.basket_items = [...defaultBasketItems];
+      }
+    }
+    const isS = p.is_seasonal || (p.tag && p.tag.toLowerCase().includes('temporada')) || (p.title && p.title.toLowerCase().includes('temporada')) || (p.subtitle && p.subtitle.toLowerCase().includes('temporada'));
+    if (isS) {
+      p.is_seasonal = true;
+      p.season_label = p.season_label || 'Cosecha de temporada';
+    }
+    if (p.stock === undefined && p.stock_quantity === undefined) {
+      p.stock = 30;
+      p.stock_quantity = 30;
+    }
+  });
+})();

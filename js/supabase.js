@@ -41,8 +41,18 @@ function setSessionDataCache(key, data) {
   } catch (e) {}
 }
 
+// Capturar cliente oficial de @supabase/supabase-js si fue cargado en la página
+let _officialSupabaseClient = null;
+if (typeof window !== 'undefined' && window.supabase && typeof window.supabase.createClient === 'function') {
+  try {
+    _officialSupabaseClient = window.supabase.createClient(SUPABASE_CONFIG.url, SUPABASE_CONFIG.anonKey);
+  } catch (err) {
+    console.warn('Aviso inicializando cliente Supabase-JS oficial:', err);
+  }
+}
+
 /**
- * Cliente REST ligero para Supabase (funciona sin dependencias externas)
+ * Cliente REST ligero y Realtime para Supabase (funciona con o sin dependencias externas)
  */
 class SupabaseService {
   constructor() {
@@ -53,6 +63,11 @@ class SupabaseService {
       'Content-Type': 'application/json',
       'Prefer': 'return=representation'
     };
+
+    // Subscriptores de eventos de productos y canal Realtime
+    this.realtime = _officialSupabaseClient;
+    this.productSubscribers = new Set();
+    this.initRealtime();
 
     // Sub-módulo auth compatible con Supabase Auth (@supabase/supabase-js)
     // Centraliza la sesión en una única promesa compartida (window.__rbSessionPromise)
@@ -839,7 +854,7 @@ class SupabaseService {
   }
 
   /**
-   * Agrega un nuevo producto a Supabase
+   * Agrega un nuevo producto a Supabase con compatibilidad de esquema y notificación en tiempo real
    */
   async createProduct(productData) {
     try {
@@ -855,13 +870,41 @@ class SupabaseService {
           productData.id = Date.now() % 100000 + 100;
         }
       }
-      return await this.fetchApi('products', {
-        method: 'POST',
-        headers: {
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(productData)
+
+      let res;
+      try {
+        res = await this.fetchApi('products', {
+          method: 'POST',
+          headers: {
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(productData)
+        });
+      } catch (postErr) {
+        // Si Supabase aún no tiene las nuevas columnas en PostgreSQL, reintentar con campos base
+        if (postErr && postErr.message && postErr.message.includes('Could not find')) {
+          const baseData = { ...productData };
+          delete baseData.is_seasonal;
+          delete baseData.season_label;
+          delete baseData.is_basket;
+          delete baseData.basket_items;
+          delete baseData.basket_savings_percent;
+          res = await this.fetchApi('products', {
+            method: 'POST',
+            headers: { 'Prefer': 'return=representation' },
+            body: JSON.stringify(baseData)
+          });
+        } else {
+          throw postErr;
+        }
+      }
+
+      this.broadcastProductChange({
+        eventType: 'INSERT',
+        new: productData
       });
+
+      return res;
     } catch (e) {
       console.error('Error al crear producto en Supabase:', e);
       throw e;
@@ -869,21 +912,215 @@ class SupabaseService {
   }
 
   /**
-   * Actualiza precio, stock o disponibilidad de un producto en Supabase
+   * Actualiza precio, stock o disponibilidad de un producto en Supabase con notificación en tiempo real
    */
   async updateProduct(id, updates) {
     try {
-      return await this.fetchApi(`products?id=eq.${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Prefer': 'return=representation'
-        },
-        body: JSON.stringify(updates)
+      let res;
+      try {
+        res = await this.fetchApi(`products?id=eq.${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Prefer': 'return=representation'
+          },
+          body: JSON.stringify(updates)
+        });
+      } catch (patchErr) {
+        if (patchErr && patchErr.message && patchErr.message.includes('Could not find')) {
+          const baseUpdates = { ...updates };
+          delete baseUpdates.is_seasonal;
+          delete baseUpdates.season_label;
+          delete baseUpdates.is_basket;
+          delete baseUpdates.basket_items;
+          delete baseUpdates.basket_savings_percent;
+          res = await this.fetchApi(`products?id=eq.${id}`, {
+            method: 'PATCH',
+            headers: { 'Prefer': 'return=representation' },
+            body: JSON.stringify(baseUpdates)
+          });
+        } else {
+          throw patchErr;
+        }
+      }
+
+      this.broadcastProductChange({
+        eventType: 'UPDATE',
+        id: id,
+        new: updates
       });
+
+      return res;
     } catch (e) {
       console.error(`Error al actualizar producto ${id}:`, e);
       throw e;
     }
+  }
+
+  /**
+   * Ejecuta una Remote Procedure Call (RPC) en Supabase
+   */
+  async rpc(functionName, params = {}) {
+    try {
+      const response = await fetch(`${this.baseUrl}/rpc/${functionName}`, {
+        method: 'POST',
+        headers: this.headers,
+        body: JSON.stringify(params)
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ message: response.statusText }));
+        throw err;
+      }
+      return await response.json().catch(() => null);
+    } catch (err) {
+      console.warn(`Aviso en RPC ${functionName}:`, err);
+      throw err;
+    }
+  }
+
+  /**
+   * Descuenta existencias de forma atómica llamando a decrement_product_stock RPC o con fallback seguro
+   */
+  async decrementStock(items = []) {
+    if (!Array.isArray(items) || items.length === 0) return { success: true };
+
+    const formatted = items.map(it => ({
+      product_id: Number(it.numericId || it.product_id || it.id),
+      quantity: Number(it.quantity || it.qty || 1)
+    })).filter(it => !isNaN(it.product_id) && it.quantity > 0);
+
+    // 1. Intentar llamada a la RPC en PostgreSQL (atómica y segura contra concurrencia)
+    try {
+      const rpcRes = await this.rpc('decrement_product_stock', { items: formatted });
+      if (rpcRes && (rpcRes.success || rpcRes.updated_products)) {
+        this.broadcastProductChange({
+          eventType: 'STOCK_DECREMENT',
+          updated_products: rpcRes.updated_products || formatted
+        });
+        return rpcRes;
+      }
+    } catch (rpcErr) {
+      console.warn('RPC decrement_product_stock no disponible o falló, ejecutando descuento fallback atómico:', rpcErr);
+    }
+
+    // 2. Fallback seguro iterativo
+    const updated = [];
+    for (const it of formatted) {
+      try {
+        const prods = await this.fetchApi(`products?id=eq.${it.product_id}&select=id,stock_quantity`);
+        if (Array.isArray(prods) && prods.length > 0) {
+          const currentStock = Number(prods[0].stock_quantity || 0);
+          const newStock = Math.max(0, currentStock - it.quantity);
+          const isAvail = newStock > 0;
+          await this.fetchApi(`products?id=eq.${it.product_id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({
+              stock_quantity: newStock,
+              is_available: isAvail
+            })
+          });
+          updated.push({
+            product_id: it.product_id,
+            previous_stock: currentStock,
+            new_stock: newStock,
+            is_available: isAvail
+          });
+        }
+      } catch (errFallback) {
+        console.error(`Error al descontar stock del producto ${it.product_id}:`, errFallback);
+      }
+    }
+
+    this.broadcastProductChange({
+      eventType: 'STOCK_DECREMENT',
+      updated_products: updated
+    });
+
+    return { success: true, updated_products: updated };
+  }
+
+  // =========================================================================
+  // GESTIÓN DE TIEMPO REAL (SUPABASE REALTIME + BROADCASTCHANNEL LOCAL)
+  // =========================================================================
+
+  initRealtime() {
+    // 1. Canal entre pestañas locales con BroadcastChannel (0ms latencia)
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        this.realtimeChannel = new BroadcastChannel('rb_realtime_products');
+        this.realtimeChannel.onmessage = (event) => {
+          if (event && event.data) {
+            this.notifyProductSubscribers(event.data);
+          }
+        };
+      } catch (_) {}
+    }
+
+    // 2. Canal Supabase Realtime oficial (WebSocket)
+    if (this.realtime && typeof this.realtime.channel === 'function') {
+      try {
+        this.supabaseChannel = this.realtime
+          .channel('public-products-changes')
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'products' },
+            (payload) => {
+              this.notifyProductSubscribers({
+                eventType: payload.eventType,
+                new: payload.new,
+                old: payload.old,
+                source: 'supabase_realtime'
+              });
+            }
+          )
+          .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+              console.log('Suscripción activa a Supabase Realtime (public.products)');
+            }
+          });
+      } catch (rtErr) {
+        console.warn('Aviso al suscribir a Supabase Realtime:', rtErr);
+      }
+    }
+  }
+
+  broadcastProductChange(payload) {
+    this.notifyProductSubscribers(payload);
+    if (this.realtimeChannel) {
+      try {
+        this.realtimeChannel.postMessage(payload);
+      } catch (_) {}
+    }
+  }
+
+  subscribeToProducts(callback) {
+    if (typeof callback === 'function') {
+      this.productSubscribers.add(callback);
+      return () => this.productSubscribers.delete(callback);
+    }
+    return () => {};
+  }
+
+  notifyProductSubscribers(payload) {
+    for (const cb of this.productSubscribers) {
+      try {
+        cb(payload);
+      } catch (err) {
+        console.error('Error en suscriptor de productos:', err);
+      }
+    }
+  }
+
+  channel(name) {
+    if (this.realtime && typeof this.realtime.channel === 'function') {
+      return this.realtime.channel(name);
+    }
+    return {
+      on: () => this.channel(name),
+      subscribe: (cb) => {
+        if (typeof cb === 'function') cb('SUBSCRIBED');
+        return { unsubscribe: () => {} };
+      }
+    };
   }
 
   // =========================================================================

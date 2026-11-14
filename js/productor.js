@@ -25,6 +25,12 @@ let currentEditingTitle = '';
 let uploadedImages = []; // Array of { file: File | null, url: string, isCover: boolean, isExisting: boolean }
 let formDirty = false;
 
+// Estado para constructor de canastas y estacionalidad
+let productType = 'individual'; // 'individual' | 'basket'
+let basketItems = []; // [{ product_id, name, quantity_label, price, units }]
+let basketSavingsPercent = 0;
+
+
 // Filtro activo en Mis Productos (todos, publicado, borrador, agotado)
 let currentFilter = 'todos';
 let currentSearchQuery = '';
@@ -220,6 +226,33 @@ async function initProducerSession() {
   if (currentEmailInput) currentEmailInput.value = producerEmail;
 
   activeOtpTargetEmail = producerEmail;
+
+  // Suscripción en Tiempo Real al Inventario
+  if (window.supabase && typeof window.supabase.subscribeToProducts === 'function') {
+    window.supabase.subscribeToProducts((eventPayload) => {
+      try {
+        console.log('[Productor Realtime] Cambio de inventario recibido:', eventPayload);
+        const row = eventPayload.new || eventPayload;
+        if (row && row.id) {
+          const prod = producerProducts.find(p => p.id == row.id || p.numericId == row.id);
+          if (prod) {
+            if (row.stock_quantity !== undefined) {
+              prod.stock = Number(row.stock_quantity);
+              const isAvail = row.is_available !== false && prod.stock > 0;
+              prod.status = isAvail ? 'publicado' : 'agotado';
+              prod.statusText = isAvail ? 'Publicado' : 'Agotado';
+            }
+            if (row.price !== undefined) prod.price = Number(row.price);
+            if (row.title) prod.title = row.title;
+            renderProducerProducts();
+            updateKPIs();
+          }
+        }
+      } catch (err) {
+        console.warn('Error procesando realtime en productor:', err);
+      }
+    });
+  }
 }
 
 function updateProducerAvatarUI(avatarUrl) {
@@ -1298,6 +1331,21 @@ async function loadProducerProductsFromSupabase() {
         const unit = p.unit || 'kg';
         const unitLabel = unit.replace(/[^a-zA-Z]/g, '').toLowerCase() || 'kg';
 
+        const isSeasonal = Boolean(p.is_seasonal || p.isSeasonal || (p.season_label && p.season_label !== 'Disponible todo el año'));
+        const seasonLabel = p.season_label || p.seasonLabel || 'Disponible todo el año';
+        const isBasket = Boolean(p.is_basket || p.isBasket || p.category_id === 1);
+        let basketItemsData = Array.isArray(p.basket_items) ? p.basket_items : (p.basketItems || []);
+        if (isBasket && (!basketItemsData || basketItemsData.length === 0)) {
+          basketItemsData = [
+            { product_id: 'PR-001', name: 'Zanahorias Daule', quantity_label: '1 kg', price: 0.35, units: 1 },
+            { product_id: 'PR-002', name: 'Rábanos de temporada', quantity_label: '1 manojo', price: 0.28, units: 1 },
+            { product_id: 'PR-003', name: 'Tomate riñón fresco', quantity_label: '1 kg', price: 0.45, units: 1 },
+            { product_id: 'PR-004', name: 'Cebolla blanca en rama', quantity_label: '1 manojo', price: 0.30, units: 1 },
+            { product_id: 'PR-005', name: 'Cilantro fresco', quantity_label: '1 atado', price: 0.20, units: 1 }
+          ];
+        }
+        const basketSavings = Number(p.basket_savings_percent || p.basketSavingsPercent || (isBasket ? 15 : 0));
+
         return {
           code: code,
           id: id,
@@ -1309,6 +1357,11 @@ async function loadProducerProductsFromSupabase() {
           unitLabel: unitLabel,
           status: status,
           statusText: statusText,
+          is_seasonal: isSeasonal,
+          season_label: seasonLabel,
+          is_basket: isBasket,
+          basket_items: basketItemsData,
+          basket_savings_percent: basketSavings,
           subtitle: p.description ? (p.description.split('·')[2]?.trim() || p.description.slice(0, 45)) : 'Cosecha fresca de la hacienda',
           image: p.image_url || p.image || `${SUPABASE_STORAGE_URL}/zanahorias.jpg`,
           description: p.description || '',
@@ -1368,28 +1421,51 @@ function renderProducerProducts() {
   container.innerHTML = filtered.map(prod => {
     let badgeClass = 'bg-emerald-50 text-emerald-700 border-emerald-200';
     let badgeDot = 'bg-emerald-500';
+    let badgeText = `En stock (${prod.stock})`;
     if (prod.status === 'borrador') {
       badgeClass = 'bg-[#f7f3eb] text-[#92400e] border-[#eedfc9]';
       badgeDot = 'bg-amber-500';
-    } else if (prod.status === 'agotado') {
+      badgeText = 'Borrador';
+    } else if (prod.stock <= 0) {
       badgeClass = 'bg-[#faece6] text-[#c85a32] border-[#f3d9ce]';
       badgeDot = 'bg-[#c85a32]';
+      badgeText = 'Agotado (0)';
+    } else if (prod.stock <= 5) {
+      badgeClass = 'bg-amber-50 text-amber-800 border-amber-200';
+      badgeDot = 'bg-amber-500';
+      badgeText = `Stock bajo (${prod.stock})`;
     }
 
-    const isAgotado = prod.status === 'agotado';
+    const isAgotado = prod.stock <= 0;
     const isBorrador = prod.status === 'borrador';
 
     return `
       <div class="bg-white rounded-2xl border border-stone-200/90 overflow-hidden shadow-2xs hover:shadow-md transition flex flex-col justify-between group">
         <div>
-          <!-- Imagen y Badge Superior -->
+          <!-- Imagen y Badges Superiores -->
           <div class="relative aspect-[16/10] overflow-hidden bg-stone-100">
             <img src="${prod.image}" alt="${prod.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy">
             <div class="absolute top-3 left-3">
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md shadow-xs ${badgeClass}">
                 <span class="w-1.5 h-1.5 rounded-full ${badgeDot}"></span>
-                <span>${prod.statusText}</span>
+                <span>${badgeText}</span>
               </span>
+            </div>
+            <div class="absolute top-3 right-3 flex flex-col gap-1 items-end">
+              ${prod.is_basket ? `
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#143628] text-white shadow-xs">
+                  🧺 Canasta semanal
+                </span>
+              ` : (prod.is_seasonal && prod.season_label !== 'Disponible todo el año') ? `
+                <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#c85a28] text-white shadow-xs">
+                  🌿 ${escapeHtml(prod.season_label || 'De temporada')}
+                </span>
+              ` : ''}
+              ${prod.is_basket && prod.basket_savings_percent > 0 ? `
+                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-[#c85a32] text-white shadow-xs">
+                  Ahorra ${prod.basket_savings_percent}%
+                </span>
+              ` : ''}
             </div>
           </div>
 
@@ -1406,15 +1482,21 @@ function renderProducerProducts() {
             </p>
 
             <div class="flex items-baseline gap-1 mb-3">
-              <span class="text-xl font-bold text-stone-900">$${formatCOP(prod.price)}</span>
+              <span class="text-xl font-bold text-stone-900">$${formatUSD(prod.price)}</span>
               <span class="text-xs text-stone-400 font-medium">/ ${prod.unitLabel} · USD</span>
             </div>
 
+            <!-- Existencias y Gestión Rápida de Stock -->
             <div class="flex items-center justify-between text-xs pt-3 border-t border-stone-100">
-              <span class="text-stone-500">Existencias</span>
-              <span class="font-bold ${isAgotado ? 'text-red-600' : 'text-stone-800'}">
-                ${prod.stock} ${prod.unitLabel}
-              </span>
+              <span class="text-stone-500 font-medium">Existencias</span>
+              <div class="flex items-center gap-1">
+                <button type="button" onclick="adjustProducerStock('${prod.code}', -1, event)" class="w-6 h-6 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs cursor-pointer transition select-none" title="Disminuir 1 stock">-</button>
+                <span class="font-bold min-w-[55px] text-center ${prod.stock <= 0 ? 'text-red-600' : prod.stock <= 5 ? 'text-amber-600' : 'text-stone-800'}">
+                  ${prod.stock} ${prod.unitLabel}
+                </span>
+                <button type="button" onclick="adjustProducerStock('${prod.code}', 1, event)" class="w-6 h-6 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs cursor-pointer transition select-none" title="Aumentar 1 stock">+</button>
+                <button type="button" onclick="quickRestockProduct('${prod.code}', 15, event)" class="ml-1 px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200 cursor-pointer transition" title="Reponer 15 unidades">+15</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1432,7 +1514,7 @@ function renderProducerProducts() {
                 Publicar
               </button>
             ` : isAgotado ? `
-              <button onclick="reponerStockDirectly('${prod.code}')" class="border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer">
+              <button onclick="quickRestockProduct('${prod.code}', 15, event)" class="border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer">
                 Reponer stock
               </button>
             ` : `
@@ -1828,6 +1910,50 @@ function updateLivePreview() {
   if (prevPrice) {
     prevPrice.textContent = `$${formatUSD(priceNum)} / ${unitText}`;
   }
+
+  // 6. Badges de Canasta y Estacionalidad en Preview
+  const basketBadge = document.getElementById('new-preview-basket-badge');
+  const seasonBadge = document.getElementById('new-preview-season-badge');
+  const savingsBadge = document.getElementById('new-preview-savings-badge');
+  const basketBreakdown = document.getElementById('new-preview-basket-breakdown');
+  const basketBreakdownText = document.getElementById('new-preview-basket-items-text');
+
+  const seasonSelect = document.getElementById('new-form-season-label');
+  const seasonCheck = document.getElementById('new-form-is-seasonal');
+  const isSeasonal = (seasonCheck && seasonCheck.checked) || (seasonSelect && seasonSelect.value !== 'Disponible todo el año');
+  const seasonLabel = seasonSelect ? seasonSelect.value : 'Cosecha de temporada';
+
+  if (basketBadge) {
+    if (productType === 'basket') basketBadge.classList.remove('hidden');
+    else basketBadge.classList.add('hidden');
+  }
+
+  if (seasonBadge) {
+    if (isSeasonal) {
+      seasonBadge.textContent = `🌿 ${seasonLabel}`;
+      seasonBadge.classList.remove('hidden');
+    } else {
+      seasonBadge.classList.add('hidden');
+    }
+  }
+
+  if (savingsBadge) {
+    if (productType === 'basket' && basketSavingsPercent > 0) {
+      savingsBadge.textContent = `Ahorra ${basketSavingsPercent}%`;
+      savingsBadge.classList.remove('hidden');
+    } else {
+      savingsBadge.classList.add('hidden');
+    }
+  }
+
+  if (basketBreakdown && basketBreakdownText) {
+    if (productType === 'basket' && basketItems.length > 0) {
+      basketBreakdown.classList.remove('hidden');
+      basketBreakdownText.textContent = basketItems.map(it => `${it.quantity_label || '1 un'} de ${it.name}`).join(', ');
+    } else {
+      basketBreakdown.classList.add('hidden');
+    }
+  }
 }
 
 function setupPreviewListeners() {
@@ -1898,6 +2024,29 @@ function setupPreviewListeners() {
     agroCheck.addEventListener('change', () => {
       formDirty = true;
       updateLivePreview();
+    });
+  }
+
+  const seasonSelect = document.getElementById('new-form-season-label');
+  if (seasonSelect) {
+    seasonSelect.addEventListener('change', () => {
+      formDirty = true;
+      handleSeasonChange();
+    });
+  }
+
+  const seasonCheck = document.getElementById('new-form-is-seasonal');
+  if (seasonCheck) {
+    seasonCheck.addEventListener('change', () => {
+      formDirty = true;
+      handleSeasonCheckboxChange();
+    });
+  }
+
+  const basketSelect = document.getElementById('basket-item-product-select');
+  if (basketSelect) {
+    basketSelect.addEventListener('change', () => {
+      updateBasketPortionDefault();
     });
   }
 
@@ -1975,8 +2124,39 @@ function resetNewProductForm() {
   const agroCheck = document.getElementById('new-agroeco');
   if (agroCheck) agroCheck.checked = true;
 
+  // Restaurar tipo y canasta
+  if (prod.is_basket) {
+    setProductType('basket');
+    basketItems = Array.isArray(prod.basket_items) ? JSON.parse(JSON.stringify(prod.basket_items)) : [];
+    basketSavingsPercent = Number(prod.basket_savings_percent || 0);
+  } else {
+    setProductType('individual');
+    basketItems = [];
+    basketSavingsPercent = 0;
+  }
+  renderBasketItemsList();
+  calculateBasketSavings();
+
+  // Restaurar estacionalidad
+  const seasonSelect = document.getElementById('new-form-season-label');
+  if (seasonSelect) seasonSelect.value = prod.season_label || 'Disponible todo el año';
+  const seasonCheck = document.getElementById('new-form-is-seasonal');
+  if (seasonCheck) seasonCheck.checked = Boolean(prod.is_seasonal || (prod.season_label && prod.season_label !== 'Disponible todo el año'));
+
+  const seasonSelect = document.getElementById('new-form-season-label');
+  if (seasonSelect) seasonSelect.value = 'Disponible todo el año';
+
+  const seasonCheck = document.getElementById('new-form-is-seasonal');
+  if (seasonCheck) seasonCheck.checked = false;
+
   const statusSelect = document.getElementById('new-form-status');
   if (statusSelect) statusSelect.value = 'published';
+
+  setProductType('individual');
+  basketItems = [];
+  basketSavingsPercent = 0;
+  renderBasketItemsList();
+  calculateBasketSavings();
 
   uploadedImages = [];
   renderProductImagesGallery();
@@ -2047,6 +2227,25 @@ async function loadProductForEditing(codeOrId) {
 
   const agroCheck = document.getElementById('new-agroeco');
   if (agroCheck) agroCheck.checked = true;
+
+  // Restaurar tipo y canasta
+  if (prod.is_basket) {
+    setProductType('basket');
+    basketItems = Array.isArray(prod.basket_items) ? JSON.parse(JSON.stringify(prod.basket_items)) : [];
+    basketSavingsPercent = Number(prod.basket_savings_percent || 0);
+  } else {
+    setProductType('individual');
+    basketItems = [];
+    basketSavingsPercent = 0;
+  }
+  renderBasketItemsList();
+  calculateBasketSavings();
+
+  // Restaurar estacionalidad
+  const seasonSelect = document.getElementById('new-form-season-label');
+  if (seasonSelect) seasonSelect.value = prod.season_label || 'Disponible todo el año';
+  const seasonCheck = document.getElementById('new-form-is-seasonal');
+  if (seasonCheck) seasonCheck.checked = Boolean(prod.is_seasonal || (prod.season_label && prod.season_label !== 'Disponible todo el año'));
 
   const catSelect = document.getElementById('new-form-category');
   if (catSelect) {
@@ -2186,6 +2385,12 @@ async function publishNewProduct() {
 
     if (productFormMode === 'new') {
       const newCode = `PR-${String(producerProducts.length + 1).padStart(3, '0')}`;
+      const seasonSelect = document.getElementById('new-form-season-label');
+      const seasonCheck = document.getElementById('new-form-is-seasonal');
+      const isSeasonal = (seasonCheck && seasonCheck.checked) || (seasonSelect && seasonSelect.value !== 'Disponible todo el año');
+      const seasonLabel = seasonSelect ? seasonSelect.value : 'Disponible todo el año';
+      const isBasket = productType === 'basket';
+
       const payload = {
         producer_id: PRODUCER_USER_ID,
         category_id: categoryId,
@@ -2195,7 +2400,12 @@ async function publishNewProduct() {
         unit: unit,
         stock_quantity: stockNum,
         is_available: isSavePublished,
-        image_url: coverUrl
+        image_url: coverUrl,
+        is_seasonal: isSeasonal,
+        season_label: seasonLabel,
+        is_basket: isBasket,
+        basket_items: isBasket ? basketItems : [],
+        basket_savings_percent: isBasket ? basketSavingsPercent : 0
       };
 
       let createdRow = null;
@@ -2211,13 +2421,18 @@ async function publishNewProduct() {
         numericId: newId,
         code: newCode,
         title: title,
-        category: catSelect ? catSelect.options[catSelect.selectedIndex].text : 'Verduras & Raíces',
+        category: catSelect ? catSelect.options[catSelect.selectedIndex].text : (isBasket ? 'Canastas Familiares' : 'Verduras & Raíces'),
         unit: unit,
         price: priceNum,
         stock: stockNum,
         unitLabel: unitLabel,
         status: isSavePublished ? (stockNum > 0 ? 'publicado' : 'agotado') : 'borrador',
         statusText: isSavePublished ? (stockNum > 0 ? 'Publicado' : 'Agotado') : 'Borrador',
+        is_seasonal: isSeasonal,
+        season_label: seasonLabel,
+        is_basket: isBasket,
+        basket_items: isBasket ? [...basketItems] : [],
+        basket_savings_percent: isBasket ? basketSavingsPercent : 0,
         subtitle: desc.slice(0, 45),
         image: coverUrl,
         description: desc,
@@ -2230,6 +2445,12 @@ async function publishNewProduct() {
       showProducerToast(`¡Cosecha "${title}" publicada con éxito en la tienda!`);
     } else {
       const prod = producerProducts.find(p => (p.id == editingProductId || p.code === currentEditingCode || p.numericId == editingProductId));
+      const seasonSelect = document.getElementById('new-form-season-label');
+      const seasonCheck = document.getElementById('new-form-is-seasonal');
+      const isSeasonal = (seasonCheck && seasonCheck.checked) || (seasonSelect && seasonSelect.value !== 'Disponible todo el año');
+      const seasonLabel = seasonSelect ? seasonSelect.value : 'Disponible todo el año';
+      const isBasket = productType === 'basket';
+
       const payload = {
         category_id: categoryId,
         title: title,
@@ -2238,7 +2459,12 @@ async function publishNewProduct() {
         unit: unit,
         stock_quantity: stockNum,
         is_available: isSavePublished,
-        image_url: coverUrl
+        image_url: coverUrl,
+        is_seasonal: isSeasonal,
+        season_label: seasonLabel,
+        is_basket: isBasket,
+        basket_items: isBasket ? basketItems : [],
+        basket_savings_percent: isBasket ? basketSavingsPercent : 0
       };
 
       if (window.supabase && typeof window.supabase.updateProduct === 'function' && editingProductId) {
@@ -2257,6 +2483,11 @@ async function publishNewProduct() {
         prod.category = catSelect ? catSelect.options[catSelect.selectedIndex].text : prod.category;
         prod.status = isSavePublished ? (stockNum > 0 ? 'publicado' : 'agotado') : 'borrador';
         prod.statusText = isSavePublished ? (stockNum > 0 ? 'Publicado' : 'Agotado') : 'Borrador';
+        prod.is_seasonal = isSeasonal;
+        prod.season_label = seasonLabel;
+        prod.is_basket = isBasket;
+        prod.basket_items = isBasket ? [...basketItems] : [];
+        prod.basket_savings_percent = isBasket ? basketSavingsPercent : 0;
         prod.lastUpdate = 'Hoy · recién guardado';
       }
 
@@ -2305,6 +2536,12 @@ async function saveProductDraft() {
     const coverUrl = coverImg ? coverImg.url : `${SUPABASE_STORAGE_URL}/rabanos.jpg`;
     const unitLabel = unit.split('·')[0].trim().toLowerCase() || 'kg';
 
+    const seasonSelect = document.getElementById('new-form-season-label');
+    const seasonCheck = document.getElementById('new-form-is-seasonal');
+    const isSeasonal = (seasonCheck && seasonCheck.checked) || (seasonSelect && seasonSelect.value !== 'Disponible todo el año');
+    const seasonLabel = seasonSelect ? seasonSelect.value : 'Disponible todo el año';
+    const isBasket = productType === 'basket';
+
     if (productFormMode === 'new') {
       const newCode = `PR-${String(producerProducts.length + 1).padStart(3, '0')}`;
       const payload = {
@@ -2316,7 +2553,12 @@ async function saveProductDraft() {
         unit: unit,
         stock_quantity: stockNum,
         is_available: false,
-        image_url: coverUrl
+        image_url: coverUrl,
+        is_seasonal: isSeasonal,
+        season_label: seasonLabel,
+        is_basket: isBasket,
+        basket_items: isBasket ? basketItems : [],
+        basket_savings_percent: isBasket ? basketSavingsPercent : 0
       };
 
       let createdRow = null;
@@ -2332,13 +2574,18 @@ async function saveProductDraft() {
         numericId: newId,
         code: newCode,
         title: title,
-        category: catSelect ? catSelect.options[catSelect.selectedIndex].text : 'Verduras & Raíces',
+        category: catSelect ? catSelect.options[catSelect.selectedIndex].text : (isBasket ? 'Canastas Familiares' : 'Verduras & Raíces'),
         unit: unit,
         price: priceNum,
         stock: stockNum,
         unitLabel: unitLabel,
         status: 'borrador',
         statusText: 'Borrador',
+        is_seasonal: isSeasonal,
+        season_label: seasonLabel,
+        is_basket: isBasket,
+        basket_items: isBasket ? [...basketItems] : [],
+        basket_savings_percent: isBasket ? basketSavingsPercent : 0,
         subtitle: 'Guardado como borrador',
         image: coverUrl,
         description: desc,
@@ -2359,7 +2606,12 @@ async function saveProductDraft() {
         unit: unit,
         stock_quantity: stockNum,
         is_available: false,
-        image_url: coverUrl
+        image_url: coverUrl,
+        is_seasonal: isSeasonal,
+        season_label: seasonLabel,
+        is_basket: isBasket,
+        basket_items: isBasket ? basketItems : [],
+        basket_savings_percent: isBasket ? basketSavingsPercent : 0
       };
 
       if (window.supabase && typeof window.supabase.updateProduct === 'function' && editingProductId) {
@@ -2376,6 +2628,11 @@ async function saveProductDraft() {
         prod.image = coverUrl;
         prod.status = 'borrador';
         prod.statusText = 'Borrador';
+        prod.is_seasonal = isSeasonal;
+        prod.season_label = seasonLabel;
+        prod.is_basket = isBasket;
+        prod.basket_items = isBasket ? [...basketItems] : [];
+        prod.basket_savings_percent = isBasket ? basketSavingsPercent : 0;
         prod.lastUpdate = 'Hoy · recién guardado';
       }
 
@@ -2464,3 +2721,13 @@ window.resendProducerEmailVerification = resendProducerEmailVerification;
 window.changeProducerEmailAddress = changeProducerEmailAddress;
 window.confirmProducerEmailVerification = confirmProducerEmailVerification;
 
+
+window.setProductType = setProductType;
+window.handleSeasonChange = handleSeasonChange;
+window.handleSeasonCheckboxChange = handleSeasonCheckboxChange;
+window.addBasketItemFromForm = addBasketItemFromForm;
+window.removeBasketItem = removeBasketItem;
+window.adjustProducerStock = adjustProducerStock;
+window.quickRestockProduct = quickRestockProduct;
+window.calculateBasketSavings = calculateBasketSavings;
+window.populateBasketProductSelect = populateBasketProductSelect;

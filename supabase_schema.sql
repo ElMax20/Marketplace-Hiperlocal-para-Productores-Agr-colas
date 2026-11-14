@@ -518,6 +518,185 @@ CREATE POLICY "Permitir delete favorites para usuarios" ON public.favorites
 
 GRANT ALL ON TABLE public.favorites TO anon, authenticated, service_role;
 
+-- =============================================================================
+-- 17. EXTENSIÓN: CATÁLOGO ESTACIONAL, CANASTAS SEMANALES Y GESTIÓN DE INVENTARIOS
+-- =============================================================================
+
+-- 17.1 Campos de Estacionalidad y Canastas en public.products
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_seasonal boolean DEFAULT false;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS season_label text DEFAULT 'Disponible todo el año';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_basket boolean DEFAULT false;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS basket_items jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS basket_savings_percent integer DEFAULT 0;
+
+-- Índices para optimizar filtros estacionales y canastas
+CREATE INDEX IF NOT EXISTS idx_products_is_seasonal ON public.products(is_seasonal);
+CREATE INDEX IF NOT EXISTS idx_products_is_basket ON public.products(is_basket);
+
+-- 17.2 Habilitar Supabase Realtime para la tabla public.products
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime'
+    ) THEN
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_publication_tables 
+            WHERE pubname = 'supabase_realtime' 
+              AND schemaname = 'public' 
+              AND tablename = 'products'
+        ) THEN
+            ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
+        END IF;
+    END IF;
+END $$;
+
+-- 17.3 Función Atómica de Descuento de Stock (decrement_product_stock RPC)
+CREATE OR REPLACE FUNCTION public.decrement_product_stock(items jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    item jsonb;
+    p_id bigint;
+    p_qty integer;
+    curr_stock integer;
+    new_stock integer;
+    updated_items jsonb := '[]'::jsonb;
+BEGIN
+    -- Validar formato del jsonb
+    IF jsonb_typeof(items) != 'array' THEN
+        RAISE EXCEPTION 'El parámetro items debe ser un arreglo JSON de productos';
+    END IF;
+
+    -- Iterar por cada elemento para validar y decrementar existencias de forma atómica
+    FOR item IN SELECT * FROM jsonb_array_elements(items)
+    LOOP
+        p_id := (item->>'product_id')::bigint;
+        p_qty := COALESCE((item->>'quantity')::integer, 1);
+
+        IF p_qty <= 0 THEN
+            CONTINUE;
+        END IF;
+
+        -- Bloquear la fila para evitar condiciones de carrera (FOR UPDATE)
+        SELECT stock_quantity INTO curr_stock
+        FROM public.products
+        WHERE id = p_id
+        FOR UPDATE;
+
+        IF NOT FOUND THEN
+            RAISE EXCEPTION 'Producto con ID % no encontrado', p_id;
+        END IF;
+
+        IF curr_stock < p_qty THEN
+            RAISE EXCEPTION 'Stock insuficiente para el producto ID %. Existencias actuales: %, solicitadas: %', 
+                p_id, curr_stock, p_qty;
+        END IF;
+
+        new_stock := GREATEST(0, curr_stock - p_qty);
+
+        -- Actualizar existencias y disponibilidad en products
+        UPDATE public.products
+        SET stock_quantity = new_stock,
+            is_available = (new_stock > 0),
+            updated_at = now()
+        WHERE id = p_id;
+
+        updated_items := updated_items || jsonb_build_object(
+            'product_id', p_id,
+            'previous_stock', curr_stock,
+            'new_stock', new_stock,
+            'is_available', (new_stock > 0)
+        );
+    END LOOP;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'message', 'Existencias actualizadas correctamente',
+        'updated_products', updated_items
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.decrement_product_stock(jsonb) TO anon, authenticated, service_role;
+
+-- 17.4 Configuración de Canastas y Productos de Temporada Sembrados
+UPDATE public.products 
+SET is_basket = true,
+    is_seasonal = true,
+    season_label = 'Cosecha de temporada',
+    basket_savings_percent = 18,
+    basket_items = '[
+        {"name": "Tomate de huerta", "quantity_label": "1 kg", "units": 1},
+        {"name": "Papa criolla nativa", "quantity_label": "1 kg", "units": 1},
+        {"name": "Zanahoria de tierra", "quantity_label": "1 kg", "units": 1},
+        {"name": "Lechuga crespa verde", "quantity_label": "2 unidades", "units": 2},
+        {"name": "Aguacate Hass", "quantity_label": "500 g", "units": 1},
+        {"name": "Cilantro fresco", "quantity_label": "1 manojo", "units": 1}
+    ]'::jsonb
+WHERE id = 11;
+
+UPDATE public.products 
+SET is_basket = true,
+    is_seasonal = true,
+    season_label = 'Recién cosechado',
+    basket_savings_percent = 15,
+    basket_items = '[
+        {"name": "Espinaca baby de huerta", "quantity_label": "300 g", "units": 1},
+        {"name": "Pimiento verde criollo", "quantity_label": "1 kg", "units": 1},
+        {"name": "Acelga arcoíris orgánica", "quantity_label": "1 atado", "units": 1},
+        {"name": "Fresas de temporada", "quantity_label": "500 g", "units": 1},
+        {"name": "Huevos de pastoreo", "quantity_label": "media docena", "units": 6}
+    ]'::jsonb
+WHERE id = 12;
+
+UPDATE public.products 
+SET is_basket = true,
+    is_seasonal = false,
+    season_label = 'Disponible todo el año',
+    basket_savings_percent = 20,
+    basket_items = '[
+        {"name": "Plátano verde barraganete", "quantity_label": "1 racimo 5 un", "units": 1},
+        {"name": "Plátano maduro dulce", "quantity_label": "1 racimo 5 un", "units": 1},
+        {"name": "Papa criolla nativa", "quantity_label": "1 kg", "units": 1},
+        {"name": "Queso campesino artesanal", "quantity_label": "500 g", "units": 1},
+        {"name": "Maracuyá de la costa", "quantity_label": "1 kg", "units": 1}
+    ]'::jsonb
+WHERE id = 47;
+
+UPDATE public.products 
+SET is_basket = true,
+    is_seasonal = true,
+    season_label = 'Cosecha de temporada',
+    basket_savings_percent = 16,
+    basket_items = '[
+        {"name": "Piña dulce Golden", "quantity_label": "1 unidad", "units": 1},
+        {"name": "Papaya hawaiana", "quantity_label": "1 unidad", "units": 1},
+        {"name": "Mango Tommy Atkins", "quantity_label": "1 kg", "units": 1},
+        {"name": "Mandarina criolla de temporada", "quantity_label": "1 kg", "units": 1},
+        {"name": "Limón sutil criollo", "quantity_label": "1 funda 15 un", "units": 1}
+    ]'::jsonb
+WHERE id = 48;
+
+-- Marcar productos individuales de temporada
+UPDATE public.products 
+SET is_seasonal = true,
+    season_label = 'Cosecha de temporada'
+WHERE id IN (4, 13, 32, 29, 34);
+
+UPDATE public.products 
+SET is_seasonal = true,
+    season_label = 'Recién cosechado'
+WHERE id IN (1, 3, 22, 23);
+
+UPDATE public.products 
+SET is_seasonal = true,
+    season_label = 'Últimas semanas'
+WHERE id IN (21, 28, 35);
+
+
 
 
 

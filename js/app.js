@@ -979,3 +979,13 @@ window.addEventListener('focus', () => {
 });
 window.initCosechaDeHoy = initCosechaDeHoy;
 window.getProductRealRating = getProductRealRating;
+
+// Suscripción en Tiempo Real al Inventario
+if (window.supabase && typeof window.supabase.subscribeToProducts === 'function') {
+  window.supabase.subscribeToProducts((eventPayload) => {
+    try {
+      console.log('[App Home Realtime] Actualización de producto:', eventPayload);
+      initCosechaDeHoy();
+    } catch (e) {}
+  });
+}

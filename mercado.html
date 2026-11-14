@@ -40,6 +40,7 @@
   <link rel="stylesheet" href="css/styles.css?v=5.3">
 
   <!-- Supabase & Auth Zero-Flicker Hydration -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js?v=5.1"></script>
   <script src="js/auth.js?v=5.3"></script>
   <style>
@@ -236,6 +237,36 @@
       <p class="text-xs sm:text-sm text-stone-600 mt-1">Cosechas, canastas y sabores artesanales. Elige lo bueno para tu mesa.</p>
     </div>
 
+    <!-- Quick Filter Pills: Estacional, Canastas y Categorías Principales -->
+    <div class="py-3 flex items-center gap-2 overflow-x-auto no-scrollbar text-xs border-b border-stone-200/80">
+      <button type="button" id="pill-filter-all" onclick="setSeasonFilter('todos')" class="pill-season-filter px-3.5 py-1.5 rounded-full font-bold transition whitespace-nowrap bg-[#1a3d2f] text-white shadow-xs cursor-pointer">
+        Todos los productos
+      </button>
+      <button type="button" id="pill-filter-seasonal" onclick="setSeasonFilter('seasonal')" class="pill-season-filter px-3.5 py-1.5 rounded-full font-bold transition whitespace-nowrap bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 shadow-2xs cursor-pointer flex items-center gap-1.5">
+        <span>🌿</span>
+        <span>De temporada</span>
+        <span id="pill-count-seasonal" class="text-[10px] bg-emerald-200/80 text-emerald-900 px-1.5 py-0.2 rounded-full font-extrabold">12</span>
+      </button>
+      <button type="button" id="pill-filter-baskets" onclick="setSeasonFilter('baskets')" class="pill-season-filter px-3.5 py-1.5 rounded-full font-bold transition whitespace-nowrap bg-[#fdf4f0] text-[#c85a32] hover:bg-[#faece6] border border-[#f3d9ce] shadow-2xs cursor-pointer flex items-center gap-1.5">
+        <span>🧺</span>
+        <span>Canastas semanales</span>
+        <span id="pill-count-baskets" class="text-[10px] bg-[#f8dcd0] text-[#943b1c] px-1.5 py-0.2 rounded-full font-extrabold">4</span>
+      </button>
+      <span class="text-stone-300">|</span>
+      <button type="button" onclick="setCategoryFilter('verduras')" class="px-3 py-1.5 rounded-full text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition whitespace-nowrap cursor-pointer">
+        Verduras & Granos
+      </button>
+      <button type="button" onclick="setCategoryFilter('frutas')" class="px-3 py-1.5 rounded-full text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition whitespace-nowrap cursor-pointer">
+        Frutas del Valle
+      </button>
+      <button type="button" onclick="setCategoryFilter('lacteos')" class="px-3 py-1.5 rounded-full text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition whitespace-nowrap cursor-pointer">
+        Lácteos de Pastoreo
+      </button>
+      <button type="button" onclick="setCategoryFilter('despensa')" class="px-3 py-1.5 rounded-full text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition whitespace-nowrap cursor-pointer">
+        Despensa Artesanal
+      </button>
+    </div>
+
     <!-- Active Filters & Sorting Bar -->
     <div class="flex flex-wrap items-center justify-between gap-4 py-4 border-b border-stone-200/80">
       
@@ -279,20 +310,26 @@
       <!-- LEFT SIDEBAR: FILTERS -->
       <aside class="lg:col-span-3 space-y-6">
 
-        <!-- Categorías -->
+        <!-- Categorías y Filtros Destacados -->
         <div>
-          <h3 class="text-xs font-bold uppercase tracking-wider text-stone-500 mb-3">Categorías</h3>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-stone-500 mb-3">Categorías y Temporada</h3>
           <ul class="space-y-1 text-xs">
             <li>
-              <button onclick="setCategoryFilter('todos')" id="cat-btn-todos" class="w-full flex items-center justify-between px-3 py-2 rounded-xl font-bold bg-[#1a3d2f] text-white transition text-left">
+              <button onclick="setSeasonFilter('todos')" id="cat-btn-todos" class="w-full flex items-center justify-between px-3 py-2 rounded-xl font-bold bg-[#1a3d2f] text-white transition text-left cursor-pointer">
                 <span>Todos los productos</span>
                 <span class="text-[11px] opacity-80" id="cat-count-todos">48</span>
               </button>
             </li>
             <li>
-              <button onclick="setCategoryFilter('canastas')" id="cat-btn-canastas" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-stone-700 hover:bg-stone-100 transition text-left font-medium">
-                <span>Canastas Familiares</span>
-                <span class="text-[11px] text-stone-400" id="cat-count-canastas">6</span>
+              <button onclick="setSeasonFilter('seasonal')" id="cat-btn-seasonal" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-emerald-800 hover:bg-emerald-50 transition text-left font-bold cursor-pointer">
+                <span class="flex items-center gap-1.5"><span>🌿</span><span>De temporada</span></span>
+                <span class="text-[11px] text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-full font-bold" id="cat-count-seasonal">12</span>
+              </button>
+            </li>
+            <li>
+              <button onclick="setSeasonFilter('baskets')" id="cat-btn-canastas" class="w-full flex items-center justify-between px-3 py-2 rounded-xl text-[#c85a32] hover:bg-orange-50 transition text-left font-bold cursor-pointer">
+                <span class="flex items-center gap-1.5"><span>🧺</span><span>Canastas Semanales</span></span>
+                <span class="text-[11px] text-[#c85a32] bg-[#fbe7de] px-2 py-0.5 rounded-full font-bold" id="cat-count-canastas">4</span>
               </button>
             </li>
             <li>

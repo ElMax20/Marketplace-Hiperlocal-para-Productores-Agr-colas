@@ -71,6 +71,7 @@
   </style>
 
   <!-- Supabase & Auth Zero-Flicker Hydration -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js?v=5.1"></script>
   <script src="js/auth.js?v=5.3"></script>
 </head>
@@ -425,6 +426,21 @@
               <p class="text-[11px] text-stone-400 mb-4">Cuenta qué lo hace especial. Los campos con * son obligatorios.</p>
 
               <div class="space-y-4">
+                <!-- Tipo de Publicación: Individual vs Canasta -->
+                <div>
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Tipo de publicación *</label>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button type="button" id="type-btn-individual" onclick="setProductType('individual')" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border-2 text-xs font-bold transition border-[#1a3d2f] bg-[#1a3d2f] text-white shadow-2xs cursor-pointer">
+                      <span>🌱</span>
+                      <span>Producto individual</span>
+                    </button>
+                    <button type="button" id="type-btn-basket" onclick="setProductType('basket')" class="flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border-2 border-stone-200 bg-stone-50 hover:bg-white text-stone-700 text-xs font-bold transition cursor-pointer">
+                      <span>🧺</span>
+                      <span>Canasta semanal preconfigurada</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div>
                   <label class="block text-xs font-bold text-stone-700 mb-1.5">Nombre del producto *</label>
                   <input type="text" id="new-form-name" placeholder="Ej. Rábanos de temporada" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">
@@ -458,6 +474,89 @@
                       <option value="Libra (454g)">Libra (454g)</option>
                     </select>
                   </div>
+                </div>
+
+                <!-- Temporada y Etiqueta Estacional -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                  <div>
+                    <label class="block text-xs font-bold text-stone-700 mb-1.5">Temporada / Etiqueta estacional *</label>
+                    <select id="new-form-season-label" onchange="handleSeasonChange()" class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                      <option value="Disponible todo el año" selected>Disponible todo el año</option>
+                      <option value="Cosecha de temporada">🌿 Cosecha de temporada</option>
+                      <option value="Recién cosechado">✨ Recién cosechado</option>
+                      <option value="Últimas semanas">⏳ Últimas semanas</option>
+                    </select>
+                  </div>
+                  <div class="flex items-center pt-2 sm:pt-6">
+                    <label class="flex items-center gap-2 text-xs text-stone-700 cursor-pointer select-none">
+                      <input type="checkbox" id="new-form-is-seasonal" onchange="handleSeasonCheckboxChange()" class="w-4 h-4 rounded text-[#1a3d2f] focus:ring-[#1a3d2f]">
+                      <span class="font-medium">Destacar como cosecha de temporada</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 1.5: Constructor Visual de Canasta Semanal (Visible solo cuando tipo = basket) -->
+            <div id="basket-builder-panel" class="hidden bg-emerald-50/50 p-5 sm:p-6 rounded-2xl border-2 border-emerald-300 shadow-2xs space-y-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <h3 class="font-bold text-[#1a3d2f] text-sm flex items-center gap-1.5">
+                    <span>🧺</span>
+                    <span>Constructor de Canasta Semanal</span>
+                  </h3>
+                  <p class="text-[11px] text-stone-500 mt-0.5">Selecciona los productos de tu huerta incluidos en esta canasta y calcula el ahorro para tus vecinos.</p>
+                </div>
+                <span id="basket-items-count-badge" class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-[#1a3d2f] text-white">
+                  0 alimentos
+                </span>
+              </div>
+
+              <!-- Selector rápido para agregar productos del catálogo -->
+              <div class="bg-white p-3.5 rounded-xl border border-emerald-200/80 shadow-2xs">
+                <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                  <div class="sm:col-span-6">
+                    <label class="block text-[11px] font-bold text-stone-700 mb-1">Producto de la finca</label>
+                    <select id="basket-item-product-select" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                      <!-- Poblado dinámicamente -->
+                    </select>
+                  </div>
+                  <div class="sm:col-span-4">
+                    <label class="block text-[11px] font-bold text-stone-700 mb-1">Cantidad / Porción</label>
+                    <input type="text" id="basket-item-portion" placeholder="Ej. 1 kg, 500g, 1 un" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                  </div>
+                  <div class="sm:col-span-2">
+                    <button type="button" onclick="addBasketItemFromForm()" class="w-full bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold py-2 rounded-lg transition shadow-2xs cursor-pointer text-center">
+                      + Añadir
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Lista de ítems incluidos en la canasta -->
+              <div id="basket-items-list" class="space-y-2">
+                <div id="basket-items-empty" class="text-center py-5 bg-white/70 rounded-xl border border-dashed border-emerald-200 text-stone-400 text-xs">
+                  Aún no has agregado productos a esta canasta. Selecciona arriba para comenzar.
+                </div>
+              </div>
+
+              <!-- Barra de Resumen Financiero y Ahorro -->
+              <div class="bg-white p-3.5 rounded-xl border border-emerald-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                <div class="flex items-center gap-4">
+                  <div>
+                    <span class="text-stone-400 text-[10px] block">Suma individual estimada</span>
+                    <span id="basket-individual-sum" class="font-bold text-stone-800 text-sm">$0.00</span>
+                  </div>
+                  <span class="text-stone-300">→</span>
+                  <div>
+                    <span class="text-stone-400 text-[10px] block">Precio canasta (USD)</span>
+                    <span id="basket-selling-price" class="font-bold text-[#1a3d2f] text-sm">$0.00</span>
+                  </div>
+                </div>
+                <div id="basket-savings-badge-container">
+                  <span id="basket-savings-badge" class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-extrabold bg-[#c85a32] text-white shadow-2xs">
+                    Ahorra 0%
+                  </span>
                 </div>
               </div>
             </div>
@@ -589,14 +688,32 @@
                     </svg>
                     <span class="text-xs font-medium">Sin imagen de portada</span>
                   </div>
-                  <span id="new-preview-agro-badge" class="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
-                    🌱 Agroecológico
-                  </span>
+                  <!-- Badges Superiores -->
+                  <div class="absolute top-3 left-3 flex flex-col gap-1 items-start">
+                    <span id="new-preview-agro-badge" class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                      🌱 Agroecológico
+                    </span>
+                    <span id="new-preview-basket-badge" class="hidden inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#1a3d2f] text-white shadow-2xs">
+                      🧺 Canasta semanal
+                    </span>
+                  </div>
+                  <div class="absolute top-3 right-3 flex flex-col gap-1 items-end">
+                    <span id="new-preview-season-badge" class="hidden inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shadow-2xs">
+                      🌿 Cosecha de temporada
+                    </span>
+                    <span id="new-preview-savings-badge" class="hidden inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-[#c85a32] text-white shadow-2xs">
+                      Ahorra 0%
+                    </span>
+                  </div>
                 </div>
                 <div class="p-4">
                   <h4 id="new-preview-title" class="font-serif font-bold text-base text-stone-900">Nombre del producto</h4>
                   <p id="new-preview-origin" class="text-[11px] text-stone-400 mt-0.5 producer-farm-display">Hacienda San José · Daule</p>
                   <div id="new-preview-price" class="text-sm font-bold text-stone-900 mt-2">$0.00 / manojo</div>
+                  <div id="new-preview-basket-breakdown" class="hidden mt-2 pt-2 border-t border-stone-100 text-[10px] text-stone-500">
+                    <span class="font-semibold text-stone-700 block mb-0.5">Incluye en la canasta:</span>
+                    <span id="new-preview-basket-items-text">Sin alimentos agregados</span>
+                  </div>
                 </div>
               </div>
             </div>

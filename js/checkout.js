@@ -1042,19 +1042,27 @@ async function executePurchase() {
         console.error('Error insertando pedido en Supabase:', errDb);
       }
 
-      // Descuento inmediato de existencias en Supabase products
-      for (const it of checkoutCart) {
+      // Descuento atómico inmediato de existencias en Supabase products (RPC decrement_product_stock + Realtime)
+      if (typeof window.supabase.decrementStock === 'function') {
         try {
-          const prods = await window.supabase.fetchApi(`products?id=eq.${it.id}&select=stock_quantity`);
-          if (prods && prods.length > 0) {
-            const currentStock = prods[0].stock_quantity || 0;
-            const newStock = Math.max(0, currentStock - (it.quantity || 1));
-            await window.supabase.fetchApi(`products?id=eq.${it.id}`, {
-              method: 'PATCH',
-              body: JSON.stringify({ stock_quantity: newStock })
-            });
-          }
-        } catch (_) {}
+          await window.supabase.decrementStock(checkoutCart);
+        } catch (stockErr) {
+          console.warn('Aviso descontando existencias con decrementStock:', stockErr);
+        }
+      } else {
+        for (const it of checkoutCart) {
+          try {
+            const prods = await window.supabase.fetchApi(`products?id=eq.${it.id}&select=stock_quantity`);
+            if (prods && prods.length > 0) {
+              const currentStock = prods[0].stock_quantity || 0;
+              const newStock = Math.max(0, currentStock - (it.quantity || 1));
+              await window.supabase.fetchApi(`products?id=eq.${it.id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({ stock_quantity: newStock, is_available: newStock > 0 })
+              });
+            }
+          } catch (_) {}
+        }
       }
 
       // Si el usuario marcó guardar tarjeta y era tarjeta nueva
