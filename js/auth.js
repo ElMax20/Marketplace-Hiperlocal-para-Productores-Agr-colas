@@ -1236,7 +1236,7 @@ async function handleAuthSubmit(event) {
   // Si no se encontró usuario o credenciales incorrectas en Supabase:
   if (!dbUser) {
     resetBtn();
-    showAuthError('Usuario o contraseña incorrectos.');
+    showAuthError('Usuario, correo o contraseña incorrectos. Verifica tus datos e inténtalo de nuevo.');
     return false;
   }
 
@@ -1264,7 +1264,7 @@ async function handleAuthSubmit(event) {
   // B. Acceso CLIENTE
   if (currentAuthType === 'cliente') {
     if (role === 'productor') {
-      showAuthError('⚠️ Esta cuenta es de Productor. Por favor ingresa a través de la pestaña "Soy Productor".');
+      showAuthError('Usuario, correo o contraseña incorrectos. Verifica tus datos e inténtalo de nuevo.');
       resetBtn();
       return false;
     }
@@ -1292,7 +1292,7 @@ async function handleAuthSubmit(event) {
   // C. Acceso PRODUCTOR
   if (currentAuthType === 'productor') {
     if (role === 'cliente') {
-      showAuthError('⚠️ Esta cuenta es de Cliente / Comprador. Por favor ingresa a través de la pestaña "Ingresar como Cliente".');
+      showAuthError('Usuario, correo o contraseña incorrectos. Verifica tus datos e inténtalo de nuevo.');
       resetBtn();
       return false;
     }
@@ -1315,7 +1315,7 @@ async function handleAuthSubmit(event) {
   }
 
   resetBtn();
-  showAuthError('Usuario o contraseña incorrectos.');
+  showAuthError('Usuario, correo o contraseña incorrectos. Verifica tus datos e inténtalo de nuevo.');
   return false;
 }
 

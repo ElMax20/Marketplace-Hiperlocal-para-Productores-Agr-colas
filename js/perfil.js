@@ -1258,20 +1258,182 @@ function generateSecureToken() {
   return (randPart1 + randPart2 + timePart + randPart1).substring(0, 64);
 }
 
+// =============================================================================
+// CAMBIO DE CORREO ELECTRÓNICO (SUPABASE + WEBHOOK N8N + MICROINTERACCIONES)
+// =============================================================================
+
+let clientResendInterval = null;
+let clientResendCountdown = 30;
+let clientPendingNewEmail = '';
+
+function resetClientEmailStepper() {
+  const s1 = document.getElementById('client-step-1');
+  const s2 = document.getElementById('client-step-2');
+  const s3 = document.getElementById('client-step-3');
+  if (s1) {
+    s1.className = 'transition-all duration-300 flex items-center gap-1.5 font-bold text-stone-800';
+    s1.innerHTML = '<span class="step-num">1.</span> Solicitar cambio';
+  }
+  if (s2) {
+    s2.className = 'transition-all duration-300 flex items-center gap-1.5 text-stone-400';
+    s2.innerHTML = '<span class="step-num">2.</span> Verificar nuevo correo';
+  }
+  if (s3) {
+    s3.className = 'transition-all duration-300 flex items-center gap-1.5 text-stone-400';
+    s3.innerHTML = '<span class="step-num">3.</span> Confirmar actualización';
+  }
+}
+
+function renderClientEmailBanner(newEmail) {
+  const banner = document.getElementById('client-email-banner');
+  const footer = document.getElementById('client-email-footer');
+  if (footer) footer.classList.add('hidden');
+  if (!banner) return;
+
+  banner.className = 'animate-slide-down-fade bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 mt-1';
+  banner.innerHTML = `
+    <div class="flex items-start gap-3">
+      <div class="w-8 h-8 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0 text-emerald-800 text-base shadow-2xs">
+        ✉️
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between gap-2">
+          <h4 class="font-bold text-xs text-stone-900 leading-snug">¡Enlace de verificación enviado!</h4>
+          <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-md">Vence en 15 min</span>
+        </div>
+        <p class="text-[11px] text-stone-600 mt-1 leading-relaxed">
+          Revisa la bandeja de entrada (o Spam) de <strong class="text-stone-900 font-bold">${escapeHtml(newEmail)}</strong> y haz clic en el botón de autorización.
+        </p>
+        <div class="flex items-center gap-3.5 mt-3 pt-2.5 border-t border-emerald-200/60 text-[11px]">
+          <button type="button" id="btn-client-resend-email" onclick="resendClientEmailVerification()" class="font-semibold text-emerald-800 hover:text-emerald-950 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition flex items-center gap-1" disabled>
+            <span>↻</span> <span id="client-resend-countdown-text">Reenviar enlace (30s)</span>
+          </button>
+          <span class="text-stone-300">•</span>
+          <button type="button" onclick="changeClientEmailAddress()" class="font-semibold text-stone-600 hover:text-stone-900 cursor-pointer transition">
+            Cambiar dirección
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  startClientResendTimer();
+}
+
+function startClientResendTimer() {
+  if (clientResendInterval) clearInterval(clientResendInterval);
+  clientResendCountdown = 30;
+  const countdownEl = document.getElementById('client-resend-countdown-text');
+  const resendBtn = document.getElementById('btn-client-resend-email');
+  if (resendBtn) resendBtn.disabled = true;
+  if (countdownEl) countdownEl.textContent = `Reenviar enlace (${clientResendCountdown}s)`;
+
+  clientResendInterval = setInterval(() => {
+    clientResendCountdown--;
+    const el = document.getElementById('client-resend-countdown-text');
+    const btn = document.getElementById('btn-client-resend-email');
+    if (clientResendCountdown > 0) {
+      if (el) el.textContent = `Reenviar enlace (${clientResendCountdown}s)`;
+    } else {
+      clearInterval(clientResendInterval);
+      clientResendInterval = null;
+      if (el) el.textContent = 'Reenviar enlace';
+      if (btn) btn.disabled = false;
+    }
+  }, 1000);
+}
+
+function changeClientEmailAddress() {
+  if (clientResendInterval) {
+    clearInterval(clientResendInterval);
+    clientResendInterval = null;
+  }
+  const banner = document.getElementById('client-email-banner');
+  if (banner) {
+    banner.innerHTML = '';
+    banner.className = 'hidden';
+  }
+  const footer = document.getElementById('client-email-footer');
+  if (footer) footer.classList.remove('hidden');
+
+  const btn = document.getElementById('btn-request-email-change');
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = '<span id="btn-request-text">Enviar enlace de verificación</span>';
+  }
+
+  const inputNew = document.getElementById('new_email') || document.getElementById('input-new-email');
+  if (inputNew) {
+    inputNew.readOnly = false;
+    inputNew.disabled = false;
+    inputNew.classList.remove('ring-2', 'ring-emerald-500/40', 'bg-emerald-50/20', 'animate-pulse', 'bg-stone-100', 'text-stone-500', 'cursor-not-allowed');
+    inputNew.focus();
+  }
+
+  resetClientEmailStepper();
+}
+
+async function resendClientEmailVerification() {
+  if (!clientPendingNewEmail) return;
+  startClientResendTimer();
+  showToast('Reenviando enlace de verificación a ' + clientPendingNewEmail + '...');
+
+  const currentEmail = (currentUser?.email || '').trim().toLowerCase();
+  let userId = currentUser?.id || '00000000-0000-0000-0000-000000000001';
+
+  try {
+    const token = generateSecureToken();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    const verificationUrl = `${PUBLIC_SITE_URL}/perfil.html?verify_email_token=${encodeURIComponent(token)}`;
+
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      try {
+        await window.supabase.fetchApi(`email_change_requests?user_id=eq.${userId}`, {
+          method: 'DELETE'
+        });
+      } catch (_) {}
+
+      await window.supabase.fetchApi('email_change_requests', {
+        method: 'POST',
+        body: JSON.stringify({
+          user_id: userId,
+          current_email: currentEmail || (currentUser?.username + '@raizybarrio.co'),
+          new_email: clientPendingNewEmail,
+          verification_token: token,
+          expires_at: expiresAt,
+          confirmation_url: verificationUrl,
+          verification_url: verificationUrl
+        })
+      });
+    }
+
+    try {
+      await fetch('https://elmaxi.app.n8n.cloud/webhook/solicitar-verificacion-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          current_email: currentEmail || (currentUser?.username + '@raizybarrio.co'),
+          new_email: clientPendingNewEmail,
+          verification_token: token,
+          verification_url: verificationUrl,
+          expires_at: expiresAt
+        })
+      });
+    } catch (_) {}
+
+    showToast('¡Enlace reenviado! Revisa la bandeja de entrada o Spam.');
+  } catch (err) {
+    console.error('Error al reenviar enlace:', err);
+    showToast('Error de red al reenviar el enlace.');
+  }
+}
+
 /**
- * Manejador para solicitar cambio de correo electrónico:
- * 1. Valida el formato del nuevo correo y que no sea idéntico al actual.
- * 2. Bloquea el botón y muestra estado de carga temporal.
- * 3. Genera token de 64 hex y fecha de expiración a 15 minutos.
- * 4. Inserta el registro en email_change_requests en Supabase (lo que activa el webhook hacia n8n).
- * 5. NO contacta a Supabase Auth (Supabase NO envía correos, únicamente n8n).
- * 6. NO muestra ningún cuadro/tarjeta debajo del botón; muestra el toast y limpia el campo.
+ * Manejador para solicitar cambio de correo electrónico (Comprador / Perfil)
  */
 async function handleRequestEmailChange() {
   const inputNew = document.getElementById('new_email') || document.getElementById('input-new-email');
-  const btn = document.getElementById('btn-request-email-change') || document.getElementById('btn-send-email-verification');
-  const btnText = document.getElementById('btn-request-text');
-  const btnIcon = document.getElementById('btn-request-icon');
+  const btn = document.getElementById('btn-request-email-change');
 
   const newEmail = inputNew?.value.trim().toLowerCase();
 
@@ -1279,7 +1441,6 @@ async function handleRequestEmailChange() {
   const emailCheck = window.validateEmail ? window.validateEmail(newEmail) : { valid: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail), message: 'Ingresa un correo electrónico con un dominio válido (ej. nombre@correo.com)' };
   if (!emailCheck.valid) {
     showToast(emailCheck.message);
-    alert(emailCheck.message);
     const feedback = document.getElementById('profile-email-feedback');
     if (feedback) {
       feedback.className = 'text-[11px] font-semibold text-red-600 mt-1 block';
@@ -1297,20 +1458,43 @@ async function handleRequestEmailChange() {
     return;
   }
 
-  // Estado de carga y deshabilitar botón temporalmente
-  const originalBtnHtml = btn ? btn.innerHTML : '';
+  // a. Botón muestra spinner + "Enviando enlace seguro..."
   if (btn) {
     btn.disabled = true;
-    if (btnText) btnText.textContent = 'Procesando solicitud...';
-    if (btnIcon) btnIcon.innerHTML = '<span class="inline-block animate-spin">⏳</span>';
+    btn.innerHTML = '<span class="inline-block animate-spin mr-1.5 text-xs">⏳</span> <span id="btn-request-text">Enviando enlace seguro...</span>';
+  }
+
+  // Campo de entrada se bloquea con sutil resplandor de procesamiento
+  if (inputNew) {
+    inputNew.readOnly = true;
+    inputNew.classList.remove('border-red-500');
+    inputNew.classList.add('ring-2', 'ring-emerald-500/40', 'bg-emerald-50/20', 'animate-pulse');
+  }
+
+  // b. Stepper transition:
+  // Paso 1 -> check verde ("✓ Solicitud enviada")
+  // Paso 2 -> se ilumina con pastilla verde bosque (#143628) con pulso sutil
+  const s1 = document.getElementById('client-step-1');
+  const s2 = document.getElementById('client-step-2');
+  const s3 = document.getElementById('client-step-3');
+
+  if (s1) {
+    s1.className = 'transition-all duration-300 flex items-center gap-1.5 text-emerald-700 font-bold';
+    s1.innerHTML = '<span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 inline-flex items-center justify-center text-[10px] font-bold">✓</span> Solicitud enviada';
+  }
+  if (s2) {
+    s2.className = 'transition-all duration-300 flex items-center gap-1.5';
+    s2.innerHTML = '<span class="bg-[#143628] text-white px-2.5 py-1 rounded-full font-bold flex items-center gap-1.5 shadow-xs"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>2. Verificar nuevo correo</span>';
+  }
+  if (s3) {
+    s3.className = 'transition-all duration-300 flex items-center gap-1.5 text-stone-400';
+    s3.innerHTML = '<span class="step-num">3.</span> Confirmar actualización';
   }
 
   try {
-    // 2. Generación del token y cálculo de expiración (15 minutos)
     const token = generateSecureToken();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
 
-    // Obtener user_id y current_email de la sesión activa
     let userId = currentUser?.id;
     if (!userId || userId === '00000000-0000-0000-0000-000000000001') {
       if (window.supabase && typeof window.supabase.fetchApi === 'function' && currentUser?.username) {
@@ -1328,12 +1512,10 @@ async function handleRequestEmailChange() {
       userId = '00000000-0000-0000-0000-000000000001';
     }
 
-    // Enlace exclusivo hacia la página de configuración del usuario en GitHub Pages
     const verificationUrl = `${PUBLIC_SITE_URL}/perfil.html?verify_email_token=${encodeURIComponent(token)}`;
 
     // Inserción en Supabase tabla email_change_requests
     if (window.supabase && typeof window.supabase.fetchApi === 'function') {
-      // Limpiar solicitudes anteriores pendientes del mismo usuario para evitar duplicados
       try {
         await window.supabase.fetchApi(`email_change_requests?user_id=eq.${userId}`, {
           method: 'DELETE'
@@ -1342,7 +1524,6 @@ async function handleRequestEmailChange() {
         console.warn('Advertencia al limpiar solicitudes pendientes:', cleanErr);
       }
 
-      // Insertar nuevo registro con los campos requeridos y el enlace de GitHub Pages para n8n / webhook
       const insertData = {
         user_id: userId,
         current_email: currentEmail || (currentUser?.username + '@raizybarrio.co'),
@@ -1359,21 +1540,47 @@ async function handleRequestEmailChange() {
       });
     }
 
-    // 3. Respuesta visual al usuario: solo mensaje toast y limpiar campo (sin generar cuadros)
-    const confirmationText = 'Hemos enviado un enlace de confirmación a tu nuevo correo. Por favor revisa tu bandeja de entrada para completar el cambio (el enlace vence en 15 minutos).';
-    showToast(confirmationText);
+    // Webhook hacia n8n
+    try {
+      await fetch('https://elmaxi.app.n8n.cloud/webhook/solicitar-verificacion-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: userId,
+          current_email: currentEmail || (currentUser?.username + '@raizybarrio.co'),
+          new_email: newEmail,
+          verification_token: token,
+          verification_url: verificationUrl,
+          expires_at: expiresAt
+        })
+      });
+      console.log('Webhook n8n de verificación de email invocado correctamente.');
+    } catch (whErr) {
+      console.warn('Aviso webhook n8n:', whErr);
+    }
 
-    // Limpiar el campo de entrada
-    if (inputNew) inputNew.value = '';
+    clientPendingNewEmail = newEmail;
+    if (inputNew) {
+      inputNew.classList.remove('animate-pulse');
+      inputNew.classList.add('bg-stone-100', 'text-stone-500', 'cursor-not-allowed');
+    }
+
+    // c. Mostrar banner animado con fade-in + slide-down
+    renderClientEmailBanner(newEmail);
+    showToast('Hemos enviado un enlace de confirmación a tu nuevo correo (vence en 15 min).');
 
   } catch (err) {
     console.error('Error al registrar solicitud de cambio de correo en Supabase:', err);
     showToast('Ocurrió un problema con la base de datos: ' + (err.message || 'Error de red. Intenta nuevamente.'));
-  } finally {
     if (btn) {
       btn.disabled = false;
-      btn.innerHTML = originalBtnHtml;
+      btn.innerHTML = '<span id="btn-request-text">Enviar enlace de verificación</span>';
     }
+    if (inputNew) {
+      inputNew.readOnly = false;
+      inputNew.classList.remove('ring-2', 'ring-emerald-500/40', 'bg-emerald-50/20', 'animate-pulse');
+    }
+    resetClientEmailStepper();
   }
 }
 
@@ -1470,11 +1677,63 @@ async function confirmEmailVerification(token, explicitEmail) {
       if (typeof setCurrentUser === 'function') setCurrentUser(currentUser);
     }
 
-    // 4. Actualizar vista en perfil.html
+    // d. Paso 3 ("3. Confirmar actualización") se ilumina en verde con animación de check
+    const s1 = document.getElementById('client-step-1');
+    const s2 = document.getElementById('client-step-2');
+    const s3 = document.getElementById('client-step-3');
+    if (s1) {
+      s1.className = 'transition-all duration-300 flex items-center gap-1.5 text-emerald-700 font-bold';
+      s1.innerHTML = '<span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 inline-flex items-center justify-center text-[10px] font-bold">✓</span> 1. Solicitud enviada';
+    }
+    if (s2) {
+      s2.className = 'transition-all duration-300 flex items-center gap-1.5 text-emerald-700 font-bold';
+      s2.innerHTML = '<span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 inline-flex items-center justify-center text-[10px] font-bold">✓</span> 2. Correo verificado';
+    }
+    if (s3) {
+      s3.className = 'transition-all duration-300 flex items-center gap-1.5';
+      s3.innerHTML = '<span class="bg-emerald-600 text-white px-2.5 py-1 rounded-full font-bold flex items-center gap-1.5 shadow-xs transition-all duration-500"><span class="w-4 h-4 rounded-full bg-white/20 inline-flex items-center justify-center text-[10px] font-bold">✓</span> 3. Actualización confirmada</span>';
+    }
+
+    // Input "Correo actual" ejecuta una transición visual actualizándose al nuevo correo
     const inputCurr = document.getElementById('input-current-email');
-    if (inputCurr) inputCurr.value = targetEmail;
+    if (inputCurr) {
+      inputCurr.value = targetEmail;
+      inputCurr.classList.add('ring-2', 'ring-emerald-500', 'bg-emerald-50', 'text-emerald-950');
+      setTimeout(() => {
+        inputCurr.classList.remove('ring-2', 'ring-emerald-500', 'bg-emerald-50', 'text-emerald-950');
+      }, 4000);
+    }
+
+    // Insignia "• Verificado" ejecuta un destello/glow suave de confirmación
+    const badge = document.getElementById('client-email-verified-badge');
+    if (badge) {
+      badge.classList.add('ring-4', 'ring-emerald-400/50', 'scale-110', 'bg-emerald-100');
+      setTimeout(() => {
+        badge.classList.remove('ring-4', 'ring-emerald-400/50', 'scale-110', 'bg-emerald-100');
+      }, 3000);
+    }
+
+    // Banner de éxito
+    const banner = document.getElementById('client-email-banner');
+    if (banner) {
+      banner.className = 'animate-slide-down-fade bg-emerald-50/90 border border-emerald-300 rounded-xl p-3.5 mt-1 flex items-center gap-3';
+      banner.innerHTML = `
+        <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm shrink-0">✓</div>
+        <div class="flex-1 min-w-0">
+          <h4 class="font-bold text-xs text-emerald-900 leading-snug">¡Correo electrónico actualizado con éxito!</h4>
+          <p class="text-[11px] text-emerald-800 mt-0.5">Tu cuenta ahora está vinculada a <strong>${escapeHtml(targetEmail)}</strong>.</p>
+        </div>
+      `;
+    }
+
+    // Limpiar input nuevo
     const inputNew = document.getElementById('new_email') || document.getElementById('input-new-email');
-    if (inputNew) inputNew.value = '';
+    if (inputNew) {
+      inputNew.value = '';
+      inputNew.readOnly = false;
+      inputNew.disabled = false;
+      inputNew.classList.remove('ring-2', 'ring-emerald-500/40', 'bg-emerald-50/20', 'animate-pulse', 'bg-stone-100', 'text-stone-500', 'cursor-not-allowed');
+    }
 
     if (typeof renderProfileUI === 'function' && currentUser) {
       renderProfileUI(currentUser);
@@ -1485,7 +1744,7 @@ async function confirmEmailVerification(token, explicitEmail) {
       window.history.replaceState({}, document.title, window.location.pathname);
     } catch (_) {}
 
-    showToast('Tu correo electrónico ha sido actualizado correctamente. Ya puedes iniciar sesión con tu nueva dirección.');
+    showToast('¡Tu correo electrónico ha sido actualizado exitosamente!');
   } catch (err) {
     console.error('Error al confirmar verificación de correo:', err);
     showToast('Ocurrió un error al confirmar la verificación de correo.');
@@ -1495,6 +1754,8 @@ async function confirmEmailVerification(token, explicitEmail) {
 // Exponer funciones en window para compatibilidad total con eventos onclick
 window.handleRequestEmailChange = handleRequestEmailChange;
 window.handleSendEmailVerification = handleRequestEmailChange;
+window.resendClientEmailVerification = resendClientEmailVerification;
+window.changeClientEmailAddress = changeClientEmailAddress;
 window.confirmEmailVerification = confirmEmailVerification;
 window.handlePhotoFileSelected = handlePhotoFileSelected;
 window.handleRemovePhoto = handleRemovePhoto;

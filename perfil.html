@@ -23,6 +23,19 @@
     .font-serif {
       font-family: 'Playfair Display', serif;
     }
+    @keyframes slideDownFade {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .animate-slide-down-fade {
+      animation: slideDownFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
   </style>
 
   <!-- Supabase & Auth Zero-Flicker Hydration -->
@@ -403,46 +416,66 @@
               </div>
 
               <div>
-                <label class="block text-xs font-bold text-stone-700 mb-1">Correo electrónico actual</label>
-                <input 
-                  type="email" 
-                  id="input-current-email" 
-                  readonly 
-                  placeholder="correo@ejemplo.com" 
-                  class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-100 text-stone-600 focus:outline-none cursor-not-allowed"
-                >
-                <div class="mt-1.5">
-                  <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
-                    <span>✓</span>
-                    <span>Correo verificado</span>
+                <label class="block text-xs font-bold text-stone-700 mb-1.5">Correo electrónico actual</label>
+                <div class="relative">
+                  <input 
+                    type="email" 
+                    id="input-current-email" 
+                    readonly 
+                    placeholder="correo@ejemplo.com" 
+                    class="w-full pl-3.5 pr-24 py-2.5 bg-stone-100 border border-stone-200 rounded-xl text-xs text-stone-600 cursor-not-allowed transition-all duration-500"
+                  >
+                  <span id="client-email-verified-badge" class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 transition-all duration-500">
+                    • Verificado
                   </span>
                 </div>
               </div>
 
               <div>
-                <label class="block text-xs font-bold text-stone-700 mb-1">Nuevo correo electrónico</label>
-                <input 
-                  type="email" 
-                  id="new_email" 
-                  name="new_email"
-                  placeholder="Escribe tu nuevo correo (ej. nombre@correo.com)" 
-                  class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/40 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition"
-                >
-                <div id="profile-email-feedback" class="text-[11px] font-medium mt-1 hidden"></div>
-                <p class="text-[10px] text-stone-400 mt-1.5 leading-tight">
-                  Para cambiar tu correo, verifica el enlace que enviaremos a la nueva dirección. El actual seguirá activo hasta entonces.
-                </p>
-                <div class="mt-3 flex items-center gap-2">
-                  <button 
-                    id="btn-request-email-change"
-                    type="button" 
-                    onclick="handleRequestEmailChange()" 
-                    class="inline-flex items-center gap-1.5 px-4 py-2 border border-stone-300 rounded-xl text-xs font-semibold text-stone-700 hover:bg-stone-50 transition shadow-2xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                <label class="block text-xs font-bold text-stone-700 mb-1.5">Nuevo correo electrónico</label>
+                <div class="relative">
+                  <input 
+                    type="email" 
+                    id="new_email" 
+                    name="new_email"
+                    placeholder="Escribe tu nuevo correo electrónico" 
+                    class="w-full pl-3.5 pr-10 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] transition-all duration-300"
                   >
-                    <span id="btn-request-icon">✉</span>
-                    <span id="btn-request-text">Solicitar cambio de correo</span>
-                  </button>
+                  <span class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs">✉</span>
                 </div>
+                <div id="profile-email-feedback" class="text-[11px] font-medium mt-1 hidden"></div>
+              </div>
+
+              <!-- Stepper de 3 pasos con IDs para animaciones -->
+              <div id="client-email-stepper" class="bg-stone-50 border border-stone-200 rounded-xl p-3 flex items-center justify-between text-[10px] text-stone-500 transition-all duration-300">
+                <span id="client-step-1" class="transition-all duration-300 flex items-center gap-1.5 font-bold text-stone-800">
+                  <span class="step-num">1.</span> Solicitar cambio
+                </span>
+                <span class="text-stone-300">›</span>
+                <span id="client-step-2" class="transition-all duration-300 flex items-center gap-1.5 text-stone-400">
+                  <span class="step-num">2.</span> Verificar nuevo correo
+                </span>
+                <span class="text-stone-300">›</span>
+                <span id="client-step-3" class="transition-all duration-300 flex items-center gap-1.5 text-stone-400">
+                  <span class="step-num">3.</span> Confirmar actualización
+                </span>
+              </div>
+
+              <!-- Banner animado de confirmación de envío (slideDownFade) -->
+              <div id="client-email-banner" class="hidden"></div>
+
+              <div id="client-email-footer" class="pt-1 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <span class="text-[10px] text-stone-400 max-w-sm leading-tight">
+                  Enviaremos un enlace al nuevo correo. Hasta confirmarlo, seguirás entrando con tu correo actual.
+                </span>
+                <button 
+                  id="btn-request-email-change"
+                  type="button" 
+                  onclick="handleRequestEmailChange()" 
+                  class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2 rounded-xl transition shadow-2xs shrink-0 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <span id="btn-request-text">Enviar enlace de verificación</span>
+                </button>
               </div>
             </form>
           </div>

@@ -43,6 +43,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const verifyToken = urlParams.get('verify_email_token') || urlParams.get('token');
   if (verifyToken) {
+    if (typeof switchProducerTab === 'function') {
+      switchProducerTab('perfil-seguridad');
+    }
     await confirmProducerEmailVerification(verifyToken);
   }
 
@@ -353,8 +356,194 @@ async function saveProducerPersonalData() {
 }
 
 // =============================================================================
-// CAMBIO DE CORREO ELECTRÓNICO (SUPABASE + WEBHOOK N8N)
+// CAMBIO DE CORREO ELECTRÓNICO (SUPABASE + WEBHOOK N8N + MICROINTERACCIONES)
 // =============================================================================
+
+let producerResendInterval = null;
+let producerResendCountdown = 30;
+let producerPendingNewEmail = '';
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function resetProducerEmailStepper() {
+  const s1 = document.getElementById('producer-step-1');
+  const s2 = document.getElementById('producer-step-2');
+  const s3 = document.getElementById('producer-step-3');
+  if (s1) {
+    s1.className = 'transition-all duration-300 flex items-center gap-1.5 font-bold text-stone-800';
+    s1.innerHTML = '<span class="step-num">1.</span> Solicitar cambio';
+  }
+  if (s2) {
+    s2.className = 'transition-all duration-300 flex items-center gap-1.5 text-stone-400';
+    s2.innerHTML = '<span class="step-num">2.</span> Verificar nuevo correo';
+  }
+  if (s3) {
+    s3.className = 'transition-all duration-300 flex items-center gap-1.5 text-stone-400';
+    s3.innerHTML = '<span class="step-num">3.</span> Confirmar actualización';
+  }
+}
+
+function renderProducerEmailBanner(newEmail) {
+  const banner = document.getElementById('producer-email-banner');
+  const footer = document.getElementById('producer-email-footer');
+  if (footer) footer.classList.add('hidden');
+  if (!banner) return;
+
+  banner.className = 'animate-slide-down-fade bg-emerald-50/70 border border-emerald-200 rounded-xl p-4 mt-1';
+  banner.innerHTML = `
+    <div class="flex items-start gap-3">
+      <div class="w-8 h-8 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center shrink-0 text-emerald-800 text-base shadow-2xs">
+        ✉️
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center justify-between gap-2">
+          <h4 class="font-bold text-xs text-stone-900 leading-snug">¡Enlace de verificación enviado!</h4>
+          <span class="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-100/60 px-2 py-0.5 rounded-md">Vence en 15 min</span>
+        </div>
+        <p class="text-[11px] text-stone-600 mt-1 leading-relaxed">
+          Revisa la bandeja de entrada (o Spam) de <strong class="text-stone-900 font-bold">${escapeHtml(newEmail)}</strong> y haz clic en el botón de autorización.
+        </p>
+        <div class="flex items-center gap-3.5 mt-3 pt-2.5 border-t border-emerald-200/60 text-[11px]">
+          <button type="button" id="btn-producer-resend-email" onclick="resendProducerEmailVerification()" class="font-semibold text-emerald-800 hover:text-emerald-950 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition flex items-center gap-1" disabled>
+            <span>↻</span> <span id="producer-resend-countdown-text">Reenviar enlace (30s)</span>
+          </button>
+          <span class="text-stone-300">•</span>
+          <button type="button" onclick="changeProducerEmailAddress()" class="font-semibold text-stone-600 hover:text-stone-900 cursor-pointer transition">
+            Cambiar dirección
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+  startProducerResendTimer();
+}
+
+function startProducerResendTimer() {
+  if (producerResendInterval) clearInterval(producerResendInterval);
+  producerResendCountdown = 30;
+  const countdownEl = document.getElementById('producer-resend-countdown-text');
+  const resendBtn = document.getElementById('btn-producer-resend-email');
+  if (resendBtn) resendBtn.disabled = true;
+  if (countdownEl) countdownEl.textContent = `Reenviar enlace (${producerResendCountdown}s)`;
+
+  producerResendInterval = setInterval(() => {
+    producerResendCountdown--;
+    const el = document.getElementById('producer-resend-countdown-text');
+    const btn = document.getElementById('btn-producer-resend-email');
+    if (producerResendCountdown > 0) {
+      if (el) el.textContent = `Reenviar enlace (${producerResendCountdown}s)`;
+    } else {
+      clearInterval(producerResendInterval);
+      producerResendInterval = null;
+      if (el) el.textContent = 'Reenviar enlace';
+      if (btn) btn.disabled = false;
+    }
+  }, 1000);
+}
+
+function changeProducerEmailAddress() {
+  if (producerResendInterval) {
+    clearInterval(producerResendInterval);
+    producerResendInterval = null;
+  }
+  const banner = document.getElementById('producer-email-banner');
+  if (banner) {
+    banner.innerHTML = '';
+    banner.className = 'hidden';
+  }
+  const footer = document.getElementById('producer-email-footer');
+  if (footer) footer.classList.remove('hidden');
+
+  const btn = document.getElementById('btn-producer-email');
+  if (btn) {
+    btn.disabled = false;
+    btn.innerHTML = '<span id="btn-producer-email-text">Enviar enlace de verificación</span>';
+  }
+
+  const inputNew = document.getElementById('producer-new-email');
+  if (inputNew) {
+    inputNew.readOnly = false;
+    inputNew.disabled = false;
+    inputNew.classList.remove('ring-2', 'ring-emerald-500/40', 'bg-emerald-50/20', 'animate-pulse', 'bg-stone-100', 'text-stone-500', 'cursor-not-allowed');
+    inputNew.focus();
+  }
+
+  resetProducerEmailStepper();
+}
+
+async function resendProducerEmailVerification() {
+  if (!producerPendingNewEmail) return;
+  startProducerResendTimer();
+  showProducerToast('Reenviando enlace de verificación a ' + producerPendingNewEmail + '...');
+
+  const currentEmailEl = document.getElementById('producer-current-email');
+  const currentEmail = currentEmailEl ? currentEmailEl.value.trim().toLowerCase() : 'campomax46@gmail.com';
+
+  try {
+    let token = '';
+    if (window.crypto && window.crypto.getRandomValues) {
+      const arr = new Uint8Array(32);
+      window.crypto.getRandomValues(arr);
+      token = Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
+    } else {
+      token = Math.random().toString(36).substring(2) + Date.now().toString(36);
+    }
+
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    const verificationUrl = `${PUBLIC_SITE_URL}/productor.html?verify_email_token=${encodeURIComponent(token)}`;
+
+    // Guardar en Supabase
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      try {
+        await window.supabase.fetchApi(`email_change_requests?user_id=eq.${PRODUCER_USER_ID}`, {
+          method: 'DELETE'
+        });
+      } catch (_) {}
+
+      await window.supabase.fetchApi('email_change_requests', {
+        method: 'POST',
+        body: JSON.stringify({
+          user_id: PRODUCER_USER_ID,
+          current_email: currentEmail,
+          new_email: producerPendingNewEmail,
+          verification_token: token,
+          expires_at: expiresAt,
+          confirmation_url: verificationUrl,
+          verification_url: verificationUrl
+        })
+      });
+    }
+
+    // Webhook n8n
+    try {
+      await fetch('https://elmaxi.app.n8n.cloud/webhook/solicitar-verificacion-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: PRODUCER_USER_ID,
+          current_email: currentEmail,
+          new_email: producerPendingNewEmail,
+          verification_token: token,
+          verification_url: verificationUrl,
+          expires_at: expiresAt
+        })
+      });
+    } catch (_) {}
+
+    showProducerToast('¡Enlace reenviado! Revisa la bandeja de entrada o Spam.');
+  } catch (err) {
+    console.error('Error al reenviar enlace:', err);
+    showProducerToast('Error de red al reenviar el enlace.', true);
+  }
+}
 
 async function requestProducerEmailChange() {
   const inputNew = document.getElementById('producer-new-email');
@@ -362,7 +551,6 @@ async function requestProducerEmailChange() {
   const currentEmailEl = document.getElementById('producer-current-email');
   const currentEmail = currentEmailEl ? currentEmailEl.value.trim().toLowerCase() : 'campomax46@gmail.com';
   const btn = document.getElementById('btn-producer-email');
-  const btnText = document.getElementById('btn-producer-email-text');
 
   if (!newEmail) {
     showProducerToast('Por favor escribe tu nuevo correo electrónico.', true);
@@ -383,11 +571,39 @@ async function requestProducerEmailChange() {
     return;
   }
 
-  if (btn) btn.disabled = true;
-  if (btnText) btnText.textContent = 'Enviando solicitud...';
+  // a. Botón muestra spinner + "Enviando enlace seguro..."
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="inline-block animate-spin mr-1.5 text-xs">⏳</span> <span id="btn-producer-email-text">Enviando enlace seguro...</span>';
+  }
+
+  // Campo de entrada se bloquea con sutil resplandor de procesamiento
+  if (inputNew) {
+    inputNew.readOnly = true;
+    inputNew.classList.add('ring-2', 'ring-emerald-500/40', 'bg-emerald-50/20', 'animate-pulse');
+  }
+
+  // b. Stepper transition:
+  // Paso 1 -> check verde ("✓ Solicitud enviada")
+  // Paso 2 -> se ilumina con pastilla verde bosque (#143628) con pulso sutil
+  const s1 = document.getElementById('producer-step-1');
+  const s2 = document.getElementById('producer-step-2');
+  const s3 = document.getElementById('producer-step-3');
+
+  if (s1) {
+    s1.className = 'transition-all duration-300 flex items-center gap-1.5 text-emerald-700 font-bold';
+    s1.innerHTML = '<span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 inline-flex items-center justify-center text-[10px] font-bold">✓</span> Solicitud enviada';
+  }
+  if (s2) {
+    s2.className = 'transition-all duration-300 flex items-center gap-1.5';
+    s2.innerHTML = '<span class="bg-[#143628] text-white px-2.5 py-1 rounded-full font-bold flex items-center gap-1.5 shadow-xs"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>2. Verificar nuevo correo</span>';
+  }
+  if (s3) {
+    s3.className = 'transition-all duration-300 flex items-center gap-1.5 text-stone-400';
+    s3.innerHTML = '<span class="step-num">3.</span> Confirmar actualización';
+  }
 
   try {
-    // Generar token criptográfico único
     let token = '';
     if (window.crypto && window.crypto.getRandomValues) {
       const arr = new Uint8Array(32);
@@ -441,15 +657,28 @@ async function requestProducerEmailChange() {
       console.warn('Aviso webhook n8n:', whErr);
     }
 
+    producerPendingNewEmail = newEmail;
+    if (inputNew) {
+      inputNew.classList.remove('animate-pulse');
+      inputNew.classList.add('bg-stone-100', 'text-stone-500', 'cursor-not-allowed');
+    }
+
+    // c. Mostrar banner animado con fade-in + slide-down
+    renderProducerEmailBanner(newEmail);
     showProducerToast('Hemos enviado un enlace de confirmación a tu nuevo correo (vence en 15 min).');
-    if (inputNew) inputNew.value = '';
 
   } catch (err) {
     console.error('Error al solicitar cambio de correo:', err);
     showProducerToast('Error al procesar la solicitud: ' + (err.message || 'Error de red'), true);
-  } finally {
-    if (btn) btn.disabled = false;
-    if (btnText) btnText.textContent = 'Enviar enlace de verificación';
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span id="btn-producer-email-text">Enviar enlace de verificación</span>';
+    }
+    if (inputNew) {
+      inputNew.readOnly = false;
+      inputNew.classList.remove('ring-2', 'ring-emerald-500/40', 'bg-emerald-50/20', 'animate-pulse');
+    }
+    resetProducerEmailStepper();
   }
 }
 
@@ -494,8 +723,64 @@ async function confirmProducerEmailVerification(token) {
         localStorage.setItem('rb_current_user', JSON.stringify(u));
       } catch (_) {}
 
+      // d. Paso 3 ("3. Confirmar actualización") se ilumina en verde con animación de check
+      const s1 = document.getElementById('producer-step-1');
+      const s2 = document.getElementById('producer-step-2');
+      const s3 = document.getElementById('producer-step-3');
+      if (s1) {
+        s1.className = 'transition-all duration-300 flex items-center gap-1.5 text-emerald-700 font-bold';
+        s1.innerHTML = '<span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 inline-flex items-center justify-center text-[10px] font-bold">✓</span> 1. Solicitud enviada';
+      }
+      if (s2) {
+        s2.className = 'transition-all duration-300 flex items-center gap-1.5 text-emerald-700 font-bold';
+        s2.innerHTML = '<span class="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 inline-flex items-center justify-center text-[10px] font-bold">✓</span> 2. Correo verificado';
+      }
+      if (s3) {
+        s3.className = 'transition-all duration-300 flex items-center gap-1.5';
+        s3.innerHTML = '<span class="bg-emerald-600 text-white px-2.5 py-1 rounded-full font-bold flex items-center gap-1.5 shadow-xs transition-all duration-500"><span class="w-4 h-4 rounded-full bg-white/20 inline-flex items-center justify-center text-[10px] font-bold">✓</span> 3. Actualización confirmada</span>';
+      }
+
+      // Input "Correo actual" ejecuta una transición visual actualizándose al nuevo correo
       const curInput = document.getElementById('producer-current-email');
-      if (curInput) curInput.value = targetEmail;
+      if (curInput) {
+        curInput.value = targetEmail;
+        curInput.classList.add('ring-2', 'ring-emerald-500', 'bg-emerald-50', 'text-emerald-950');
+        setTimeout(() => {
+          curInput.classList.remove('ring-2', 'ring-emerald-500', 'bg-emerald-50', 'text-emerald-950');
+        }, 4000);
+      }
+
+      // Badge "• Verificado" ejecuta un destello/glow suave de confirmación
+      const badge = document.getElementById('producer-email-verified-badge');
+      if (badge) {
+        badge.classList.add('ring-4', 'ring-emerald-400/50', 'scale-110', 'bg-emerald-100');
+        setTimeout(() => {
+          badge.classList.remove('ring-4', 'ring-emerald-400/50', 'scale-110', 'bg-emerald-100');
+        }, 3000);
+      }
+
+      // Banner de éxito
+      const banner = document.getElementById('producer-email-banner');
+      if (banner) {
+        banner.className = 'animate-slide-down-fade bg-emerald-50/90 border border-emerald-300 rounded-xl p-3.5 mt-1 flex items-center gap-3';
+        banner.innerHTML = `
+          <div class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-sm shrink-0">✓</div>
+          <div class="flex-1 min-w-0">
+            <h4 class="font-bold text-xs text-emerald-900 leading-snug">¡Correo electrónico actualizado con éxito!</h4>
+            <p class="text-[11px] text-emerald-800 mt-0.5">Tu cuenta ahora está vinculada a <strong>${escapeHtml(targetEmail)}</strong>.</p>
+          </div>
+        `;
+      }
+
+      // Limpiar input nuevo
+      const inputNew = document.getElementById('producer-new-email');
+      if (inputNew) {
+        inputNew.value = '';
+        inputNew.readOnly = false;
+        inputNew.disabled = false;
+        inputNew.classList.remove('ring-2', 'ring-emerald-500/40', 'bg-emerald-50/20', 'animate-pulse', 'bg-stone-100', 'text-stone-500', 'cursor-not-allowed');
+      }
+
       activeOtpTargetEmail = targetEmail;
 
       showProducerToast('¡Tu correo electrónico ha sido actualizado exitosamente!');
@@ -2172,3 +2457,10 @@ function formatCOP(num) {
   // Alias de compatibilidad hacia formatUSD
   return formatUSD(num);
 }
+
+// Exponer funciones globales para el flujo de cambio de correo electrónico
+window.requestProducerEmailChange = requestProducerEmailChange;
+window.resendProducerEmailVerification = resendProducerEmailVerification;
+window.changeProducerEmailAddress = changeProducerEmailAddress;
+window.confirmProducerEmailVerification = confirmProducerEmailVerification;
+

@@ -2617,8 +2617,8 @@ async function handleLogin(e) {
   }
 
   // Si no se encuentra en Supabase o contraseña errónea:
-  showToast('Usuario o contraseña incorrectos.', 'error');
-  alert('Usuario o contraseña incorrectos.');
+  showToast('Usuario, correo o contraseña incorrectos. Verifica tus datos e inténtalo de nuevo.', 'error');
+  alert('Usuario, correo o contraseña incorrectos. Verifica tus datos e inténtalo de nuevo.');
 }
 
 // Cerrar Sesión (vuelve a ser invitado)
