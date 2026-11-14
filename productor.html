@@ -104,7 +104,7 @@
           </button>
 
           <!-- 2. Publicar nuevo producto -->
-          <button onclick="switchProducerTab('nuevo-producto')" data-tab="nuevo-producto" class="nav-producer-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition text-left">
+          <button onclick="openNewProductForm()" data-tab="nuevo-producto" class="nav-producer-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900 transition text-left cursor-pointer">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/>
             </svg>
@@ -233,7 +233,7 @@
             </p>
           </div>
 
-          <button onclick="switchProducerTab('nuevo-producto')" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-2 transition self-start sm:self-auto">
+          <button onclick="openNewProductForm()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-xs flex items-center gap-2 transition self-start sm:self-auto cursor-pointer">
             <span class="text-base leading-none">+</span>
             <span>Publicar nuevo producto</span>
           </button>
@@ -383,18 +383,18 @@
         <!-- Cabecera de la sección -->
         <div class="flex items-center justify-between gap-4 mb-6">
           <div>
-            <span class="text-[10px] uppercase tracking-wider font-bold text-[#c85a32] block mb-1">
+            <span id="form-product-tag" class="text-[10px] uppercase tracking-wider font-bold text-[#c85a32] block mb-1">
               PUBLICAR NUEVO PRODUCTO
             </span>
-            <h1 class="font-serif text-3xl font-bold text-stone-900 mb-1">
+            <h1 id="form-product-heading" class="font-serif text-3xl font-bold text-stone-900 mb-1">
               Comparte una nueva cosecha
             </h1>
-            <p class="text-xs sm:text-sm text-stone-500">
-              De <span class="producer-farm-display">Huerta El Renacer</span> al barrio. Completa la información de tu nuevo producto.
+            <p id="form-product-subtitle" class="text-xs sm:text-sm text-stone-500">
+              De <span class="producer-farm-display">Hacienda San José · Daule</span> al barrio. Completa la información de tu nuevo producto.
             </p>
           </div>
 
-          <button onclick="switchProducerTab('mis-productos')" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-2xs">
+          <button type="button" onclick="handleCancelNewProduct()" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-2xs cursor-pointer">
             <span>←</span>
             <span>Volver a mis productos</span>
           </button>
@@ -414,12 +414,12 @@
               <div class="space-y-4">
                 <div>
                   <label class="block text-xs font-bold text-stone-700 mb-1.5">Nombre del producto *</label>
-                  <input type="text" id="new-form-name" value="Rábanos de temporada" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">
+                  <input type="text" id="new-form-name" placeholder="Ej. Rábanos de temporada" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">
                 </div>
 
                 <div>
                   <label class="block text-xs font-bold text-stone-700 mb-1.5">Descripción *</label>
-                  <textarea id="new-form-desc" rows="3" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">Rábanos frescos y crujientes de nuestra hacienda en Daule. Cosechados a mano, de sabor suave y ligeramente picante. Un toque de color para tus ensaladas.</textarea>
+                  <textarea id="new-form-desc" rows="3" placeholder="Describe su sabor, cultivo y recomendaciones de uso..." class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]"></textarea>
                   <span class="text-[10px] text-stone-400 mt-1 block">Describe su sabor, cultivo y recomendaciones de uso.</span>
                 </div>
 
@@ -427,69 +427,66 @@
                   <div>
                     <label class="block text-xs font-bold text-stone-700 mb-1.5">Categoría *</label>
                     <select id="new-form-category" class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                      <option selected>Verduras & Raíces</option>
-                      <option>Canastas Familiares</option>
-                      <option>Frutas</option>
-                      <option>Lácteos & Huevos</option>
-                      <option>Despensa</option>
+                      <option value="2" selected>Verduras & Raíces</option>
+                      <option value="3">Frutas</option>
+                      <option value="1">Canastas Familiares</option>
+                      <option value="4">Lácteos & Huevos</option>
+                      <option value="5">Despensa</option>
                     </select>
                   </div>
                   <div>
                     <label class="block text-xs font-bold text-stone-700 mb-1.5">Unidad de venta *</label>
                     <select id="new-form-unit" class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                      <option selected>Manojo · 250 g aprox.</option>
-                      <option>Kilogramo (kg)</option>
-                      <option>Canasta semanal</option>
-                      <option>Caja 500g</option>
+                      <option value="Manojo" selected>Manojo · 250 g aprox.</option>
+                      <option value="Kilogramo (kg)">Kilogramo (kg)</option>
+                      <option value="Unidad">Unidad</option>
+                      <option value="Canasta semanal">Canasta semanal</option>
+                      <option value="Caja 500g">Caja 500g</option>
+                      <option value="Libra (454g)">Libra (454g)</option>
                     </select>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Card 2: Fotografías -->
+            <!-- Card 2: Fotografías (Drag & Drop + Galería dinámica) -->
             <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
               <h3 class="font-bold text-stone-900 text-sm mb-1">Fotografías</h3>
-              <p class="text-[11px] text-stone-400 mb-4">La primera imagen será la portada. JPG o PNG · hasta 5 MB por imagen.</p>
+              <p class="text-[11px] text-stone-400 mb-4">La primera imagen será la portada. JPG, PNG o WebP · hasta 5 MB por imagen.</p>
 
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                <!-- Miniatura Portada -->
-                <div class="relative rounded-xl overflow-hidden border border-stone-200 group aspect-[4/3] bg-stone-100">
-                  <img src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/rabanos.jpg" alt="Rábanos" class="w-full h-full object-cover">
-                  <span class="absolute bottom-2 left-2 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
-                    ✓ Portada
-                  </span>
-                  <button class="absolute top-2 right-2 text-[10px] font-bold text-red-600 bg-white/90 px-1.5 py-0.5 rounded shadow hover:bg-white transition">
-                    Eliminar foto
-                  </button>
-                </div>
+              <!-- Input file nativo oculto -->
+              <input type="file" id="product-images-input" accept="image/jpeg,image/png,image/webp" multiple class="hidden">
 
-                <!-- Zona de Carga Arrastrar y Soltar -->
-                <div class="sm:col-span-2 border-2 border-dashed border-stone-200 hover:border-[#1a3d2f] rounded-xl p-6 text-center cursor-pointer transition bg-stone-50/50">
-                  <div class="w-8 h-8 mx-auto mb-2 text-stone-400">
+              <div id="product-photos-container" class="space-y-4">
+                <!-- Grid de Miniaturas de fotos cargadas -->
+                <div id="product-thumbnails-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-4 hidden"></div>
+
+                <!-- Zona de Carga Arrastrar y Soltar (Dropzone) -->
+                <div id="product-dropzone" class="border-2 border-dashed border-stone-200 hover:border-[#1a3d2f] rounded-xl p-6 text-center cursor-pointer transition bg-stone-50/50 group">
+                  <div class="w-8 h-8 mx-auto mb-2 text-stone-400 group-hover:text-[#1a3d2f] transition">
                     <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                     </svg>
                   </div>
                   <span class="text-xs font-bold text-stone-700 block">Arrastra imágenes o selecciona archivos</span>
-                  <span class="text-[10px] text-stone-400 block mt-0.5">Puedes añadir hasta 5 fotografías · 1 de 5</span>
+                  <span id="photo-count-badge" class="text-[10px] text-stone-400 block mt-0.5">Puedes añadir hasta 5 fotografías · 0 de 5</span>
                 </div>
               </div>
             </div>
 
-            <!-- Card 3: Precio e inventario -->
+            <!-- Card 3: Precio e inventario (USD) -->
             <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
               <h3 class="font-bold text-stone-900 text-sm mb-1">Precio e inventario</h3>
-              <p class="text-[11px] text-stone-400 mb-4">Precios en pesos colombianos. El stock se descuenta por unidad de venta.</p>
+              <p class="text-[11px] text-stone-400 mb-4">Precios en dólares estadounidenses (USD). El stock se descuenta por unidad de venta.</p>
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Precio de venta (COP) *</label>
-                  <input type="text" id="new-form-price" value="$ 0.28" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Precio de venta (USD) *</label>
+                  <input type="text" id="new-form-price" placeholder="$ 0.00" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
                 </div>
                 <div>
                   <label class="block text-xs font-bold text-stone-700 mb-1.5">Existencias *</label>
-                  <input type="text" id="new-form-stock" value="30 manojos" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                  <input type="number" min="0" step="1" id="new-form-stock" placeholder="30" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
                 </div>
               </div>
             </div>
@@ -506,14 +503,13 @@
                 <div>
                   <label class="block text-xs font-bold text-stone-700 mb-1.5">Fecha de cosecha *</label>
                   <div class="relative">
-                    <input type="text" value="06 / 11 / 2026" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs">📅</span>
+                    <input type="date" id="new-form-date" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
                   </div>
                 </div>
               </div>
 
               <div class="flex items-center gap-2">
-                <input type="checkbox" id="new-agroeco" checked class="w-4 h-4 rounded text-[#1a3d2f] focus:ring-[#1a3d2f] accent-[#1a3d2f]">
+                <input type="checkbox" id="new-agroeco" checked class="w-4 h-4 rounded text-[#1a3d2f] focus:ring-[#1a3d2f] accent-[#1a3d2f] cursor-pointer">
                 <label for="new-agroeco" class="text-xs text-stone-700 font-medium cursor-pointer">
                   Cultivo agroecológico · sin químicos de síntesis
                 </label>
@@ -532,22 +528,22 @@
               <div class="space-y-4 text-xs">
                 <div class="flex items-center justify-between">
                   <span class="text-stone-500 font-medium">Estado actual</span>
-                  <span class="text-[11px] font-bold text-stone-600 bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-full">
+                  <span id="new-status-pill" class="text-[11px] font-bold text-stone-600 bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-full">
                     • Sin publicar
                   </span>
                 </div>
 
                 <div>
                   <label class="block font-bold text-stone-700 mb-1">Estado al guardar *</label>
-                  <select class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                    <option selected>Publicar en la tienda</option>
-                    <option>Guardar como borrador</option>
+                  <select id="new-form-status" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <option value="published" selected>Publicar en la tienda</option>
+                    <option value="draft">Guardar como borrador</option>
                   </select>
                 </div>
 
                 <div>
                   <label class="block font-bold text-stone-700 mb-1">Disponibilidad *</label>
-                  <select class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                  <select id="new-form-availability" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
                     <option selected>Disponible esta semana</option>
                     <option>Próxima semana</option>
                     <option>Por encargo</option>
@@ -556,9 +552,8 @@
 
                 <div>
                   <label class="block font-bold text-stone-700 mb-1">Próxima entrega</label>
-                  <select class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                    <option selected>Sábado, 7 de noviembre</option>
-                    <option>Miércoles, 11 de noviembre</option>
+                  <select id="new-form-delivery-date" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
+                    <!-- Generado dinámicamente -->
                   </select>
                   <span class="text-[10px] text-stone-400 mt-1 block">
                     Recogida en Nodo Central. Los productos sin existencias se mostrarán como agotados.
@@ -572,13 +567,23 @@
               <h3 class="font-bold text-stone-900 text-sm mb-3">Así lo verá tu barrio</h3>
 
               <div class="rounded-2xl border border-stone-200 overflow-hidden bg-white shadow-2xs">
-                <div class="aspect-[16/10] bg-stone-100 overflow-hidden">
-                  <img src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/rabanos.jpg" alt="Rábanos" class="w-full h-full object-cover">
+                <!-- Contenedor de Imagen de Portada -->
+                <div class="relative aspect-[16/10] bg-stone-100 overflow-hidden flex items-center justify-center">
+                  <img id="new-preview-img" src="" alt="Vista previa" class="w-full h-full object-cover hidden">
+                  <div id="new-preview-placeholder" class="text-center p-6 text-stone-400">
+                    <svg class="w-10 h-10 mx-auto mb-2 text-stone-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span class="text-xs font-medium">Sin imagen de portada</span>
+                  </div>
+                  <span id="new-preview-agro-badge" class="absolute top-3 left-3 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+                    🌱 Agroecológico
+                  </span>
                 </div>
                 <div class="p-4">
-                  <h4 id="new-preview-title" class="font-serif font-bold text-base text-stone-900">Rábanos de temporada</h4>
-                  <p class="text-[11px] text-stone-400 mt-0.5 producer-farm-display">Hacienda San José · Daule</p>
-                  <div id="new-preview-price" class="text-sm font-bold text-stone-900 mt-2">$0,28 / manojo</div>
+                  <h4 id="new-preview-title" class="font-serif font-bold text-base text-stone-900">Nombre del producto</h4>
+                  <p id="new-preview-origin" class="text-[11px] text-stone-400 mt-0.5 producer-farm-display">Hacienda San José · Daule</p>
+                  <div id="new-preview-price" class="text-sm font-bold text-stone-900 mt-2">$0.00 / manojo</div>
                 </div>
               </div>
             </div>
@@ -600,17 +605,17 @@
 
         <!-- Barra Inferior de Acciones -->
         <div class="flex items-center justify-between border-t border-stone-200 pt-6">
-          <button onclick="switchProducerTab('mis-productos')" class="text-xs font-bold text-stone-500 hover:text-stone-800 transition">
+          <button type="button" onclick="handleCancelNewProduct()" class="text-xs font-bold text-stone-500 hover:text-stone-800 transition cursor-pointer">
             Cancelar
           </button>
 
           <div class="flex items-center gap-3">
-            <button onclick="saveProductDraft()" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-2xs">
+            <button type="button" id="btn-save-draft" onclick="saveProductDraft()" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-2xs cursor-pointer">
               Guardar borrador
             </button>
-            <button onclick="publishNewProduct()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2">
-              <span>↗</span>
-              <span>Publicar producto</span>
+            <button type="button" id="btn-publish-product" onclick="publishNewProduct()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2 cursor-pointer">
+              <span id="btn-publish-icon">↗</span>
+              <span id="btn-publish-label">Publicar producto</span>
             </button>
           </div>
         </div>
@@ -618,242 +623,9 @@
       </section>
 
       <!-- =====================================================================
-           PESTAÑA 3: MODIFICAR PRODUCTO (media_1794011673568_0928a990.jpg)
+           NOTA: La edición de productos se gestiona de forma unificada e
+           interactiva en view-nuevo-producto mediante openEditProduct / loadProductForEditing.
            ===================================================================== -->
-      <section id="view-modificar-producto" class="hidden">
-        
-        <!-- Cabecera de la sección -->
-        <div class="flex items-center justify-between gap-4 mb-6">
-          <div>
-            <span id="edit-product-tag" class="text-[10px] uppercase tracking-wider font-bold text-[#c85a32] block mb-1">
-              EDITAR PRODUCTO · PR-003
-            </span>
-            <h1 id="edit-product-heading" class="font-serif text-3xl font-bold text-stone-900 mb-1">
-              Modificar Zanahoria de tierra
-            </h1>
-            <p id="edit-product-subtitle" class="text-xs sm:text-sm text-stone-500">
-              Publicado · Huerta El Renacer · Última actualización: hoy, 10:42 a. m.
-            </p>
-          </div>
-
-          <button onclick="switchProducerTab('mis-productos')" class="border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-bold px-4 py-2 rounded-xl transition flex items-center gap-1.5 shadow-2xs">
-            <span>←</span>
-            <span>Volver a mis productos</span>
-          </button>
-        </div>
-
-        <!-- Formulario en Dos Columnas -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          
-          <!-- Columna Izquierda: Formulario (2 cols) -->
-          <div class="lg:col-span-2 space-y-6">
-            
-            <!-- Card 1: Información del producto -->
-            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
-              <h3 class="font-bold text-stone-900 text-sm mb-1">Información del producto</h3>
-              <p class="text-[11px] text-stone-400 mb-4">Cuenta qué lo hace especial. Los campos con * son obligatorios.</p>
-
-              <div class="space-y-4">
-                <div>
-                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Nombre del producto *</label>
-                  <input type="text" id="edit-form-name" value="Zanahoria de tierra" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">
-                </div>
-
-                <div>
-                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Descripción *</label>
-                  <textarea id="edit-form-desc" rows="3" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f] focus:border-[#1a3d2f]">Zanahorias frescas cultivadas en nuestra hacienda en Daule. Cosechadas a mano, con su tallo y toda la frescura de la tierra. Ideales para sopas, ensaladas y jugos.</textarea>
-                  <span class="text-[10px] text-stone-400 mt-1 block">Describe su sabor, cultivo y recomendaciones de uso.</span>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-xs font-bold text-stone-700 mb-1.5">Categoría *</label>
-                    <select id="edit-form-category" class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                      <option selected>Verduras & Raíces</option>
-                      <option>Canastas Familiares</option>
-                      <option>Frutas</option>
-                      <option>Lácteos & Huevos</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label class="block text-xs font-bold text-stone-700 mb-1.5">Unidad de venta *</label>
-                    <select id="edit-form-unit" class="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                      <option selected>Kilogramo (kg)</option>
-                      <option>Manojo</option>
-                      <option>Canasta</option>
-                      <option>Caja 500g</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Card 2: Fotografías -->
-            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
-              <h3 class="font-bold text-stone-900 text-sm mb-1">Fotografías</h3>
-              <p class="text-[11px] text-stone-400 mb-4">La primera imagen será la portada. JPG o PNG · hasta 5 MB por imagen.</p>
-
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
-                <!-- Miniatura Portada -->
-                <div class="relative rounded-xl overflow-hidden border border-stone-200 group aspect-[4/3] bg-stone-100">
-                  <img id="edit-thumbnail-img" src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/zanahorias.jpg" alt="Zanahoria" class="w-full h-full object-cover">
-                  <span class="absolute bottom-2 left-2 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
-                    ✓ Portada
-                  </span>
-                  <button class="absolute top-2 right-2 text-[10px] font-bold text-red-600 bg-white/90 px-1.5 py-0.5 rounded shadow hover:bg-white transition">
-                    Eliminar foto
-                  </button>
-                </div>
-
-                <!-- Zona de Carga -->
-                <div class="sm:col-span-2 border-2 border-dashed border-stone-200 hover:border-[#1a3d2f] rounded-xl p-6 text-center cursor-pointer transition bg-stone-50/50">
-                  <div class="w-8 h-8 mx-auto mb-2 text-stone-400">
-                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/>
-                    </svg>
-                  </div>
-                  <span class="text-xs font-bold text-stone-700 block">Arrastra imágenes o selecciona archivos</span>
-                  <span class="text-[10px] text-stone-400 block mt-0.5">Puedes añadir hasta 5 fotografías · 1 de 5</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Card 3: Precio e inventario -->
-            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
-              <h3 class="font-bold text-stone-900 text-sm mb-1">Precio e inventario</h3>
-              <p class="text-[11px] text-stone-400 mb-4">Precios en pesos colombianos. El stock se descuenta por unidad de venta.</p>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Precio de venta (COP) *</label>
-                  <input type="text" id="edit-form-price" value="$ 0.40" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                </div>
-                <div>
-                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Existencias *</label>
-                  <input type="text" id="edit-form-stock" value="60 kg" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                </div>
-              </div>
-            </div>
-
-            <!-- Card 4: Origen y cosecha -->
-            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
-              <h3 class="font-bold text-stone-900 text-sm mb-4">Origen y cosecha</h3>
-
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Finca / lugar de origen *</label>
-                  <input type="text" id="edit-form-origin" value="Hacienda San José · Daule" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                </div>
-                <div>
-                  <label class="block text-xs font-bold text-stone-700 mb-1.5">Fecha de cosecha *</label>
-                  <div class="relative">
-                    <input type="text" value="06 / 11 / 2026" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs">📅</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="flex items-center gap-2">
-                <input type="checkbox" id="edit-agroeco" checked class="w-4 h-4 rounded text-[#1a3d2f] focus:ring-[#1a3d2f] accent-[#1a3d2f]">
-                <label for="edit-agroeco" class="text-xs text-stone-700 font-medium cursor-pointer">
-                  Cultivo agroecológico · sin químicos de síntesis
-                </label>
-              </div>
-            </div>
-
-          </div>
-
-          <!-- Columna Derecha: Estado y Previsualización (1 col) -->
-          <div class="space-y-6">
-            
-            <!-- Disponibilidad y estado -->
-            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
-              <h3 class="font-bold text-stone-900 text-sm mb-4">Disponibilidad y estado</h3>
-
-              <div class="space-y-4 text-xs">
-                <div class="flex items-center justify-between">
-                  <span class="text-stone-500 font-medium">Estado actual</span>
-                  <span id="edit-form-status-pill" class="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-full">
-                    • Publicado
-                  </span>
-                </div>
-
-                <div>
-                  <label class="block font-bold text-stone-700 mb-1">Estado al guardar *</label>
-                  <select id="edit-form-status-select" class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                    <option selected>Publicado</option>
-                    <option>Borrador</option>
-                    <option>Agotado</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="block font-bold text-stone-700 mb-1">Disponibilidad *</label>
-                  <select class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                    <option selected>Disponible esta semana</option>
-                    <option>Próxima semana</option>
-                    <option>Por encargo</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label class="block font-bold text-stone-700 mb-1">Próxima entrega</label>
-                  <select class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
-                    <option selected>Sábado, 7 de noviembre</option>
-                    <option>Miércoles, 11 de noviembre</option>
-                  </select>
-                  <span class="text-[10px] text-stone-400 mt-1 block">
-                    Recogida en Nodo Central. Los productos sin existencias se mostrarán como agotados.
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Previsualización: Así lo verá tu barrio -->
-            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
-              <h3 class="font-bold text-stone-900 text-sm mb-3">Así lo verá tu barrio</h3>
-
-              <div class="rounded-2xl border border-stone-200 overflow-hidden bg-white shadow-2xs">
-                <div class="aspect-[16/10] bg-stone-100 overflow-hidden">
-                  <img id="edit-preview-img" src="https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/zanahorias.jpg" alt="Zanahoria" class="w-full h-full object-cover">
-                </div>
-                <div class="p-4">
-                  <h4 id="edit-preview-title" class="font-serif font-bold text-base text-stone-900">Zanahoria de tierra</h4>
-                  <p id="edit-preview-origin" class="text-[11px] text-stone-400 mt-0.5">Hacienda San José · Daule</p>
-                  <div id="edit-preview-price" class="text-sm font-bold text-stone-900 mt-2">$0,40 / kg</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Banner Alerta: Estás editando un producto visible -->
-            <div class="bg-[#fbf5ee] border border-[#f3dfcf] p-5 rounded-2xl shadow-2xs flex items-start gap-3">
-              <div class="text-[#c85a32] text-base mt-0.5 font-bold">ℹ</div>
-              <div>
-                <p class="text-xs font-bold text-stone-900">Estás editando un producto visible</p>
-                <p class="text-[11px] text-stone-600 mt-1 leading-relaxed">
-                  Los cambios se verán en el mercado al guardar. Los pedidos ya confirmados conservan su precio.
-                </p>
-              </div>
-            </div>
-
-          </div>
-
-        </div>
-
-        <!-- Barra Inferior de Acciones -->
-        <div class="flex items-center justify-between border-t border-stone-200 pt-6">
-          <button onclick="switchProducerTab('mis-productos')" class="text-xs font-bold text-stone-500 hover:text-stone-800 transition">
-            Cancelar
-          </button>
-
-          <button onclick="saveProductModifications()" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-xs transition flex items-center gap-2">
-            <span>✓</span>
-            <span>Guardar cambios</span>
-          </button>
-        </div>
-
-      </section>
-
       <!-- =====================================================================
            PESTAÑA 4: MI PERFIL Y SEGURIDAD (media_1794690208665_35472ea4.png)
            ===================================================================== -->

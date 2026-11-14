@@ -17,8 +17,13 @@ const PRODUCER_USER_ID = '00000000-0000-0000-0000-000000000002';
 let producerProducts = [];
 let allLoadedProducts = [];
 
-// Producto actualmente en edición
+// Estado del formulario de producto (Nuevo / Edición)
+let productFormMode = 'new'; // 'new' | 'edit'
+let editingProductId = null;
 let currentEditingCode = 'PR-003';
+let currentEditingTitle = '';
+let uploadedImages = []; // Array of { file: File | null, url: string, isCover: boolean, isExisting: boolean }
+let formDirty = false;
 
 // Filtro activo en Mis Productos (todos, publicado, borrador, agotado)
 let currentFilter = 'todos';
@@ -44,16 +49,33 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 3. Inicializar tarjeta y cuenta para recibir pagos
   initPayoutMethod();
 
-  // 4. Configurar escuchadores de previsualización en vivo
+  // 4. Inicializar Drag & Drop de fotografías
+  setupDragAndDrop();
+
+  // 5. Configurar fechas de entrega dinámicas
+  populateUpcomingDeliveryDates();
+
+  // 6. Configurar escuchadores de previsualización en vivo
   setupPreviewListeners();
 
-  // 5. Cargar todos los 48 productos desde Supabase asignados a Max Productor
+  // 7. Cargar todos los 48 productos desde Supabase asignados a Max Productor
   await loadProducerProductsFromSupabase();
 
-  // 6. Leer pestaña desde hash de URL si está presente
+  // 8. Verificar parámetro edit_product_id en URL
+  const editIdParam = urlParams.get('edit_product_id');
+  if (editIdParam) {
+    await loadProductForEditing(editIdParam);
+    return;
+  }
+
+  // 9. Leer pestaña desde hash de URL si está presente
   const hash = window.location.hash.replace('#', '');
   if (['mis-productos', 'nuevo-producto', 'modificar-producto', 'perfil-seguridad'].includes(hash)) {
-    switchProducerTab(hash);
+    if (hash === 'nuevo-producto') {
+      openNewProductForm();
+    } else {
+      switchProducerTab(hash);
+    }
   } else {
     switchProducerTab('mis-productos');
   }
@@ -1186,7 +1208,11 @@ function updateKPIs() {
 // =============================================================================
 
 function switchProducerTab(tabName) {
-  const views = ['mis-productos', 'nuevo-producto', 'modificar-producto', 'perfil-seguridad'];
+  if (tabName === 'modificar-producto') {
+    tabName = 'nuevo-producto';
+  }
+
+  const views = ['mis-productos', 'nuevo-producto', 'perfil-seguridad'];
   views.forEach(v => {
     const el = document.getElementById(`view-${v}`);
     if (el) el.classList.add('hidden');
@@ -1209,9 +1235,8 @@ function switchProducerTab(tabName) {
     if (tabName === 'mis-productos') {
       breadcrumbEl.innerHTML = `<span>Mi espacio</span> <span class="text-stone-300">›</span> <span class="text-stone-800 font-semibold">Mis productos</span>`;
     } else if (tabName === 'nuevo-producto') {
-      breadcrumbEl.innerHTML = `<span>Mi espacio</span> <span class="text-stone-300">›</span> <span class="hover:underline cursor-pointer" onclick="switchProducerTab('mis-productos')">Mis productos</span> <span class="text-stone-300">/</span> <span class="text-stone-800 font-semibold">Nuevo producto</span>`;
-    } else if (tabName === 'modificar-producto') {
-      breadcrumbEl.innerHTML = `<span>Mi espacio</span> <span class="text-stone-300">›</span> <span class="hover:underline cursor-pointer" onclick="switchProducerTab('mis-productos')">Mis productos</span> <span class="text-stone-300">/</span> <span class="text-stone-800 font-semibold">Modificar ${currentEditingCode}</span>`;
+      const actionName = productFormMode === 'edit' ? `Modificar ${currentEditingCode || 'producto'}` : 'Nuevo producto';
+      breadcrumbEl.innerHTML = `<span>Mi espacio</span> <span class="text-stone-300">›</span> <span class="hover:underline cursor-pointer" onclick="handleCancelNewProduct()">Mis productos</span> <span class="text-stone-300">/</span> <span class="text-stone-800 font-semibold">${actionName}</span>`;
     } else if (tabName === 'perfil-seguridad') {
       breadcrumbEl.innerHTML = `<span>Mi espacio</span> <span class="text-stone-300">›</span> <span class="text-stone-800 font-semibold">Mi perfil y seguridad</span>`;
     }
@@ -1225,132 +1250,863 @@ function switchProducerTab(tabName) {
 }
 
 // =============================================================================
-// EDICIÓN Y MODIFICACIÓN DE PRODUCTOS
+// GESTIÓN DE FECHAS DINÁMICAS DE ENTREGA
 // =============================================================================
 
-function editProductFromCard(code) {
-  currentEditingCode = code;
-  const prod = producerProducts.find(p => p.code === code);
-  if (!prod) return;
+function populateUpcomingDeliveryDates() {
+  const select = document.getElementById('new-form-delivery-date');
+  if (!select) return;
 
-  const tagEl = document.getElementById('edit-product-tag');
-  if (tagEl) tagEl.textContent = `EDITAR PRODUCTO · ${prod.code}`;
+  const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  
+  const now = new Date();
+  let current = new Date(now);
+  current.setHours(0, 0, 0, 0);
 
-  const titleEl = document.getElementById('edit-product-heading');
-  if (titleEl) titleEl.textContent = `Modificar ${prod.title}`;
-
-  const subEl = document.getElementById('edit-product-subtitle');
-  if (subEl) subEl.textContent = `${prod.statusText} · ${prod.origin.split('·')[0].trim()} · Última actualización: ${prod.lastUpdate || 'hoy'}`;
-
-  const nameInput = document.getElementById('edit-form-name');
-  if (nameInput) nameInput.value = prod.title;
-
-  const descInput = document.getElementById('edit-form-desc');
-  if (descInput) descInput.value = prod.description;
-
-  const priceInput = document.getElementById('edit-form-price');
-  if (priceInput) priceInput.value = `$ ${formatCOP(prod.price)}`;
-
-  const stockInput = document.getElementById('edit-form-stock');
-  if (stockInput) stockInput.value = `${prod.stock} ${prod.unitLabel}`;
-
-  const originInput = document.getElementById('edit-form-origin');
-  if (originInput) originInput.value = prod.origin;
-
-  const statusPill = document.getElementById('edit-form-status-pill');
-  if (statusPill) {
-    statusPill.textContent = `• ${prod.statusText}`;
-    if (prod.status === 'publicado') {
-      statusPill.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
-    } else if (prod.status === 'borrador') {
-      statusPill.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-[#f7f3eb] text-[#92400e] border border-[#eedfc9]';
-    } else {
-      statusPill.className = 'text-xs font-bold px-2.5 py-1 rounded-full bg-[#faece6] text-[#c85a32] border border-[#f3d9ce]';
+  const options = [];
+  for (let i = 1; i <= 35 && options.length < 5; i++) {
+    const candidate = new Date(current);
+    candidate.setDate(current.getDate() + i);
+    const day = candidate.getDay();
+    // Miércoles (3) y Sábado (6)
+    if (day === 3 || day === 6) {
+      const dayName = daysOfWeek[day];
+      const dayNum = candidate.getDate();
+      const monthName = months[candidate.getMonth()];
+      options.push(`${dayName}, ${dayNum} de ${monthName}`);
     }
   }
 
-  const statusSelect = document.getElementById('edit-form-status-select');
-  if (statusSelect) {
-    statusSelect.value = prod.status === 'publicado' ? 'Publicado' : (prod.status === 'borrador' ? 'Borrador' : 'Agotado');
-  }
-
-  const prevImg = document.getElementById('edit-preview-img');
-  if (prevImg) prevImg.src = prod.image;
-
-  const prevTitle = document.getElementById('edit-preview-title');
-  if (prevTitle) prevTitle.textContent = prod.title;
-
-  const prevOrigin = document.getElementById('edit-preview-origin');
-  if (prevOrigin) prevOrigin.textContent = prod.origin;
-
-  const prevPrice = document.getElementById('edit-preview-price');
-  if (prevPrice) prevPrice.textContent = `$${formatCOP(prod.price)} / ${prod.unitLabel}`;
-
-  const thumbImg = document.getElementById('edit-thumbnail-img');
-  if (thumbImg) thumbImg.src = prod.image;
-
-  switchProducerTab('modificar-producto');
+  select.innerHTML = options.map((opt, idx) => 
+    `<option value="${opt}" ${idx === 0 ? 'selected' : ''}>${opt}</option>`
+  ).join('');
 }
 
-async function saveProductModifications() {
-  const prod = producerProducts.find(p => p.code === currentEditingCode);
-  if (!prod) return;
+// =============================================================================
+// SUBIDA DE FOTOS: DRAG & DROP, GALERÍA Y SUPABASE STORAGE
+// =============================================================================
 
-  const nameInput = document.getElementById('edit-form-name');
-  const priceInput = document.getElementById('edit-form-price');
-  const stockInput = document.getElementById('edit-form-stock');
-  const descInput = document.getElementById('edit-form-desc');
-  const statusSelect = document.getElementById('edit-form-status-select');
+function setupDragAndDrop() {
+  const dropzone = document.getElementById('product-dropzone');
+  const fileInput = document.getElementById('product-images-input');
 
-  if (nameInput && nameInput.value.trim()) prod.title = nameInput.value.trim();
-  if (descInput && descInput.value.trim()) prod.description = descInput.value.trim();
-  
+  if (!dropzone || !fileInput) return;
+
+  if (dropzone.dataset.hasDropListeners) return;
+  dropzone.dataset.hasDropListeners = 'true';
+
+  dropzone.addEventListener('click', () => {
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleFilesAdded(e.target.files);
+      fileInput.value = ''; // permitir re-selección
+    }
+  });
+
+  ['dragenter', 'dragover'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.add('border-[#1a3d2f]', 'bg-emerald-50/50', 'ring-2', 'ring-[#1a3d2f]/20');
+    });
+  });
+
+  ['dragleave', 'dragend'].forEach(eventName => {
+    dropzone.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      dropzone.classList.remove('border-[#1a3d2f]', 'bg-emerald-50/50', 'ring-2', 'ring-[#1a3d2f]/20');
+    });
+  });
+
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dropzone.classList.remove('border-[#1a3d2f]', 'bg-emerald-50/50', 'ring-2', 'ring-[#1a3d2f]/20');
+
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFilesAdded(e.dataTransfer.files);
+    }
+  });
+}
+
+function handleFilesAdded(fileList) {
+  const validExtensions = ['image/jpeg', 'image/png', 'image/webp'];
+  const maxBytes = 5 * 1024 * 1024; // 5 MB
+
+  const availableSlots = 5 - uploadedImages.length;
+  if (availableSlots <= 0) {
+    showProducerToast('Ya has alcanzado el límite máximo de 5 fotografías.', true);
+    return;
+  }
+
+  const filesToAdd = Array.from(fileList).slice(0, availableSlots);
+  let addedCount = 0;
+
+  for (const file of filesToAdd) {
+    if (!validExtensions.includes(file.type)) {
+      showProducerToast(`"${file.name}" no es válido. Solo se admiten archivos JPG, PNG o WebP.`, true);
+      continue;
+    }
+    if (file.size > maxBytes) {
+      showProducerToast(`"${file.name}" supera el límite de 5 MB por imagen.`, true);
+      continue;
+    }
+
+    const localUrl = URL.createObjectURL(file);
+    const isFirst = uploadedImages.length === 0;
+
+    uploadedImages.push({
+      file: file,
+      url: localUrl,
+      isCover: isFirst,
+      isExisting: false
+    });
+    addedCount++;
+  }
+
+  if (addedCount > 0) {
+    formDirty = true;
+    renderProductImagesGallery();
+    updateLivePreview();
+  }
+}
+
+function renderProductImagesGallery() {
+  const grid = document.getElementById('product-thumbnails-grid');
+  const dropzone = document.getElementById('product-dropzone');
+  const countBadge = document.getElementById('photo-count-badge');
+
+  if (!grid || !dropzone) return;
+
+  if (countBadge) {
+    countBadge.textContent = `Puedes añadir hasta 5 fotografías · ${uploadedImages.length} de 5`;
+  }
+
+  if (uploadedImages.length === 0) {
+    grid.innerHTML = '';
+    grid.classList.add('hidden');
+    dropzone.classList.remove('hidden');
+    return;
+  }
+
+  grid.classList.remove('hidden');
+  grid.innerHTML = uploadedImages.map((img, idx) => {
+    const isCover = idx === 0 || img.isCover;
+    return `
+      <div class="relative rounded-xl overflow-hidden ${isCover ? 'border-2 border-[#1a3d2f] shadow-xs' : 'border border-stone-200'} group aspect-[4/3] bg-stone-100 shadow-2xs">
+        <img src="${img.url}" alt="Foto ${idx + 1}" class="w-full h-full object-cover">
+        
+        ${isCover ? `
+          <span class="absolute bottom-2 left-2 text-[10px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200 shadow-2xs">
+            ✓ Portada
+          </span>
+        ` : `
+          <button type="button" onclick="setCoverImage(${idx})" class="absolute bottom-2 left-2 text-[10px] font-bold text-stone-700 bg-white/95 px-2 py-0.5 rounded-md border border-stone-200 shadow hover:bg-white hover:text-[#1a3d2f] transition cursor-pointer">
+            Establecer como portada
+          </button>
+        `}
+
+        <button type="button" onclick="removeProductImage(${idx})" class="absolute top-2 right-2 text-[10px] font-bold text-red-600 bg-white/95 px-1.5 py-0.5 rounded shadow hover:bg-white transition cursor-pointer" title="Eliminar foto">
+          Eliminar foto
+        </button>
+      </div>
+    `;
+  }).join('');
+
+  if (uploadedImages.length >= 5) {
+    dropzone.classList.add('hidden');
+  } else {
+    dropzone.classList.remove('hidden');
+  }
+}
+
+function setCoverImage(index) {
+  if (index < 0 || index >= uploadedImages.length) return;
+  const [picked] = uploadedImages.splice(index, 1);
+  uploadedImages.unshift(picked);
+  uploadedImages.forEach((img, idx) => {
+    img.isCover = (idx === 0);
+  });
+  formDirty = true;
+  renderProductImagesGallery();
+  updateLivePreview();
+}
+
+function removeProductImage(index) {
+  if (index < 0 || index >= uploadedImages.length) return;
+  uploadedImages.splice(index, 1);
+  if (uploadedImages.length > 0) {
+    uploadedImages.forEach((img, idx) => {
+      img.isCover = (idx === 0);
+    });
+  }
+  formDirty = true;
+  renderProductImagesGallery();
+  updateLivePreview();
+}
+
+async function uploadProductImageFiles() {
+  for (let i = 0; i < uploadedImages.length; i++) {
+    const item = uploadedImages[i];
+    if (item.file) {
+      try {
+        const ext = (item.file.name.split('.').pop() || 'jpg').toLowerCase();
+        const rand = Math.random().toString(36).substring(2, 8);
+        const fileName = `prod_${Date.now()}_${rand}.${ext}`;
+        const storagePath = `products/${fileName}`;
+
+        let uploadRes = null;
+        if (window.supabase && window.supabase.storage) {
+          uploadRes = await window.supabase.storage.from('assets').upload(storagePath, item.file, {
+            contentType: item.file.type || 'image/jpeg'
+          });
+        }
+
+        if (uploadRes && uploadRes.data && uploadRes.data.publicUrl) {
+          item.url = uploadRes.data.publicUrl;
+        } else {
+          item.url = `https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/${storagePath}`;
+        }
+        item.file = null;
+      } catch (err) {
+        console.warn('Error subiendo imagen a Supabase Storage:', err);
+      }
+    }
+  }
+}
+
+// =============================================================================
+// PREVISUALIZACIÓN EN VIVO ("Así lo verá tu barrio")
+// =============================================================================
+
+function updateLivePreview() {
+  const prevImg = document.getElementById('new-preview-img');
+  const prevPlaceholder = document.getElementById('new-preview-placeholder');
+  const prevTitle = document.getElementById('new-preview-title');
+  const prevOrigin = document.getElementById('new-preview-origin');
+  const prevPrice = document.getElementById('new-preview-price');
+  const agroBadge = document.getElementById('new-preview-agro-badge');
+
+  // 1. Imagen de Portada
+  if (uploadedImages.length > 0) {
+    const coverItem = uploadedImages.find(img => img.isCover) || uploadedImages[0];
+    if (prevImg) {
+      prevImg.src = coverItem.url;
+      prevImg.classList.remove('hidden');
+    }
+    if (prevPlaceholder) prevPlaceholder.classList.add('hidden');
+  } else {
+    if (prevImg) {
+      prevImg.src = '';
+      prevImg.classList.add('hidden');
+    }
+    if (prevPlaceholder) prevPlaceholder.classList.remove('hidden');
+  }
+
+  // 2. Distintivo Agroecológico
+  const agroCheck = document.getElementById('new-agroeco');
+  if (agroBadge) {
+    if (agroCheck && agroCheck.checked) {
+      agroBadge.classList.remove('hidden');
+    } else {
+      agroBadge.classList.add('hidden');
+    }
+  }
+
+  // 3. Título del Producto
+  const nameInput = document.getElementById('new-form-name');
+  const nameVal = (nameInput ? nameInput.value : '').trim();
+  if (prevTitle) {
+    prevTitle.textContent = nameVal || (productFormMode === 'edit' ? (currentEditingTitle || 'Nombre del producto') : 'Nombre del producto');
+  }
+
+  // 4. Origen / Finca
+  const originInput = document.getElementById('new-form-origin');
+  const originVal = (originInput ? originInput.value : '').trim();
+  if (prevOrigin) {
+    prevOrigin.textContent = originVal || 'Hacienda San José · Daule';
+  }
+
+  // 5. Precio en USD y Unidad
+  const priceInput = document.getElementById('new-form-price');
+  const rawPrice = (priceInput ? priceInput.value : '').replace(/[^0-9.]/g, '');
+  const priceNum = parseFloat(rawPrice) || 0;
+
+  const unitSelect = document.getElementById('new-form-unit');
+  const unitText = unitSelect ? (unitSelect.options[unitSelect.selectedIndex]?.text.split('·')[0].trim().toLowerCase() || 'kg') : 'manojo';
+
+  if (prevPrice) {
+    prevPrice.textContent = `$${formatUSD(priceNum)} / ${unitText}`;
+  }
+}
+
+function setupPreviewListeners() {
+  const nameInput = document.getElementById('new-form-name');
+  const priceInput = document.getElementById('new-form-price');
+  const stockInput = document.getElementById('new-form-stock');
+  const descInput = document.getElementById('new-form-desc');
+  const unitSelect = document.getElementById('new-form-unit');
+  const catSelect = document.getElementById('new-form-category');
+  const originInput = document.getElementById('new-form-origin');
+  const agroCheck = document.getElementById('new-agroeco');
+  const statusSelect = document.getElementById('new-form-status');
+
+  if (nameInput) {
+    nameInput.addEventListener('input', () => {
+      formDirty = true;
+      updateLivePreview();
+    });
+  }
+
   if (priceInput) {
-    const rawNum = priceInput.value.replace(/[^0-9.]/g, '');
-    if (rawNum) prod.price = Number(rawNum);
+    priceInput.addEventListener('input', () => {
+      formDirty = true;
+      updateLivePreview();
+    });
+    priceInput.addEventListener('blur', (e) => {
+      const val = e.target.value.replace(/[^0-9.]/g, '');
+      if (val && !isNaN(val)) {
+        e.target.value = `$ ${formatUSD(val)}`;
+      }
+      updateLivePreview();
+    });
   }
 
   if (stockInput) {
-    const rawNum = stockInput.value.replace(/[^0-9]/g, '');
-    if (rawNum !== '') prod.stock = Number(rawNum);
+    stockInput.addEventListener('input', () => {
+      formDirty = true;
+    });
+  }
+
+  if (descInput) {
+    descInput.addEventListener('input', () => {
+      formDirty = true;
+    });
+  }
+
+  if (unitSelect) {
+    unitSelect.addEventListener('change', () => {
+      formDirty = true;
+      updateLivePreview();
+    });
+  }
+
+  if (catSelect) {
+    catSelect.addEventListener('change', () => {
+      formDirty = true;
+    });
+  }
+
+  if (originInput) {
+    originInput.addEventListener('input', () => {
+      formDirty = true;
+      updateLivePreview();
+    });
+  }
+
+  if (agroCheck) {
+    agroCheck.addEventListener('change', () => {
+      formDirty = true;
+      updateLivePreview();
+    });
   }
 
   if (statusSelect) {
-    const val = statusSelect.value.toLowerCase();
-    if (val.includes('public')) {
-      prod.status = 'publicado';
-      prod.statusText = 'Publicado';
-    } else if (val.includes('borrador')) {
-      prod.status = 'borrador';
-      prod.statusText = 'Borrador';
-    } else if (val.includes('agotad')) {
-      prod.status = 'agotado';
-      prod.statusText = 'Agotado';
+    statusSelect.addEventListener('change', () => {
+      formDirty = true;
+      const statusPill = document.getElementById('new-status-pill');
+      if (statusPill) {
+        if (statusSelect.value === 'published') {
+          statusPill.textContent = '• Publicar en la tienda';
+          statusPill.className = 'text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
+        } else {
+          statusPill.textContent = '• Guardar como borrador';
+          statusPill.className = 'text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#f7f3eb] text-[#92400e] border border-[#eedfc9]';
+        }
+      }
+    });
+  }
+}
+
+// =============================================================================
+// RESET, EDICIÓN Y CANCELACIÓN
+// =============================================================================
+
+function resetNewProductForm() {
+  productFormMode = 'new';
+  editingProductId = null;
+  currentEditingCode = '';
+  currentEditingTitle = '';
+
+  const tagEl = document.getElementById('form-product-tag');
+  if (tagEl) tagEl.textContent = 'PUBLICAR NUEVO PRODUCTO';
+
+  const headingEl = document.getElementById('form-product-heading');
+  if (headingEl) headingEl.textContent = 'Comparte una nueva cosecha';
+
+  const subEl = document.getElementById('form-product-subtitle');
+  if (subEl) subEl.innerHTML = 'De <span class="producer-farm-display">Hacienda San José · Daule</span> al barrio. Completa la información de tu nuevo producto.';
+
+  const publishLabel = document.getElementById('btn-publish-label');
+  if (publishLabel) publishLabel.textContent = 'Publicar producto';
+  const publishIcon = document.getElementById('btn-publish-icon');
+  if (publishIcon) publishIcon.textContent = '↗';
+
+  const statusPill = document.getElementById('new-status-pill');
+  if (statusPill) {
+    statusPill.textContent = '• Sin publicar';
+    statusPill.className = 'text-[11px] font-bold text-stone-600 bg-stone-100 border border-stone-200 px-2.5 py-1 rounded-full';
+  }
+
+  const nameInput = document.getElementById('new-form-name');
+  if (nameInput) nameInput.value = '';
+
+  const descInput = document.getElementById('new-form-desc');
+  if (descInput) descInput.value = '';
+
+  const catSelect = document.getElementById('new-form-category');
+  if (catSelect) catSelect.value = '2';
+
+  const unitSelect = document.getElementById('new-form-unit');
+  if (unitSelect) unitSelect.selectedIndex = 0;
+
+  const priceInput = document.getElementById('new-form-price');
+  if (priceInput) priceInput.value = '';
+
+  const stockInput = document.getElementById('new-form-stock');
+  if (stockInput) stockInput.value = '';
+
+  const originInput = document.getElementById('new-form-origin');
+  if (originInput) originInput.value = 'Hacienda San José · Daule';
+
+  const dateInput = document.getElementById('new-form-date');
+  if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+  const agroCheck = document.getElementById('new-agroeco');
+  if (agroCheck) agroCheck.checked = true;
+
+  const statusSelect = document.getElementById('new-form-status');
+  if (statusSelect) statusSelect.value = 'published';
+
+  uploadedImages = [];
+  renderProductImagesGallery();
+  updateLivePreview();
+  populateUpcomingDeliveryDates();
+  formDirty = false;
+}
+
+function openNewProductForm() {
+  resetNewProductForm();
+  switchProducerTab('nuevo-producto');
+}
+
+async function loadProductForEditing(codeOrId) {
+  if (producerProducts.length === 0) {
+    await loadProducerProductsFromSupabase();
+  }
+
+  const prod = producerProducts.find(p => 
+    p.code === codeOrId || 
+    String(p.id) === String(codeOrId) || 
+    String(p.numericId) === String(codeOrId)
+  );
+
+  if (!prod) {
+    showProducerToast('No se encontró el producto a modificar.', true);
+    return;
+  }
+
+  productFormMode = 'edit';
+  editingProductId = prod.id || prod.numericId;
+  currentEditingCode = prod.code || `PR-${prod.id}`;
+  currentEditingTitle = prod.title;
+
+  const tagEl = document.getElementById('form-product-tag');
+  if (tagEl) tagEl.textContent = `EDITAR PRODUCTO · ${currentEditingCode}`;
+
+  const headingEl = document.getElementById('form-product-heading');
+  if (headingEl) headingEl.textContent = `Modificar ${prod.title}`;
+
+  const subEl = document.getElementById('form-product-subtitle');
+  if (subEl) {
+    subEl.innerHTML = `${prod.statusText || 'Publicado'} · <span class="producer-farm-display">${prod.origin || 'Hacienda San José'}</span> · Última actualización: ${prod.lastUpdate || 'Hoy'}`;
+  }
+
+  const publishLabel = document.getElementById('btn-publish-label');
+  if (publishLabel) publishLabel.textContent = 'Guardar cambios';
+  const publishIcon = document.getElementById('btn-publish-icon');
+  if (publishIcon) publishIcon.textContent = '✓';
+
+  const nameInput = document.getElementById('new-form-name');
+  if (nameInput) nameInput.value = prod.title || '';
+
+  const descInput = document.getElementById('new-form-desc');
+  if (descInput) descInput.value = prod.description || '';
+
+  const priceInput = document.getElementById('new-form-price');
+  if (priceInput) priceInput.value = `$ ${formatUSD(prod.price)}`;
+
+  const stockInput = document.getElementById('new-form-stock');
+  if (stockInput) stockInput.value = prod.stock || 0;
+
+  const originInput = document.getElementById('new-form-origin');
+  if (originInput) originInput.value = prod.origin || 'Hacienda San José · Daule';
+
+  const dateInput = document.getElementById('new-form-date');
+  if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+
+  const agroCheck = document.getElementById('new-agroeco');
+  if (agroCheck) agroCheck.checked = true;
+
+  const catSelect = document.getElementById('new-form-category');
+  if (catSelect) {
+    const prodCatLower = (prod.category || '').toLowerCase();
+    for (let opt of catSelect.options) {
+      if (opt.text.toLowerCase().includes(prodCatLower) || prodCatLower.includes(opt.text.toLowerCase())) {
+        catSelect.value = opt.value;
+        break;
+      }
     }
   }
 
-  prod.lastUpdate = 'Hoy · recién guardado';
-
-  // Sincronizar en Supabase
-  if (window.supabase && typeof window.supabase.updateProduct === 'function' && prod.id) {
-    try {
-      await window.supabase.updateProduct(prod.id, {
-        title: prod.title,
-        description: prod.description,
-        price: prod.price,
-        stock_quantity: prod.stock,
-        is_available: prod.status === 'publicado'
-      });
-      console.log(`Producto ${prod.code} sincronizado en Supabase.`);
-    } catch (e) {
-      console.warn('Error al actualizar producto en Supabase:', e);
+  const unitSelect = document.getElementById('new-form-unit');
+  if (unitSelect) {
+    const unitLower = (prod.unit || prod.unitLabel || '').toLowerCase();
+    for (let opt of unitSelect.options) {
+      if (opt.value.toLowerCase().includes(unitLower) || opt.text.toLowerCase().includes(unitLower)) {
+        unitSelect.value = opt.value;
+        break;
+      }
     }
   }
 
-  showProducerToast(`¡Los cambios de "${prod.title}" se han guardado con éxito!`);
-  renderProducerProducts();
-  updateKPIs();
+  const statusSelect = document.getElementById('new-form-status');
+  if (statusSelect) {
+    statusSelect.value = prod.status === 'borrador' ? 'draft' : 'published';
+  }
+
+  const statusPill = document.getElementById('new-status-pill');
+  if (statusPill) {
+    statusPill.textContent = `• ${prod.statusText || (prod.status === 'borrador' ? 'Borrador' : 'Publicado')}`;
+    if (prod.status === 'publicado') {
+      statusPill.className = 'text-[11px] font-bold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200';
+    } else if (prod.status === 'borrador') {
+      statusPill.className = 'text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#f7f3eb] text-[#92400e] border border-[#eedfc9]';
+    } else {
+      statusPill.className = 'text-[11px] font-bold px-2.5 py-1 rounded-full bg-[#faece6] text-[#c85a32] border border-[#f3d9ce]';
+    }
+  }
+
+  const existingImage = prod.image || prod.image_url;
+  if (existingImage) {
+    uploadedImages = [{
+      file: null,
+      url: existingImage,
+      isCover: true,
+      isExisting: true
+    }];
+  } else {
+    uploadedImages = [];
+  }
+
+  renderProductImagesGallery();
+  updateLivePreview();
+  populateUpcomingDeliveryDates();
+  switchProducerTab('nuevo-producto');
+  formDirty = false;
+}
+
+function editProductFromCard(code) {
+  loadProductForEditing(code);
+}
+
+function handleCancelNewProduct() {
+  if (formDirty) {
+    const confirmLeave = confirm('¿Deseas descartar los cambios sin guardar y volver a mis productos?');
+    if (!confirmLeave) return;
+  }
+  formDirty = false;
   switchProducerTab('mis-productos');
+}
+
+// =============================================================================
+// PUBLICACIÓN Y GUARDADO (Supabase Database + Storage)
+// =============================================================================
+
+async function publishNewProduct() {
+  const nameInput = document.getElementById('new-form-name');
+  const priceInput = document.getElementById('new-form-price');
+  const stockInput = document.getElementById('new-form-stock');
+  const descInput = document.getElementById('new-form-desc');
+  const unitSelect = document.getElementById('new-form-unit');
+  const catSelect = document.getElementById('new-form-category');
+  const originInput = document.getElementById('new-form-origin');
+  const statusSelect = document.getElementById('new-form-status');
+  const publishBtn = document.getElementById('btn-publish-product');
+  const publishLabel = document.getElementById('btn-publish-label');
+  const publishIcon = document.getElementById('btn-publish-icon');
+
+  const title = (nameInput ? nameInput.value : '').trim();
+  if (!title) {
+    showProducerToast('Por favor escribe el nombre del producto.', true);
+    if (nameInput) nameInput.focus();
+    return;
+  }
+
+  const rawPrice = (priceInput ? priceInput.value : '').replace(/[^0-9.]/g, '');
+  const priceNum = parseFloat(rawPrice);
+  if (isNaN(priceNum) || priceNum <= 0) {
+    showProducerToast('Por favor ingresa un precio de venta válido en dólares (USD).', true);
+    if (priceInput) priceInput.focus();
+    return;
+  }
+
+  const rawStock = (stockInput ? stockInput.value : '').replace(/[^0-9]/g, '');
+  const stockNum = parseInt(rawStock, 10);
+  if (isNaN(stockNum) || stockNum < 0) {
+    showProducerToast('Por favor ingresa las existencias numéricas disponibles.', true);
+    if (stockInput) stockInput.focus();
+    return;
+  }
+
+  if (uploadedImages.length === 0) {
+    showProducerToast('Por favor añade al menos 1 fotografía de la cosecha.', true);
+    return;
+  }
+
+  if (publishBtn) publishBtn.disabled = true;
+  if (publishLabel) publishLabel.innerHTML = 'Subiendo imágenes y publicando...';
+  if (publishIcon) publishIcon.innerHTML = '⏳';
+
+  try {
+    // 1. Subir archivos nuevos a Supabase Storage
+    await uploadProductImageFiles();
+
+    // 2. URL de portada
+    const coverImg = uploadedImages.find(img => img.isCover) || uploadedImages[0];
+    const coverUrl = coverImg ? coverImg.url : `${SUPABASE_STORAGE_URL}/rabanos.jpg`;
+
+    // 3. Preparar campos
+    const desc = (descInput ? descInput.value : '').trim() || 'Cosecha fresca agroecológica de la hacienda.';
+    const unit = unitSelect ? unitSelect.value : 'Kilogramo (kg)';
+    const categoryId = catSelect ? parseInt(catSelect.value, 10) : 2;
+    const origin = (originInput ? originInput.value : '').trim() || 'Hacienda San José · Daule';
+    const isSavePublished = !statusSelect || statusSelect.value === 'published';
+    const unitLabel = unit.split('·')[0].trim().toLowerCase() || 'kg';
+
+    if (productFormMode === 'new') {
+      const newCode = `PR-${String(producerProducts.length + 1).padStart(3, '0')}`;
+      const payload = {
+        producer_id: PRODUCER_USER_ID,
+        category_id: categoryId,
+        title: title,
+        description: desc,
+        price: priceNum,
+        unit: unit,
+        stock_quantity: stockNum,
+        is_available: isSavePublished,
+        image_url: coverUrl
+      };
+
+      let createdRow = null;
+      if (window.supabase && typeof window.supabase.createProduct === 'function') {
+        const resp = await window.supabase.createProduct(payload);
+        createdRow = Array.isArray(resp) ? resp[0] : resp;
+      }
+
+      const newId = (createdRow && createdRow.id) ? createdRow.id : (Date.now() % 100000 + 100);
+
+      const localProduct = {
+        id: newId,
+        numericId: newId,
+        code: newCode,
+        title: title,
+        category: catSelect ? catSelect.options[catSelect.selectedIndex].text : 'Verduras & Raíces',
+        unit: unit,
+        price: priceNum,
+        stock: stockNum,
+        unitLabel: unitLabel,
+        status: isSavePublished ? (stockNum > 0 ? 'publicado' : 'agotado') : 'borrador',
+        statusText: isSavePublished ? (stockNum > 0 ? 'Publicado' : 'Agotado') : 'Borrador',
+        subtitle: desc.slice(0, 45),
+        image: coverUrl,
+        description: desc,
+        origin: origin,
+        harvestDate: 'Hoy',
+        lastUpdate: 'Hoy · recién creado'
+      };
+
+      producerProducts.unshift(localProduct);
+      showProducerToast(`¡Cosecha "${title}" publicada con éxito en la tienda!`);
+    } else {
+      const prod = producerProducts.find(p => (p.id == editingProductId || p.code === currentEditingCode || p.numericId == editingProductId));
+      const payload = {
+        category_id: categoryId,
+        title: title,
+        description: desc,
+        price: priceNum,
+        unit: unit,
+        stock_quantity: stockNum,
+        is_available: isSavePublished,
+        image_url: coverUrl
+      };
+
+      if (window.supabase && typeof window.supabase.updateProduct === 'function' && editingProductId) {
+        await window.supabase.updateProduct(editingProductId, payload);
+      }
+
+      if (prod) {
+        prod.title = title;
+        prod.description = desc;
+        prod.price = priceNum;
+        prod.unit = unit;
+        prod.unitLabel = unitLabel;
+        prod.stock = stockNum;
+        prod.origin = origin;
+        prod.image = coverUrl;
+        prod.category = catSelect ? catSelect.options[catSelect.selectedIndex].text : prod.category;
+        prod.status = isSavePublished ? (stockNum > 0 ? 'publicado' : 'agotado') : 'borrador';
+        prod.statusText = isSavePublished ? (stockNum > 0 ? 'Publicado' : 'Agotado') : 'Borrador';
+        prod.lastUpdate = 'Hoy · recién guardado';
+      }
+
+      showProducerToast(`¡Los cambios de "${title}" se han guardado con éxito!`);
+    }
+
+    formDirty = false;
+    renderProducerProducts();
+    updateKPIs();
+    switchProducerTab('mis-productos');
+  } catch (err) {
+    console.error('Error publicando producto:', err);
+    showProducerToast('Ocurrió un error al guardar en Supabase. Inténtalo de nuevo.', true);
+  } finally {
+    if (publishBtn) publishBtn.disabled = false;
+    if (publishLabel) publishLabel.innerHTML = productFormMode === 'edit' ? 'Guardar cambios' : 'Publicar producto';
+    if (publishIcon) publishIcon.innerHTML = productFormMode === 'edit' ? '✓' : '↗';
+  }
+}
+
+async function saveProductDraft() {
+  const nameInput = document.getElementById('new-form-name');
+  const priceInput = document.getElementById('new-form-price');
+  const stockInput = document.getElementById('new-form-stock');
+  const descInput = document.getElementById('new-form-desc');
+  const unitSelect = document.getElementById('new-form-unit');
+  const catSelect = document.getElementById('new-form-category');
+  const originInput = document.getElementById('new-form-origin');
+  const draftBtn = document.getElementById('btn-save-draft');
+
+  const title = (nameInput ? nameInput.value : '').trim() || 'Nuevo borrador de cosecha';
+  const rawPrice = (priceInput ? priceInput.value : '').replace(/[^0-9.]/g, '');
+  const priceNum = parseFloat(rawPrice) || 0.50;
+  const rawStock = (stockInput ? stockInput.value : '').replace(/[^0-9]/g, '');
+  const stockNum = parseInt(rawStock, 10) || 0;
+  const desc = (descInput ? descInput.value : '').trim() || 'Borrador en preparación.';
+  const unit = unitSelect ? unitSelect.value : 'Kilogramo (kg)';
+  const categoryId = catSelect ? parseInt(catSelect.value, 10) : 2;
+  const origin = (originInput ? originInput.value : '').trim() || 'Hacienda San José · Daule';
+
+  if (draftBtn) draftBtn.disabled = true;
+
+  try {
+    await uploadProductImageFiles();
+    const coverImg = uploadedImages.find(img => img.isCover) || uploadedImages[0];
+    const coverUrl = coverImg ? coverImg.url : `${SUPABASE_STORAGE_URL}/rabanos.jpg`;
+    const unitLabel = unit.split('·')[0].trim().toLowerCase() || 'kg';
+
+    if (productFormMode === 'new') {
+      const newCode = `PR-${String(producerProducts.length + 1).padStart(3, '0')}`;
+      const payload = {
+        producer_id: PRODUCER_USER_ID,
+        category_id: categoryId,
+        title: title,
+        description: desc,
+        price: priceNum,
+        unit: unit,
+        stock_quantity: stockNum,
+        is_available: false,
+        image_url: coverUrl
+      };
+
+      let createdRow = null;
+      if (window.supabase && typeof window.supabase.createProduct === 'function') {
+        const resp = await window.supabase.createProduct(payload);
+        createdRow = Array.isArray(resp) ? resp[0] : resp;
+      }
+
+      const newId = (createdRow && createdRow.id) ? createdRow.id : (Date.now() % 100000 + 100);
+
+      const localProduct = {
+        id: newId,
+        numericId: newId,
+        code: newCode,
+        title: title,
+        category: catSelect ? catSelect.options[catSelect.selectedIndex].text : 'Verduras & Raíces',
+        unit: unit,
+        price: priceNum,
+        stock: stockNum,
+        unitLabel: unitLabel,
+        status: 'borrador',
+        statusText: 'Borrador',
+        subtitle: 'Guardado como borrador',
+        image: coverUrl,
+        description: desc,
+        origin: origin,
+        harvestDate: 'Hoy',
+        lastUpdate: 'Hoy · borrador'
+      };
+
+      producerProducts.unshift(localProduct);
+      showProducerToast(`"${title}" se ha guardado como borrador.`);
+    } else {
+      const prod = producerProducts.find(p => (p.id == editingProductId || p.code === currentEditingCode || p.numericId == editingProductId));
+      const payload = {
+        category_id: categoryId,
+        title: title,
+        description: desc,
+        price: priceNum,
+        unit: unit,
+        stock_quantity: stockNum,
+        is_available: false,
+        image_url: coverUrl
+      };
+
+      if (window.supabase && typeof window.supabase.updateProduct === 'function' && editingProductId) {
+        await window.supabase.updateProduct(editingProductId, payload);
+      }
+
+      if (prod) {
+        prod.title = title;
+        prod.description = desc;
+        prod.price = priceNum;
+        prod.unit = unit;
+        prod.stock = stockNum;
+        prod.origin = origin;
+        prod.image = coverUrl;
+        prod.status = 'borrador';
+        prod.statusText = 'Borrador';
+        prod.lastUpdate = 'Hoy · recién guardado';
+      }
+
+      showProducerToast(`"${title}" guardado en borradores.`);
+    }
+
+    formDirty = false;
+    renderProducerProducts();
+    updateKPIs();
+    switchProducerTab('mis-productos');
+  } catch (err) {
+    console.error('Error guardando borrador:', err);
+    showProducerToast('Error guardando borrador.', true);
+  } finally {
+    if (draftBtn) draftBtn.disabled = false;
+  }
 }
 
 async function publishProductDirectly(code) {
@@ -1403,127 +2159,16 @@ async function reponerStockDirectly(code) {
   updateKPIs();
 }
 
-async function publishNewProduct() {
-  const nameInput = document.getElementById('new-form-name');
-  const priceInput = document.getElementById('new-form-price');
-  const stockInput = document.getElementById('new-form-stock');
-  const descInput = document.getElementById('new-form-desc');
-  const unitSelect = document.getElementById('new-form-unit');
-  const catSelect = document.getElementById('new-form-category');
+// =============================================================================
+// FORMATEO DE MONEDA EN USD ($0.00)
+// =============================================================================
 
-  const title = nameInput ? nameInput.value.trim() : '';
-  if (!title) {
-    showProducerToast('Por favor escribe el nombre del producto.', true);
-    return;
-  }
-
-  const rawPrice = priceInput ? priceInput.value.replace(/[^0-9.]/g, '') : '0.50';
-  const price = Number(rawPrice) || 0.50;
-  const rawStock = stockInput ? stockInput.value.replace(/[^0-9]/g, '') : '20';
-  const stock = Number(rawStock) || 20;
-  const desc = descInput ? descInput.value.trim() : 'Cosecha fresca agroecológica de la hacienda.';
-  const unit = unitSelect ? unitSelect.value.split('·')[0].trim() : 'Kilogramo (kg)';
-  const category = catSelect ? catSelect.value : 'Verduras & Raíces';
-  const unitLabel = unit.replace(/[^a-zA-Z]/g, '').toLowerCase() || 'kg';
-
-  const newCode = `PR-${String(producerProducts.length + 1).padStart(3, '0')}`;
-  const newProd = {
-    code: newCode,
-    id: Date.now(),
-    title: title,
-    category: category,
-    unit: unit,
-    price: price,
-    stock: stock,
-    unitLabel: unitLabel,
-    status: 'publicado',
-    statusText: 'Publicado',
-    subtitle: 'Cosecha recién publicada',
-    image: `${SUPABASE_STORAGE_URL}/rabanos.jpg`,
-    description: desc,
-    origin: 'Hacienda San José · Daule',
-    harvestDate: 'Hoy',
-    lastUpdate: 'Hoy · recién creado'
-  };
-
-  producerProducts.unshift(newProd);
-
-  if (window.supabase && typeof window.supabase.createProduct === 'function') {
-    try {
-      await window.supabase.createProduct({
-        producer_id: PRODUCER_USER_ID,
-        title: title,
-        description: desc,
-        price: price,
-        unit: unit,
-        stock_quantity: stock,
-        is_available: true,
-        image_url: `${SUPABASE_STORAGE_URL}/rabanos.jpg`
-      });
-    } catch (e) {
-      console.warn('Error al crear producto en Supabase:', e);
-    }
-  }
-
-  showProducerToast(`¡Cosecha "${title}" publicada con éxito!`);
-  renderProducerProducts();
-  updateKPIs();
-  switchProducerTab('mis-productos');
-}
-
-function saveProductDraft() {
-  const nameInput = document.getElementById('new-form-name');
-  const title = nameInput ? nameInput.value.trim() : 'Nuevo producto';
-  showProducerToast(`"${title}" se ha guardado en Borradores.`);
-  switchProducerTab('mis-productos');
-}
-
-function setupPreviewListeners() {
-  const newName = document.getElementById('new-form-name');
-  const newPrice = document.getElementById('new-form-price');
-  const newUnit = document.getElementById('new-form-unit');
-
-  if (newName) {
-    newName.addEventListener('input', (e) => {
-      const prev = document.getElementById('new-preview-title');
-      if (prev) prev.textContent = e.target.value.trim() || 'Rábanos de temporada';
-    });
-  }
-
-  if (newPrice) {
-    newPrice.addEventListener('input', (e) => {
-      const prev = document.getElementById('new-preview-price');
-      const val = e.target.value.replace(/[^0-9.]/g, '');
-      const unit = newUnit ? newUnit.value.split('·')[0].trim().toLowerCase() : 'manojo';
-      if (prev) prev.textContent = `$${val ? formatCOP(Number(val)) : '0,28'} / ${unit}`;
-    });
-  }
-
-  const editName = document.getElementById('edit-form-name');
-  const editPrice = document.getElementById('edit-form-price');
-  const editUnit = document.getElementById('edit-form-unit');
-
-  if (editName) {
-    editName.addEventListener('input', (e) => {
-      const prev = document.getElementById('edit-preview-title');
-      if (prev) prev.textContent = e.target.value.trim() || 'Zanahoria de tierra';
-    });
-  }
-
-  if (editPrice) {
-    editPrice.addEventListener('input', (e) => {
-      const prev = document.getElementById('edit-preview-price');
-      const val = e.target.value.replace(/[^0-9.]/g, '');
-      const unit = editUnit ? editUnit.value.replace(/[^a-zA-Z]/g, '').toLowerCase() : 'kg';
-      if (prev) prev.textContent = `$${val ? formatCOP(Number(val)) : '0,40'} / ${unit}`;
-    });
-  }
+function formatUSD(num) {
+  if (num === null || num === undefined || isNaN(num)) return '0.00';
+  return Number(num).toFixed(2);
 }
 
 function formatCOP(num) {
-  if (num === null || num === undefined || isNaN(num)) return '0,00';
-  const val = Number(num);
-  const parts = val.toFixed(2).split('.');
-  const intPart = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-  return `${intPart},${parts[1]}`;
+  // Alias de compatibilidad hacia formatUSD
+  return formatUSD(num);
 }

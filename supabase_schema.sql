@@ -119,25 +119,32 @@ ON CONFLICT (id) DO UPDATE SET
     is_available = EXCLUDED.is_available,
     image_url = EXCLUDED.image_url;
 
+-- Sincronizar la secuencia de IDs de products con el ID más alto insertado
+SELECT setval('products_id_seq', (SELECT COALESCE(MAX(id), 1) FROM public.products));
+
 -- =============================================================================
--- 7. Configuración de Supabase Storage (Buckets 'assets' y 'avatars')
+-- 7. Configuración de Supabase Storage (Buckets 'assets', 'avatars', 'product-images', 'products')
 -- =============================================================================
 INSERT INTO storage.buckets (id, name, public) 
-VALUES ('assets', 'assets', true), ('avatars', 'avatars', true)
+VALUES 
+  ('assets', 'assets', true), 
+  ('avatars', 'avatars', true),
+  ('product-images', 'product-images', true),
+  ('products', 'products', true)
 ON CONFLICT (id) DO UPDATE SET public = true;
 
 -- Políticas de seguridad para storage.objects
 DROP POLICY IF EXISTS "Public Access" ON storage.objects;
-CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id IN ('assets', 'avatars'));
+CREATE POLICY "Public Access" ON storage.objects FOR SELECT USING (bucket_id IN ('assets', 'avatars', 'product-images', 'products'));
 
 DROP POLICY IF EXISTS "Public Insert" ON storage.objects;
-CREATE POLICY "Public Insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id IN ('assets', 'avatars'));
+CREATE POLICY "Public Insert" ON storage.objects FOR INSERT WITH CHECK (bucket_id IN ('assets', 'avatars', 'product-images', 'products'));
 
 DROP POLICY IF EXISTS "Public Update" ON storage.objects;
-CREATE POLICY "Public Update" ON storage.objects FOR UPDATE USING (bucket_id IN ('assets', 'avatars'));
+CREATE POLICY "Public Update" ON storage.objects FOR UPDATE USING (bucket_id IN ('assets', 'avatars', 'product-images', 'products'));
 
 DROP POLICY IF EXISTS "Public Delete" ON storage.objects;
-CREATE POLICY "Public Delete" ON storage.objects FOR DELETE USING (bucket_id IN ('assets', 'avatars'));
+CREATE POLICY "Public Delete" ON storage.objects FOR DELETE USING (bucket_id IN ('assets', 'avatars', 'product-images', 'products'));
 
 -- =============================================================================
 -- 8. Tabla Relacional de Metadatos de Assets ('public.assets')

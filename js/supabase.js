@@ -843,8 +843,23 @@ class SupabaseService {
    */
   async createProduct(productData) {
     try {
+      if (!productData.id) {
+        // Consultar el ID numérico más alto para evitar colisión con la secuencia de IDs sembrados
+        try {
+          const existing = await this.fetchApi('products?select=id&order=id.desc&limit=1');
+          const maxId = (Array.isArray(existing) && existing.length > 0 && typeof existing[0].id === 'number') 
+            ? existing[0].id 
+            : 48;
+          productData.id = maxId + 1;
+        } catch (_) {
+          productData.id = Date.now() % 100000 + 100;
+        }
+      }
       return await this.fetchApi('products', {
         method: 'POST',
+        headers: {
+          'Prefer': 'return=representation'
+        },
         body: JSON.stringify(productData)
       });
     } catch (e) {
@@ -860,6 +875,9 @@ class SupabaseService {
     try {
       return await this.fetchApi(`products?id=eq.${id}`, {
         method: 'PATCH',
+        headers: {
+          'Prefer': 'return=representation'
+        },
         body: JSON.stringify(updates)
       });
     } catch (e) {
