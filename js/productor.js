@@ -1351,7 +1351,10 @@ async function loadProducerProductsFromSupabase() {
         const stock = Number(p.stock_quantity ?? (p.stock ?? 30));
         let status = 'publicado';
         let statusText = 'Publicado';
-        if (!isAvailable || stock <= 0) {
+        if (p.status === 'borrador' || p.status === 'draft' || isAvailable === false) {
+          status = 'borrador';
+          statusText = 'Borrador';
+        } else if (stock <= 0) {
           status = 'agotado';
           statusText = 'Agotado';
         }
@@ -1433,14 +1436,114 @@ function renderProducerProducts() {
     }
     // Filtro por término de búsqueda
     if (currentSearchQuery) {
-      const matchTitle = p.title.toLowerCase().includes(currentSearchQuery);
-      const matchCode = p.code.toLowerCase().includes(currentSearchQuery);
-      const matchCat = p.category.toLowerCase().includes(currentSearchQuery);
-      const matchOrigin = p.origin.toLowerCase().includes(currentSearchQuery);
+      const matchTitle = (p.title || '').toLowerCase().includes(currentSearchQuery);
+      const matchCode = (p.code || '').toLowerCase().includes(currentSearchQuery);
+      const matchCat = (p.category || '').toLowerCase().includes(currentSearchQuery);
+      const matchOrigin = (p.origin || '').toLowerCase().includes(currentSearchQuery);
       return matchTitle || matchCode || matchCat || matchOrigin;
     }
     return true;
   });
+
+  // 1. Vista Especializada para la Pestaña "Borradores"
+  if (currentFilter === 'borrador') {
+    if (filtered.length === 0) {
+      container.className = 'grid grid-cols-1 gap-6 mb-8';
+      container.innerHTML = `
+        <div class="py-14 px-6 text-center bg-[#FDFBF7] rounded-3xl border border-[#EFE8DC] shadow-2xs max-w-xl mx-auto my-4 w-full">
+          <div class="w-16 h-16 mx-auto mb-3.5 rounded-2xl bg-[#F5EFE6] text-[#143628] flex items-center justify-center text-3xl shadow-2xs">
+            🌾
+          </div>
+          <h4 class="font-serif text-lg font-bold text-stone-900 mb-1.5">No tienes borradores pendientes</h4>
+          <p class="text-xs text-stone-500 mb-6 max-w-sm mx-auto leading-relaxed">
+            Todos tus productos están al día en la tienda. Cuando comiences una nueva cosecha y quieras terminarla más tarde, aparecerá aquí.
+          </p>
+          <button type="button" onclick="openNewProductForm()" class="inline-flex items-center gap-2 bg-[#143628] hover:bg-[#1f4a38] text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-xs transition cursor-pointer">
+            <span class="text-base leading-none">+</span>
+            <span>Crear nueva cosecha</span>
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    container.className = 'grid grid-cols-1 gap-4 mb-8';
+    container.innerHTML = filtered.map(prod => {
+      const hasPhoto = Boolean(prod.image && !prod.image.includes('placeholder') && !prod.image.includes('rabanos.jpg'));
+      const hasPrice = Number(prod.price) > 0;
+      const hasStock = Number(prod.stock) > 0;
+      const isComplete = Boolean(prod.title && prod.title.trim() && hasPrice && hasStock);
+
+      const completenessBadge = isComplete
+        ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">✓ Listo para publicar</span>`
+        : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-[#FAECE6] text-[#C85A28] border border-[#F3D9CE]">⚠ ${!hasPhoto ? 'Falta foto' : (!hasPrice ? 'Falta precio' : 'Faltan existencias')}</span>`;
+
+      return `
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-amber-200/90 shadow-2xs hover:shadow-md transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
+          <div class="flex items-center gap-4 min-w-0">
+            <!-- Miniatura de portada 64x64px -->
+            <div class="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-stone-200 bg-[#F5EFE6] flex items-center justify-center shadow-2xs">
+              ${prod.image ? `
+                <img src="${prod.image}" alt="${escapeHtml(prod.title)}" class="w-full h-full object-cover">
+              ` : `
+                <span class="text-2xl select-none" title="Sin foto aún">🌱</span>
+              `}
+            </div>
+
+            <!-- Metadatos Claros del Borrador -->
+            <div class="min-w-0 flex-1">
+              <div class="flex flex-wrap items-center gap-2 mb-1">
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#FEF3C7] text-[#92400E] border border-[#FDE68A]">
+                  <span class="w-1.5 h-1.5 rounded-full bg-[#D97706]"></span>
+                  <span>Borrador sin publicar</span>
+                </span>
+                ${completenessBadge}
+              </div>
+
+              <h4 class="font-serif font-bold text-base text-stone-900 leading-snug truncate">
+                ${escapeHtml(prod.title || 'Producto sin título')}
+              </h4>
+
+              <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-stone-500 mt-1">
+                <span class="font-semibold text-stone-700">$${formatUSD(prod.price)} / ${escapeHtml(prod.unitLabel || 'unidad')} · USD</span>
+                <span class="text-stone-300">•</span>
+                <span>${escapeHtml(prod.category || 'Verduras & Raíces')}</span>
+                <span class="text-stone-300">•</span>
+                <span class="text-stone-400 text-[11px]">${escapeHtml(prod.lastUpdate || 'Guardado hoy')}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3 Acciones directas por borrador -->
+          <div class="flex items-center gap-2 shrink-0 self-end sm:self-center border-t sm:border-t-0 pt-3 sm:pt-0 w-full sm:w-auto justify-end">
+            <!-- 1. Continuar editando -->
+            <button type="button" onclick="editProductFromCard('${prod.code}')" class="px-3.5 py-2 rounded-xl text-xs font-bold border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 transition shadow-2xs flex items-center gap-1.5 cursor-pointer">
+              <svg class="w-3.5 h-3.5 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+              </svg>
+              <span>Continuar editando</span>
+            </button>
+
+            <!-- 2. Publicar ahora -->
+            <button type="button" onclick="publishProductDirectly('${prod.code}')" class="px-3.5 py-2 rounded-xl text-xs font-bold bg-[#143628] hover:bg-[#1f4a38] text-white transition shadow-xs flex items-center gap-1.5 cursor-pointer">
+              <span>↗ Publicar ahora</span>
+            </button>
+
+            <!-- 3. Eliminar borrador -->
+            <button type="button" onclick="deleteProducerDraft('${prod.code}', event)" class="p-2 rounded-xl text-stone-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition cursor-pointer" title="Eliminar borrador">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+    return;
+  }
+
+  // 2. Vista Estándar (Todos, Publicados, Agotados)
+  container.className = 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8';
 
   if (filtered.length === 0) {
     container.innerHTML = `
@@ -1460,7 +1563,7 @@ function renderProducerProducts() {
     if (prod.status === 'borrador') {
       badgeClass = 'bg-[#f7f3eb] text-[#92400e] border-[#eedfc9]';
       badgeDot = 'bg-amber-500';
-      badgeText = 'Borrador';
+      badgeText = 'Borrador sin publicar';
     } else if (prod.stock <= 0) {
       badgeClass = 'bg-[#faece6] text-[#c85a32] border-[#f3d9ce]';
       badgeDot = 'bg-[#c85a32]';
@@ -1475,11 +1578,11 @@ function renderProducerProducts() {
     const isBorrador = prod.status === 'borrador';
 
     return `
-      <div class="bg-white rounded-2xl border border-stone-200/90 overflow-hidden shadow-2xs hover:shadow-md transition flex flex-col justify-between group">
+      <div class="bg-white rounded-2xl border ${isBorrador ? 'border-amber-300' : 'border-stone-200/90'} overflow-hidden shadow-2xs hover:shadow-md transition flex flex-col justify-between group">
         <div>
           <!-- Imagen y Badges Superiores -->
           <div class="relative aspect-[16/10] overflow-hidden bg-stone-100">
-            <img src="${prod.image}" alt="${prod.title}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy">
+            <img src="${prod.image}" alt="${escapeHtml(prod.title)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy">
             <div class="absolute top-3 left-3">
               <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold border backdrop-blur-md shadow-xs ${badgeClass}">
                 <span class="w-1.5 h-1.5 rounded-full ${badgeDot}"></span>
@@ -1507,18 +1610,18 @@ function renderProducerProducts() {
           <!-- Contenido de la Tarjeta -->
           <div class="p-4 sm:p-5">
             <div class="text-[11px] font-medium text-stone-400 mb-1">
-              ${prod.code} · ${prod.origin.split('·')[0].trim()}
+              ${prod.code} · ${escapeHtml(prod.origin.split('·')[0].trim())}
             </div>
             <h3 class="font-serif font-bold text-lg text-stone-900 leading-snug mb-1">
-              ${prod.title}
+              ${escapeHtml(prod.title)}
             </h3>
             <p class="text-xs text-stone-500 mb-4 line-clamp-1">
-              ${prod.subtitle}
+              ${escapeHtml(prod.subtitle || '')}
             </p>
 
             <div class="flex items-baseline gap-1 mb-3">
               <span class="text-xl font-bold text-stone-900">$${formatUSD(prod.price)}</span>
-              <span class="text-xs text-stone-400 font-medium">/ ${prod.unitLabel} · USD</span>
+              <span class="text-xs text-stone-400 font-medium">/ ${escapeHtml(prod.unitLabel)} · USD</span>
             </div>
 
             <!-- Existencias y Gestión Rápida de Stock -->
@@ -1527,7 +1630,7 @@ function renderProducerProducts() {
               <div class="flex items-center gap-1">
                 <button type="button" onclick="adjustProducerStock('${prod.code}', -1, event)" class="w-6 h-6 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs cursor-pointer transition select-none" title="Disminuir 1 stock">-</button>
                 <span class="font-bold min-w-[55px] text-center ${prod.stock <= 0 ? 'text-red-600' : prod.stock <= 5 ? 'text-amber-600' : 'text-stone-800'}">
-                  ${prod.stock} ${prod.unitLabel}
+                  ${prod.stock} ${escapeHtml(prod.unitLabel)}
                 </span>
                 <button type="button" onclick="adjustProducerStock('${prod.code}', 1, event)" class="w-6 h-6 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs cursor-pointer transition select-none" title="Aumentar 1 stock">+</button>
                 <button type="button" onclick="quickRestockProduct('${prod.code}', 15, event)" class="ml-1 px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200 cursor-pointer transition" title="Reponer 15 unidades">+15</button>
@@ -1539,21 +1642,26 @@ function renderProducerProducts() {
         <!-- Acciones Inferiores -->
         <div class="p-4 sm:p-5 pt-0">
           <div class="flex items-center justify-between border-t border-stone-100 pt-3">
-            <button onclick="editProductFromCard('${prod.code}')" class="text-xs font-bold text-[#1a3d2f] hover:text-[#255440] flex items-center gap-1 transition cursor-pointer">
-              <span>Modificar</span>
+            <button onclick="editProductFromCard('${prod.code}')" class="text-xs font-bold text-[#143628] hover:text-[#255440] flex items-center gap-1 transition cursor-pointer">
+              <span>${isBorrador ? 'Continuar editando' : 'Modificar'}</span>
               <span>→</span>
             </button>
 
             ${isBorrador ? `
-              <button onclick="publishProductDirectly('${prod.code}')" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
-                Publicar
-              </button>
+              <div class="flex items-center gap-2">
+                <button onclick="publishProductDirectly('${prod.code}')" class="bg-[#143628] hover:bg-[#1f4a38] text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
+                  Publicar
+                </button>
+                <button onclick="deleteProducerDraft('${prod.code}', event)" class="p-1.5 text-stone-400 hover:text-red-600 rounded-lg hover:bg-stone-100 transition cursor-pointer" title="Eliminar borrador">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                </button>
+              </div>
             ` : isAgotado ? `
               <button onclick="quickRestockProduct('${prod.code}', 15, event)" class="border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer">
                 Reponer stock
               </button>
             ` : `
-              <span class="text-[11px] text-stone-400">${prod.lastUpdate || 'Hoy'}</span>
+              <span class="text-[11px] text-stone-400">${escapeHtml(prod.lastUpdate || 'Hoy')}</span>
             `}
           </div>
         </div>
@@ -1563,16 +1671,19 @@ function renderProducerProducts() {
 }
 
 function setProductFilter(filterType) {
+  if (filterType === 'borradores') filterType = 'borrador';
+  if (filterType === 'publicados') filterType = 'publicado';
+  if (filterType === 'agotados') filterType = 'agotado';
   currentFilter = filterType;
 
   const filterBtns = document.querySelectorAll('.filter-tab-btn');
   filterBtns.forEach(btn => {
     if (btn.getAttribute('data-filter') === filterType) {
-      btn.classList.add('active', 'border-b-2', 'border-[#1a3d2f]', 'text-[#1a3d2f]', 'font-bold');
-      btn.classList.remove('text-stone-500');
+      btn.classList.add('active', 'border-b-2', 'border-[#143628]', 'text-[#143628]', 'font-bold');
+      btn.classList.remove('text-stone-500', 'font-medium');
     } else {
-      btn.classList.remove('active', 'border-b-2', 'border-[#1a3d2f]', 'text-[#1a3d2f]', 'font-bold');
-      btn.classList.add('text-stone-500');
+      btn.classList.remove('active', 'border-b-2', 'border-[#143628]', 'border-[#1a3d2f]', 'text-[#143628]', 'text-[#1a3d2f]', 'font-bold');
+      btn.classList.add('text-stone-500', 'font-medium');
     }
   });
 
@@ -1907,20 +2018,54 @@ async function uploadProductImageFiles() {
         const storagePath = `products/${fileName}`;
 
         let uploadRes = null;
-        if (window.supabase && window.supabase.storage) {
-          uploadRes = await window.supabase.storage.from('assets').upload(storagePath, item.file, {
-            contentType: item.file.type || 'image/jpeg'
-          });
+        const storageClient = window.supabase?.storage;
+
+        if (storageClient && typeof storageClient.from === 'function') {
+          // Intentar primero en bucket 'assets'
+          try {
+            uploadRes = await storageClient.from('assets').upload(storagePath, item.file, {
+              contentType: item.file.type || 'image/jpeg',
+              upsert: true
+            });
+            if (uploadRes && uploadRes.data) {
+              const pubUrlRes = storageClient.from('assets').getPublicUrl(storagePath);
+              item.url = pubUrlRes?.data?.publicUrl || `https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/${storagePath}`;
+            }
+          } catch (assetsErr) {
+            console.warn('Fallo subida en bucket assets, intentando avatars:', assetsErr);
+          }
+
+          // Fallback a bucket 'avatars' si 'assets' no respondió
+          if (!item.url && storageClient) {
+            try {
+              const avatarPath = `products_${fileName}`;
+              const avatarRes = await storageClient.from('avatars').upload(avatarPath, item.file, {
+                contentType: item.file.type || 'image/jpeg',
+                upsert: true
+              });
+              if (avatarRes && avatarRes.data) {
+                const pubUrlRes = storageClient.from('avatars').getPublicUrl(avatarPath);
+                item.url = pubUrlRes?.data?.publicUrl || `https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/avatars/${avatarPath}`;
+              }
+            } catch (avatarsErr) {
+              console.warn('Fallo subida en bucket avatars:', avatarsErr);
+            }
+          }
         }
 
-        if (uploadRes && uploadRes.data && uploadRes.data.publicUrl) {
-          item.url = uploadRes.data.publicUrl;
-        } else {
-          item.url = `https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/${storagePath}`;
+        // Si no se obtuvo URL pública remota, usar object URL local o fallback seguro
+        if (!item.url) {
+          try {
+            item.url = URL.createObjectURL(item.file);
+          } catch (_) {
+            item.url = `${SUPABASE_STORAGE_URL}/rabanos.jpg`;
+          }
         }
         item.file = null;
       } catch (err) {
-        console.warn('Error subiendo imagen a Supabase Storage:', err);
+        console.warn('Error subiendo imagen a Supabase Storage, usando fallback:', err);
+        if (!item.url) item.url = `${SUPABASE_STORAGE_URL}/rabanos.jpg`;
+        item.file = null;
       }
     }
   }
@@ -2637,6 +2782,20 @@ function handleCancelNewProduct() {
 // PUBLICACIÓN Y GUARDADO (Supabase Database + Storage)
 // =============================================================================
 
+function getActiveProducerId() {
+  try {
+    if (typeof getCurrentUser === 'function') {
+      const u = getCurrentUser();
+      if (u && u.id) return u.id;
+    }
+    if (typeof window.getCurrentUser === 'function') {
+      const u = window.getCurrentUser();
+      if (u && u.id) return u.id;
+    }
+  } catch (_) {}
+  return PRODUCER_USER_ID;
+}
+
 async function publishNewProduct() {
   const nameInput = document.getElementById('new-form-name');
   const priceInput = document.getElementById('new-form-price');
@@ -2683,12 +2842,14 @@ async function publishNewProduct() {
   if (publishIcon) publishIcon.innerHTML = '⏳';
 
   try {
-    // 1. Subir archivos nuevos a Supabase Storage
-    await uploadProductImageFiles();
+    // 1. Subir archivos nuevos a Supabase Storage (con degradación elegante)
+    if (uploadedImages.length > 0) {
+      await uploadProductImageFiles();
+    }
 
     // 2. URL de portada
     const coverImg = uploadedImages.find(img => img.isCover) || uploadedImages[0];
-    const coverUrl = coverImg ? coverImg.url : `${SUPABASE_STORAGE_URL}/rabanos.jpg`;
+    const coverUrl = coverImg ? coverImg.url : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80';
 
     // 3. Preparar campos
     const desc = (descInput ? descInput.value : '').trim() || 'Cosecha fresca agroecológica de la hacienda.';
@@ -2697,6 +2858,7 @@ async function publishNewProduct() {
     const origin = (originInput ? originInput.value : '').trim() || 'Hacienda San José · Daule';
     const isSavePublished = !statusSelect || statusSelect.value === 'published';
     const unitLabel = unit.split('·')[0].trim().toLowerCase() || 'kg';
+    const activeProducerId = getActiveProducerId();
 
     if (productFormMode === 'new') {
       const newCode = `PR-${String(producerProducts.length + 1).padStart(3, '0')}`;
@@ -2707,7 +2869,7 @@ async function publishNewProduct() {
       const isBasket = productType === 'basket';
 
       const payload = {
-        producer_id: PRODUCER_USER_ID,
+        producer_id: activeProducerId,
         category_id: categoryId,
         title: title,
         description: desc,
@@ -2814,8 +2976,8 @@ async function publishNewProduct() {
     updateKPIs();
     switchProducerTab('mis-productos');
   } catch (err) {
-    console.error('Error publicando producto:', err);
-    showProducerToast('Ocurrió un error al guardar en Supabase. Inténtalo de nuevo.', true);
+    console.error('Error publicando producto en Supabase:', err);
+    showProducerToast('Ocurrió un error al guardar en Supabase: ' + (err.message || 'Inténtalo de nuevo.'), true);
   } finally {
     if (publishBtn) publishBtn.disabled = false;
     if (publishLabel) publishLabel.innerHTML = productFormMode === 'edit' ? 'Guardar cambios' : 'Publicar producto';
@@ -2835,7 +2997,7 @@ async function saveProductDraft() {
 
   const title = (nameInput ? nameInput.value : '').trim() || 'Nuevo borrador de cosecha';
   const rawPrice = (priceInput ? priceInput.value : '').replace(/[^0-9.]/g, '');
-  const priceNum = parseFloat(rawPrice) || 0.50;
+  const priceNum = parseFloat(rawPrice) || 0.00;
   const rawStock = (stockInput ? stockInput.value : '').replace(/[^0-9]/g, '');
   const stockNum = parseInt(rawStock, 10) || 0;
   const desc = (descInput ? descInput.value : '').trim() || 'Borrador en preparación.';
@@ -2846,9 +3008,15 @@ async function saveProductDraft() {
   if (draftBtn) draftBtn.disabled = true;
 
   try {
-    await uploadProductImageFiles();
+    if (uploadedImages.length > 0) {
+      try {
+        await uploadProductImageFiles();
+      } catch (uploadErr) {
+        console.warn('Advertencia subiendo imágenes en borrador:', uploadErr);
+      }
+    }
     const coverImg = uploadedImages.find(img => img.isCover) || uploadedImages[0];
-    const coverUrl = coverImg ? coverImg.url : `${SUPABASE_STORAGE_URL}/rabanos.jpg`;
+    const coverUrl = coverImg ? coverImg.url : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80';
     const unitLabel = unit.split('·')[0].trim().toLowerCase() || 'kg';
 
     const seasonSelect = document.getElementById('new-form-season-label');
@@ -2856,11 +3024,12 @@ async function saveProductDraft() {
     const isSeasonal = (seasonCheck && seasonCheck.checked) || (seasonSelect && seasonSelect.value !== 'Disponible todo el año');
     const seasonLabel = seasonSelect ? seasonSelect.value : 'Disponible todo el año';
     const isBasket = productType === 'basket';
+    const activeProducerId = getActiveProducerId();
 
     if (productFormMode === 'new') {
       const newCode = `PR-${String(producerProducts.length + 1).padStart(3, '0')}`;
       const payload = {
-        producer_id: PRODUCER_USER_ID,
+        producer_id: activeProducerId,
         category_id: categoryId,
         title: title,
         description: desc,
@@ -2896,6 +3065,7 @@ async function saveProductDraft() {
         unitLabel: unitLabel,
         status: 'borrador',
         statusText: 'Borrador',
+        is_available: false,
         is_seasonal: isSeasonal,
         season_label: seasonLabel,
         is_basket: isBasket,
@@ -2943,6 +3113,7 @@ async function saveProductDraft() {
         prod.image = coverUrl;
         prod.status = 'borrador';
         prod.statusText = 'Borrador';
+        prod.is_available = false;
         prod.is_seasonal = isSeasonal;
         prod.season_label = seasonLabel;
         prod.is_basket = isBasket;
@@ -2958,29 +3129,70 @@ async function saveProductDraft() {
     renderProducerProducts();
     updateKPIs();
     switchProducerTab('mis-productos');
+    setProductFilter('borradores');
   } catch (err) {
     console.error('Error guardando borrador:', err);
-    showProducerToast('Error guardando borrador.', true);
+    showProducerToast('Error guardando borrador: ' + (err.message || 'Error al conectar con Supabase'), true);
   } finally {
     if (draftBtn) draftBtn.disabled = false;
   }
 }
 
 async function publishProductDirectly(code) {
-  const prod = producerProducts.find(p => p.code === code);
+  const prod = producerProducts.find(p => p.code === code || p.id == code);
   if (!prod) return;
+
+  if (!prod.title || prod.title === 'Nuevo borrador de cosecha') {
+    showProducerToast('Completa el nombre del producto antes de publicarlo.', true);
+    loadProductForEditing(code);
+    return;
+  }
+  if (!prod.price || prod.price <= 0) {
+    showProducerToast('Define un precio válido antes de publicar el producto.', true);
+    loadProductForEditing(code);
+    return;
+  }
 
   prod.status = 'publicado';
   prod.statusText = 'Publicado';
+  prod.is_available = true;
   prod.lastUpdate = 'Hoy · recién publicado';
 
   if (window.supabase && typeof window.supabase.updateProduct === 'function' && prod.id) {
     try {
       await window.supabase.updateProduct(prod.id, { is_available: true });
-    } catch (_) {}
+    } catch (err) {
+      console.warn('Error al actualizar disponibilidad en Supabase:', err);
+    }
   }
 
-  showProducerToast(`¡"${prod.title}" publicado en la tienda!`);
+  showProducerToast(`¡"${prod.title}" publicado con éxito en la tienda!`);
+  renderProducerProducts();
+  updateKPIs();
+}
+
+async function deleteProducerDraft(code, event) {
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
+  const prod = producerProducts.find(p => p.code === code || p.id == code);
+  if (!prod) return;
+
+  const confirmDelete = confirm(`¿Estás seguro de que deseas eliminar el borrador "${prod.title}"? Esta acción no se puede deshacer.`);
+  if (!confirmDelete) return;
+
+  producerProducts = producerProducts.filter(p => p.code !== code && p.id != prod.id);
+
+  if (window.supabase && typeof window.supabase.deleteProduct === 'function' && prod.id) {
+    try {
+      await window.supabase.deleteProduct(prod.id);
+    } catch (err) {
+      console.warn('Error al eliminar producto en Supabase:', err);
+    }
+  }
+
+  showProducerToast(`El borrador "${prod.title}" ha sido eliminado.`);
   renderProducerProducts();
   updateKPIs();
 }
@@ -3039,7 +3251,10 @@ window.handleCancelNewProduct = handleCancelNewProduct;
 window.editProductFromCard = editProductFromCard;
 window.loadProductForEditing = loadProductForEditing;
 window.publishNewProduct = publishNewProduct;
+window.saveProductDraft = saveProductDraft;
 window.publishProductDirectly = publishProductDirectly;
+window.deleteProducerDraft = deleteProducerDraft;
+window.getActiveProducerId = getActiveProducerId;
 window.setProductFilter = setProductFilter;
 window.handleProducerSearch = handleProducerSearch;
 window.renderProducerProducts = renderProducerProducts;

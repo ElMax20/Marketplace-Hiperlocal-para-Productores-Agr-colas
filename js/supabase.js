@@ -342,8 +342,18 @@ class SupabaseService {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Supabase Error (${response.status}):`, errorText);
-      throw new Error(`Error Supabase: ${response.statusText}`);
+      let parsed = null;
+      try { parsed = JSON.parse(errorText); } catch (_) {}
+      console.error(`Supabase Error (${response.status}):`, errorText, parsed || '');
+      const errMsg = parsed?.message || `Error Supabase: ${response.statusText} (${response.status})`;
+      const err = new Error(errMsg);
+      err.status = response.status;
+      err.statusText = response.statusText;
+      err.errorText = errorText;
+      err.code = parsed?.code || null;
+      err.details = parsed?.details || null;
+      err.hint = parsed?.hint || null;
+      throw err;
     }
 
     const text = await response.text();
@@ -854,12 +864,12 @@ class SupabaseService {
   }
 
   /**
-   * Agrega un nuevo producto a Supabase con compatibilidad de esquema y notificación en tiempo real
+   * Agrega un nuevo producto a Supabase con compatibilidad de esquema, resiliencia y notificación en tiempo real
    */
   async createProduct(productData) {
     try {
+      // 1. Obtener ID seguro para evitar colisión con la secuencia de IDs de products
       if (!productData.id) {
-        // Consultar el ID numérico más alto para evitar colisión con la secuencia de IDs sembrados
         try {
           const existing = await this.fetchApi('products?select=id&order=id.desc&limit=1');
           const maxId = (Array.isArray(existing) && existing.length > 0 && typeof existing[0].id === 'number') 
@@ -867,35 +877,83 @@ class SupabaseService {
             : 48;
           productData.id = maxId + 1;
         } catch (_) {
-          productData.id = Date.now() % 100000 + 100;
+          productData.id = 49;
         }
       }
 
-      let res;
+      // 2. Asegurar producer_id
+      if (!productData.producer_id) {
+        productData.producer_id = '00000000-0000-0000-0000-000000000002';
+      }
+
+      let res = null;
+      let payloadToTry = { ...productData };
+
+      // Intento 1: Enviar payload completo
       try {
         res = await this.fetchApi('products', {
           method: 'POST',
           headers: {
             'Prefer': 'return=representation'
           },
-          body: JSON.stringify(productData)
+          body: JSON.stringify(payloadToTry)
         });
-      } catch (postErr) {
-        // Si Supabase aún no tiene las nuevas columnas en PostgreSQL, reintentar con campos base
-        if (postErr && postErr.message && postErr.message.includes('Could not find')) {
-          const baseData = { ...productData };
-          delete baseData.is_seasonal;
-          delete baseData.season_label;
-          delete baseData.is_basket;
-          delete baseData.basket_items;
-          delete baseData.basket_savings_percent;
+      } catch (firstErr) {
+        console.warn('Aviso en primer intento de inserción en Supabase:', {
+          message: firstErr.message,
+          code: firstErr.code,
+          details: firstErr.details,
+          hint: firstErr.hint,
+          errorText: firstErr.errorText
+        });
+
+        const isColumnError = firstErr.code === 'PGRST204' || 
+          (firstErr.message && (firstErr.message.includes('Could not find') || firstErr.message.includes('column'))) ||
+          (firstErr.errorText && firstErr.errorText.includes('Could not find'));
+
+        if (isColumnError || firstErr.status === 400) {
+          // Fallback resiliente a columnas base garantizadas en la tabla products de PostgreSQL
+          const baseData = {
+            id: productData.id,
+            producer_id: productData.producer_id,
+            category_id: productData.category_id || 2,
+            title: productData.title,
+            description: productData.description || '',
+            price: Number(productData.price) || 0.50,
+            unit: productData.unit || 'kg',
+            stock_quantity: Number(productData.stock_quantity) || 0,
+            is_available: Boolean(productData.is_available),
+            image_url: productData.image_url || 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/rabanos.jpg'
+          };
+
+          try {
+            res = await this.fetchApi('products', {
+              method: 'POST',
+              headers: { 'Prefer': 'return=representation' },
+              body: JSON.stringify(baseData)
+            });
+          } catch (retryErr) {
+            // Si el error fue duplicado de clave primaria (409), reintentar con id + 1
+            if (retryErr.status === 409 || retryErr.code === '23505') {
+              baseData.id = (baseData.id || 50) + 1;
+              res = await this.fetchApi('products', {
+                method: 'POST',
+                headers: { 'Prefer': 'return=representation' },
+                body: JSON.stringify(baseData)
+              });
+            } else {
+              throw retryErr;
+            }
+          }
+        } else if (firstErr.status === 409 || firstErr.code === '23505') {
+          payloadToTry.id = (payloadToTry.id || 50) + 1;
           res = await this.fetchApi('products', {
             method: 'POST',
             headers: { 'Prefer': 'return=representation' },
-            body: JSON.stringify(baseData)
+            body: JSON.stringify(payloadToTry)
           });
         } else {
-          throw postErr;
+          throw firstErr;
         }
       }
 
@@ -926,13 +984,23 @@ class SupabaseService {
           body: JSON.stringify(updates)
         });
       } catch (patchErr) {
-        if (patchErr && patchErr.message && patchErr.message.includes('Could not find')) {
-          const baseUpdates = { ...updates };
-          delete baseUpdates.is_seasonal;
-          delete baseUpdates.season_label;
-          delete baseUpdates.is_basket;
-          delete baseUpdates.basket_items;
-          delete baseUpdates.basket_savings_percent;
+        console.warn('Aviso en primer intento de actualización en Supabase:', {
+          message: patchErr.message,
+          code: patchErr.code,
+          details: patchErr.details,
+          hint: patchErr.hint
+        });
+
+        const isColumnError = patchErr.code === 'PGRST204' || 
+          (patchErr.message && (patchErr.message.includes('Could not find') || patchErr.message.includes('column'))) ||
+          (patchErr.errorText && patchErr.errorText.includes('Could not find'));
+
+        if (isColumnError || patchErr.status === 400) {
+          const baseUpdates = {};
+          const allowed = ['title', 'description', 'price', 'unit', 'stock_quantity', 'is_available', 'image_url', 'category_id', 'is_active'];
+          for (const k of allowed) {
+            if (updates[k] !== undefined) baseUpdates[k] = updates[k];
+          }
           res = await this.fetchApi(`products?id=eq.${id}`, {
             method: 'PATCH',
             headers: { 'Prefer': 'return=representation' },
@@ -951,7 +1019,26 @@ class SupabaseService {
 
       return res;
     } catch (e) {
-      console.error(`Error al actualizar producto ${id}:`, e);
+      console.error('Error al actualizar producto en Supabase:', e);
+      throw e;
+    }
+  }
+
+  /**
+   * Elimina un producto de Supabase por ID con notificación en tiempo real
+   */
+  async deleteProduct(id) {
+    try {
+      const res = await this.fetchApi(`products?id=eq.${id}`, {
+        method: 'DELETE'
+      });
+      this.broadcastProductChange({
+        eventType: 'DELETE',
+        old: { id }
+      });
+      return res;
+    } catch (e) {
+      console.error('Error al eliminar producto en Supabase:', e);
       throw e;
     }
   }

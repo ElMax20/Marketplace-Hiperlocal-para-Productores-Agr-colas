@@ -338,23 +338,30 @@
           </div>
         </div>
 
-        <!-- Filtros rápidos por pestaña de estado -->
+        <!-- Pestañas Superiores con Contadores Dinámicos de Estado -->
         <div class="flex items-center justify-between text-xs border-b border-stone-200 pb-2 mb-6">
-          <div class="flex items-center gap-6">
-            <button onclick="setProductFilter('todos')" data-filter="todos" class="filter-tab-btn active pb-2 border-b-2 border-[#1a3d2f] text-[#1a3d2f] font-bold transition">
-              Todos · <span class="kpi-count-total">3</span>
+          <div class="flex items-center gap-2 sm:gap-6 overflow-x-auto pb-1 scrollbar-none">
+            <button onclick="setProductFilter('todos')" data-filter="todos" class="filter-tab-btn active pb-2 border-b-2 border-[#143628] text-[#143628] font-bold transition flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+              <span>Todos</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-stone-100 text-stone-700 kpi-count-total">0</span>
             </button>
-            <button onclick="setProductFilter('publicado')" data-filter="publicado" class="filter-tab-btn pb-2 text-stone-500 hover:text-stone-900 transition font-medium">
-              Publicados · <span class="kpi-count-pub">1</span>
+            <button onclick="setProductFilter('publicado')" data-filter="publicado" class="filter-tab-btn pb-2 text-stone-500 hover:text-stone-900 transition font-medium flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+              <span class="w-2 h-2 rounded-full bg-[#16A34A]"></span>
+              <span>Publicados en tienda</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-800 kpi-count-pub">0</span>
             </button>
-            <button onclick="setProductFilter('borrador')" data-filter="borrador" class="filter-tab-btn pb-2 text-stone-500 hover:text-stone-900 transition font-medium">
-              Borradores · <span class="kpi-count-bor">1</span>
+            <button onclick="setProductFilter('borrador')" data-filter="borrador" class="filter-tab-btn pb-2 text-stone-500 hover:text-stone-900 transition font-medium flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+              <span class="w-2 h-2 rounded-full bg-[#D97706]"></span>
+              <span>Borradores</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-50 text-amber-800 kpi-count-bor">0</span>
             </button>
-            <button onclick="setProductFilter('agotado')" data-filter="agotado" class="filter-tab-btn pb-2 text-stone-500 hover:text-stone-900 transition font-medium">
-              Agotados · <span class="kpi-count-agot">1</span>
+            <button onclick="setProductFilter('agotado')" data-filter="agotado" class="filter-tab-btn pb-2 text-stone-500 hover:text-stone-900 transition font-medium flex items-center gap-1.5 cursor-pointer whitespace-nowrap">
+              <span class="w-2 h-2 rounded-full bg-stone-400"></span>
+              <span>Agotados</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-stone-100 text-stone-600 kpi-count-agot">0</span>
             </button>
           </div>
-          <span class="text-stone-400 hidden sm:inline text-[11px]"><span class="kpi-count-total">3</span> productos en tu finca</span>
+          <span class="text-stone-400 hidden sm:inline text-[11px] whitespace-nowrap"><span class="kpi-count-total">0</span> productos en tu finca</span>
         </div>
 
         <!-- Rejilla de Productos del Productor -->

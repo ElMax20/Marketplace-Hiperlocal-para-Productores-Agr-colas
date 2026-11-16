@@ -13,9 +13,31 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS password text;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS email text;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url text;
 
--- Modificaciones en tabla 'products' (para valoraciones reales)
+-- Modificaciones en tabla 'products' (para valoraciones reales, estacionalidad, canastas y borradores)
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS rating numeric DEFAULT 0;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS reviews_count int DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS producer_name text DEFAULT 'Max Productor';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS farm_name text DEFAULT 'Hacienda San José';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS category text DEFAULT 'Verduras & Raíces';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS stock integer DEFAULT 10;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS gallery_urls text[] DEFAULT '{}';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS status text DEFAULT 'published';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS availability text DEFAULT 'Disponible esta semana';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS harvest_date date DEFAULT CURRENT_DATE;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_agroecological boolean DEFAULT true;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_seasonal boolean DEFAULT false;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS season_label text DEFAULT 'Disponible todo el año';
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_basket boolean DEFAULT false;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS basket_items jsonb DEFAULT '[]'::jsonb;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS basket_savings_percent numeric DEFAULT 0;
+
+-- Sincronización de secuencia de ID para products para evitar errores de clave única duplicada
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_class WHERE relkind = 'S' AND relname = 'products_id_seq') THEN
+    PERFORM setval('public.products_id_seq', COALESCE((SELECT MAX(id) FROM public.products), 1) + 1, false);
+  END IF;
+END $$;
 
 -- 3. Políticas de Seguridad de Nivel de Fila (RLS) para Acceso Público
 DROP POLICY IF EXISTS "Permitir todo anon profiles" ON public.profiles;
