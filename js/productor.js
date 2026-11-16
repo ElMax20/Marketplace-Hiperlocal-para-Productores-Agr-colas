@@ -77,20 +77,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // 9. Leer pestaña desde hash de URL si está presente
-  const hash = window.location.hash.replace('#', '');
-  if (['mis-productos', 'nuevo-producto', 'modificar-producto', 'mi-economia', 'registrar-gasto', 'perfil-seguridad'].includes(hash)) {
-    if (hash === 'nuevo-producto') {
+  // 9. Leer pestaña desde parámetro de URL (?tab= / ?seccion=) o hash (#...)
+  const tabParam = urlParams.get('tab') || urlParams.get('seccion') || window.location.hash.replace('#', '');
+  const initialTab = normalizeProducerTabName(tabParam || 'mis-productos');
+
+  if (initialTab === 'nuevo-producto') {
+    openNewProductForm();
+  } else if (initialTab === 'registrar-gasto') {
+    openExpenseForm();
+  } else {
+    switchProducerTab(initialTab);
+  }
+
+  // 10. Delegación de eventos a prueba de fallos para la navegación del panel de productor
+  document.addEventListener('click', (e) => {
+    const navBtn = e.target.closest('.nav-producer-btn, [data-tab]');
+    if (!navBtn) return;
+
+    const dataTab = navBtn.getAttribute('data-tab');
+    if (!dataTab) return;
+
+    const targetTab = normalizeProducerTabName(dataTab);
+    if (targetTab === 'nuevo-producto') {
       openNewProductForm();
-    } else if (hash === 'registrar-gasto') {
+    } else if (targetTab === 'registrar-gasto') {
       openExpenseForm();
     } else {
-      switchProducerTab(hash);
+      switchProducerTab(targetTab);
     }
-  } else {
-    switchProducerTab('mis-productos');
-  }
-  
+  });
+
+  // 11. Escuchar cambios de historial en el navegador (atrás / adelante)
+  window.addEventListener('popstate', () => {
+    const currentParams = new URLSearchParams(window.location.search);
+    const poppedTab = currentParams.get('tab') || currentParams.get('seccion') || window.location.hash.replace('#', '');
+    const target = normalizeProducerTabName(poppedTab || 'mis-productos');
+    if (target === 'nuevo-producto' && productFormMode !== 'edit') {
+      openNewProductForm();
+    } else if (target === 'registrar-gasto') {
+      openExpenseForm();
+    } else {
+      switchProducerTab(target);
+    }
+  });
+
   // Cargar módulo de economía de fondo
   initEconomyModule();
 });
@@ -1579,10 +1609,19 @@ function updateKPIs() {
 // NAVEGACIÓN ENTRE PESTAÑAS DEL PORTAL
 // =============================================================================
 
+function normalizeProducerTabName(tab) {
+  if (!tab) return 'mis-productos';
+  const clean = String(tab).toLowerCase().trim().replace(/^#/, '');
+  if (['productos', 'mis-productos', 'catalogo', 'tienda'].includes(clean)) return 'mis-productos';
+  if (['publicar', 'nuevo-producto', 'crear', 'nueva-cosecha', 'modificar-producto'].includes(clean)) return 'nuevo-producto';
+  if (['economia', 'mi-economia', 'finanzas', 'gastos-list'].includes(clean)) return 'mi-economia';
+  if (['gasto', 'registrar-gasto', 'nuevo-gasto'].includes(clean)) return 'registrar-gasto';
+  if (['perfil', 'seguridad', 'perfil-seguridad', 'mi-perfil', 'cuenta'].includes(clean)) return 'perfil-seguridad';
+  return clean;
+}
+
 function switchProducerTab(tabName) {
-  if (tabName === 'modificar-producto') {
-    tabName = 'nuevo-producto';
-  }
+  const normalizedTab = normalizeProducerTabName(tabName);
 
   const views = ['mis-productos', 'nuevo-producto', 'mi-economia', 'registrar-gasto', 'perfil-seguridad'];
   views.forEach(v => {
@@ -1590,40 +1629,68 @@ function switchProducerTab(tabName) {
     if (el) el.classList.add('hidden');
   });
 
-  const activeView = document.getElementById(`view-${tabName}`);
+  const activeView = document.getElementById(`view-${normalizedTab}`);
   if (activeView) activeView.classList.remove('hidden');
 
+  // Actualizar estado visual de los botones de la barra lateral
   const navBtns = document.querySelectorAll('.nav-producer-btn');
   navBtns.forEach(btn => {
     const dataTab = btn.getAttribute('data-tab');
-    if (dataTab === tabName || (tabName === 'registrar-gasto' && dataTab === 'mi-economia')) {
-      btn.classList.add('active');
+    const isActive = dataTab === normalizedTab || (normalizedTab === 'registrar-gasto' && dataTab === 'mi-economia');
+    if (isActive) {
+      btn.classList.add('active', 'bg-[#143628]', 'text-white', 'font-semibold', 'shadow-2xs');
+      btn.classList.remove('text-stone-700', 'text-stone-600', 'font-medium', 'hover:bg-stone-100', 'hover:text-stone-900');
+      const icon = btn.querySelector('svg, span');
+      if (icon) {
+        icon.classList.remove('text-stone-500', 'text-stone-600');
+        icon.classList.add('text-white');
+      }
     } else {
-      btn.classList.remove('active');
+      btn.classList.remove('active', 'bg-[#143628]', 'text-white', 'font-semibold', 'shadow-2xs');
+      btn.classList.add('text-stone-700', 'hover:bg-stone-100', 'hover:text-stone-900', 'font-medium');
+      const icon = btn.querySelector('svg, span');
+      if (icon) {
+        icon.classList.remove('text-white');
+        if (icon.tagName && icon.tagName.toLowerCase() === 'svg') {
+          icon.classList.add('text-stone-500');
+        } else {
+          icon.classList.add('text-stone-600');
+        }
+      }
     }
   });
 
+  // Actualizar breadcrumb y ejecutar inicializaciones contextuales
   const breadcrumbEl = document.getElementById('producer-breadcrumb');
   if (breadcrumbEl) {
-    if (tabName === 'mis-productos') {
+    if (normalizedTab === 'mis-productos') {
       breadcrumbEl.innerHTML = `<span>Mi espacio</span> <span class="text-stone-300">›</span> <span class="text-stone-800 font-semibold">Mis productos</span>`;
-    } else if (tabName === 'nuevo-producto') {
-      const actionName = productFormMode === 'edit' ? `Modificar ${currentEditingCode || 'producto'}` : 'Nuevo producto';
+      if (producerProducts && producerProducts.length > 0) {
+        renderProducerProducts();
+      }
+    } else if (normalizedTab === 'nuevo-producto') {
+      const actionName = productFormMode === 'edit' ? `Modificar ${currentEditingCode || 'producto'}` : 'Publicar nuevo producto';
       breadcrumbEl.innerHTML = `<span>Mi espacio</span> <span class="text-stone-300">›</span> <span class="hover:underline cursor-pointer" onclick="handleCancelNewProduct()">Mis productos</span> <span class="text-stone-300">/</span> <span class="text-stone-800 font-semibold">${actionName}</span>`;
-    } else if (tabName === 'mi-economia') {
+    } else if (normalizedTab === 'mi-economia') {
       breadcrumbEl.innerHTML = `<span>Mi espacio</span> <span class="text-stone-300">›</span> <span class="text-stone-800 font-semibold">Mi economía</span>`;
       renderEconomyDashboard();
-    } else if (tabName === 'registrar-gasto') {
+    } else if (normalizedTab === 'registrar-gasto') {
       breadcrumbEl.innerHTML = `<span>Mi espacio</span> <span class="text-stone-300">›</span> <button type="button" onclick="switchProducerTab('mi-economia')" class="text-stone-500 hover:text-stone-800 cursor-pointer">Mi economía</button> <span class="text-stone-300">/</span> <span class="text-stone-800 font-semibold">Registrar gasto</span>`;
       resetExpenseForm();
-    } else if (tabName === 'perfil-seguridad') {
+    } else if (normalizedTab === 'perfil-seguridad') {
       breadcrumbEl.innerHTML = `<span>Mi espacio</span> <span class="text-stone-300">›</span> <span class="text-stone-800 font-semibold">Mi perfil y seguridad</span>`;
     }
   }
 
+  // Sincronizar URL con ?tab=... y #... sin recargar la página
   try {
-    window.location.hash = tabName;
-  } catch (_) {}
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', normalizedTab);
+    url.hash = normalizedTab;
+    window.history.replaceState({ tab: normalizedTab }, '', url.toString());
+  } catch (_) {
+    window.location.hash = normalizedTab;
+  }
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -1857,6 +1924,261 @@ async function uploadProductImageFiles() {
       }
     }
   }
+}
+
+// =============================================================================
+// GESTIÓN DE TIPO DE PRODUCTO, ESTACIONALIDAD Y CANASTAS SEMANALES
+// =============================================================================
+
+function setProductType(type) {
+  productType = type === 'basket' ? 'basket' : 'individual';
+
+  const btnIndiv = document.getElementById('type-btn-individual');
+  const btnBasket = document.getElementById('type-btn-basket');
+  const basketPanel = document.getElementById('basket-builder-panel');
+  const unitSelect = document.getElementById('new-form-unit');
+
+  if (productType === 'individual') {
+    if (btnIndiv) {
+      btnIndiv.className = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border-2 text-xs font-bold transition border-[#143628] bg-[#143628] text-white shadow-2xs cursor-pointer';
+    }
+    if (btnBasket) {
+      btnBasket.className = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border-2 border-stone-200 bg-stone-50 hover:bg-white text-stone-700 text-xs font-bold transition cursor-pointer';
+    }
+    if (basketPanel) {
+      basketPanel.classList.add('hidden');
+    }
+  } else {
+    if (btnBasket) {
+      btnBasket.className = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border-2 text-xs font-bold transition border-[#143628] bg-[#143628] text-white shadow-2xs cursor-pointer';
+    }
+    if (btnIndiv) {
+      btnIndiv.className = 'flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl border-2 border-stone-200 bg-stone-50 hover:bg-white text-stone-700 text-xs font-bold transition cursor-pointer';
+    }
+    if (basketPanel) {
+      basketPanel.classList.remove('hidden');
+    }
+    if (unitSelect) {
+      for (let i = 0; i < unitSelect.options.length; i++) {
+        if (unitSelect.options[i].value.includes('Canasta')) {
+          unitSelect.selectedIndex = i;
+          break;
+        }
+      }
+    }
+    populateBasketProductSelect();
+    calculateBasketSavings();
+  }
+
+  updateLivePreview();
+}
+
+function handleSeasonChange() {
+  const seasonSelect = document.getElementById('new-form-season-label');
+  const seasonCheck = document.getElementById('new-form-is-seasonal');
+  if (seasonSelect && seasonCheck) {
+    if (seasonSelect.value !== 'Disponible todo el año') {
+      seasonCheck.checked = true;
+    }
+  }
+  updateLivePreview();
+}
+
+function handleSeasonCheckboxChange() {
+  const seasonSelect = document.getElementById('new-form-season-label');
+  const seasonCheck = document.getElementById('new-form-is-seasonal');
+  if (seasonSelect && seasonCheck) {
+    if (seasonCheck.checked && seasonSelect.value === 'Disponible todo el año') {
+      seasonSelect.value = 'Cosecha de temporada';
+    }
+  }
+  updateLivePreview();
+}
+
+function populateBasketProductSelect() {
+  const select = document.getElementById('basket-item-product-select');
+  if (!select) return;
+
+  const sourceProducts = (producerProducts && producerProducts.length > 0)
+    ? producerProducts
+    : (allLoadedProducts && allLoadedProducts.length > 0 ? allLoadedProducts : []);
+
+  const filtered = sourceProducts.filter(p => !p.is_basket && String(p.code) !== String(currentEditingCode));
+
+  if (filtered.length === 0) {
+    select.innerHTML = '<option value="">No hay productos individuales disponibles</option>';
+    return;
+  }
+
+  select.innerHTML = filtered.map(p => {
+    const unitLabel = p.unitLabel || p.unit || 'unidad';
+    const priceVal = formatUSD(p.price);
+    return `<option value="${p.id || p.numericId}" data-name="${p.title}" data-price="${p.price}" data-unit="${unitLabel}">${p.title} · $${priceVal} / ${unitLabel}</option>`;
+  }).join('');
+
+  updateBasketPortionDefault();
+}
+
+function updateBasketPortionDefault() {
+  const select = document.getElementById('basket-item-product-select');
+  const portionInput = document.getElementById('basket-item-portion');
+  if (!select || !portionInput) return;
+
+  const opt = select.options[select.selectedIndex];
+  if (opt && opt.dataset && opt.dataset.unit) {
+    portionInput.placeholder = `Ej. 1 ${opt.dataset.unit}`;
+  }
+}
+
+function addBasketItemFromForm() {
+  const select = document.getElementById('basket-item-product-select');
+  const portionInput = document.getElementById('basket-item-portion');
+  if (!select || select.selectedIndex < 0) return;
+
+  const opt = select.options[select.selectedIndex];
+  if (!opt || !opt.value) {
+    showProducerToast('Selecciona un producto para agregarlo a la canasta.', true);
+    return;
+  }
+
+  const prodId = opt.value;
+  const prodName = opt.dataset.name || opt.text.split('·')[0].trim();
+  const prodPrice = parseFloat(opt.dataset.price) || 0;
+  const unitLabel = opt.dataset.unit || 'un';
+  const portionVal = portionInput && portionInput.value.trim() ? portionInput.value.trim() : `1 ${unitLabel}`;
+
+  basketItems.push({
+    product_id: prodId,
+    name: prodName,
+    quantity_label: portionVal,
+    price: prodPrice,
+    units: 1
+  });
+
+  if (portionInput) portionInput.value = '';
+
+  renderBasketItemsList();
+  calculateBasketSavings();
+  updateLivePreview();
+  formDirty = true;
+  showProducerToast(`✓ ${prodName} agregado a la canasta.`);
+}
+
+function removeBasketItem(idx) {
+  if (idx >= 0 && idx < basketItems.length) {
+    const removed = basketItems.splice(idx, 1);
+    renderBasketItemsList();
+    calculateBasketSavings();
+    updateLivePreview();
+    formDirty = true;
+    if (removed && removed[0]) {
+      showProducerToast(`Item ${removed[0].name} removido de la canasta.`);
+    }
+  }
+}
+
+function renderBasketItemsList() {
+  const listEl = document.getElementById('basket-items-list');
+  const countBadge = document.getElementById('basket-items-count-badge');
+  if (!listEl) return;
+
+  if (countBadge) {
+    countBadge.textContent = `${basketItems.length} alimento${basketItems.length === 1 ? '' : 's'}`;
+  }
+
+  if (basketItems.length === 0) {
+    listEl.innerHTML = `
+      <div id="basket-items-empty" class="text-center py-5 bg-white/70 rounded-xl border border-dashed border-emerald-200 text-stone-400 text-xs">
+        Aún no has agregado productos a esta canasta. Selecciona arriba para comenzar.
+      </div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = basketItems.map((item, index) => {
+    return `
+      <div class="flex items-center justify-between p-2.5 bg-white rounded-xl border border-emerald-200 text-xs shadow-2xs hover:border-emerald-300 transition">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="w-6 h-6 rounded-lg bg-emerald-50 text-emerald-800 flex items-center justify-center font-bold text-xs shrink-0">🌱</span>
+          <div class="truncate">
+            <span class="font-bold text-stone-800">${item.name}</span>
+            <span class="text-stone-400 text-[11px] ml-1.5 font-medium">(${item.quantity_label || '1 un'})</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 shrink-0 ml-2">
+          <span class="font-semibold text-stone-700 text-xs">$${formatUSD(item.price)}</span>
+          <button type="button" onclick="removeBasketItem(${index})" class="text-red-500 hover:text-red-700 font-bold text-xs p-1 rounded-md hover:bg-red-50 transition cursor-pointer" title="Eliminar de la canasta">✕</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function calculateBasketSavings() {
+  const sumIndivEl = document.getElementById('basket-individual-sum');
+  const sellingPriceEl = document.getElementById('basket-selling-price');
+  const savingsBadge = document.getElementById('basket-savings-badge');
+  const priceInput = document.getElementById('new-form-price');
+
+  const totalIndividual = basketItems.reduce((acc, it) => acc + (parseFloat(it.price) || 0), 0);
+  if (sumIndivEl) sumIndivEl.textContent = `$${formatUSD(totalIndividual)}`;
+
+  const rawSellingPrice = (priceInput ? priceInput.value : '').replace(/[^0-9.]/g, '');
+  const sellingPrice = parseFloat(rawSellingPrice) || 0;
+  if (sellingPriceEl) sellingPriceEl.textContent = `$${formatUSD(sellingPrice)}`;
+
+  if (totalIndividual > 0 && sellingPrice > 0 && sellingPrice < totalIndividual) {
+    const savings = Math.round(((totalIndividual - sellingPrice) / totalIndividual) * 100);
+    basketSavingsPercent = savings;
+    if (savingsBadge) {
+      savingsBadge.textContent = `Ahorra ${savings}%`;
+      savingsBadge.className = 'inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-extrabold bg-[#c85a32] text-white shadow-2xs';
+    }
+  } else {
+    basketSavingsPercent = 0;
+    if (savingsBadge) {
+      savingsBadge.textContent = 'Sin descuento adicional';
+      savingsBadge.className = 'inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium bg-stone-100 text-stone-500 border border-stone-200';
+    }
+  }
+}
+
+async function adjustProducerStock(code, delta, event) {
+  if (event) event.stopPropagation();
+
+  const prod = producerProducts.find(p => p.code === code || String(p.id) === String(code) || String(p.numericId) === String(code));
+  if (!prod) return;
+
+  const currentStock = parseInt(prod.stock, 10) || 0;
+  const newStock = Math.max(0, currentStock + delta);
+  prod.stock = newStock;
+
+  if (newStock === 0) {
+    prod.status = 'agotado';
+    prod.statusText = 'Agotado';
+  } else if (prod.status === 'agotado') {
+    prod.status = 'publicado';
+    prod.statusText = 'Publicado';
+  }
+
+  renderProducerProducts();
+
+  try {
+    if (window.supabase && typeof window.supabase.from === 'function') {
+      const targetId = prod.numericId || prod.id;
+      if (targetId) {
+        await window.supabase.from('products').update({ stock: newStock }).eq('id', targetId);
+      }
+    }
+  } catch (err) {
+    console.warn('Error actualizando stock en Supabase:', err);
+  }
+
+  showProducerToast(`✓ Stock de ${prod.title} ajustado a ${newStock} ${prod.unitLabel || 'unidades'}.`);
+}
+
+async function quickRestockProduct(code, amount = 15, event) {
+  await adjustProducerStock(code, amount, event);
 }
 
 // =============================================================================
@@ -2135,25 +2457,6 @@ function resetNewProductForm() {
 
   const agroCheck = document.getElementById('new-agroeco');
   if (agroCheck) agroCheck.checked = true;
-
-  // Restaurar tipo y canasta
-  if (prod.is_basket) {
-    setProductType('basket');
-    basketItems = Array.isArray(prod.basket_items) ? JSON.parse(JSON.stringify(prod.basket_items)) : [];
-    basketSavingsPercent = Number(prod.basket_savings_percent || 0);
-  } else {
-    setProductType('individual');
-    basketItems = [];
-    basketSavingsPercent = 0;
-  }
-  renderBasketItemsList();
-  calculateBasketSavings();
-
-  // Restaurar estacionalidad
-  const seasonSelect = document.getElementById('new-form-season-label');
-  if (seasonSelect) seasonSelect.value = prod.season_label || 'Disponible todo el año';
-  const seasonCheck = document.getElementById('new-form-is-seasonal');
-  if (seasonCheck) seasonCheck.checked = Boolean(prod.is_seasonal || (prod.season_label && prod.season_label !== 'Disponible todo el año'));
 
   const seasonSelect = document.getElementById('new-form-season-label');
   if (seasonSelect) seasonSelect.value = 'Disponible todo el año';
@@ -2727,13 +3030,28 @@ function formatCOP(num) {
   return formatUSD(num);
 }
 
+// Exponer funciones globales del panel de productor
+window.switchProducerTab = switchProducerTab;
+window.normalizeProducerTabName = normalizeProducerTabName;
+window.openNewProductForm = openNewProductForm;
+window.resetNewProductForm = resetNewProductForm;
+window.handleCancelNewProduct = handleCancelNewProduct;
+window.editProductFromCard = editProductFromCard;
+window.loadProductForEditing = loadProductForEditing;
+window.publishNewProduct = publishNewProduct;
+window.publishProductDirectly = publishProductDirectly;
+window.setProductFilter = setProductFilter;
+window.handleProducerSearch = handleProducerSearch;
+window.renderProducerProducts = renderProducerProducts;
+window.showProducerToast = showProducerToast;
+
 // Exponer funciones globales para el flujo de cambio de correo electrónico
 window.requestProducerEmailChange = requestProducerEmailChange;
 window.resendProducerEmailVerification = resendProducerEmailVerification;
 window.changeProducerEmailAddress = changeProducerEmailAddress;
 window.confirmProducerEmailVerification = confirmProducerEmailVerification;
 
-
+// Exponer funciones para estacionalidad, canastas y stock
 window.setProductType = setProductType;
 window.handleSeasonChange = handleSeasonChange;
 window.handleSeasonCheckboxChange = handleSeasonCheckboxChange;
