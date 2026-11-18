@@ -1517,7 +1517,7 @@ function renderProducerProducts() {
           <!-- 3 Acciones directas por borrador -->
           <div class="flex items-center gap-2 shrink-0 self-end sm:self-center border-t sm:border-t-0 pt-3 sm:pt-0 w-full sm:w-auto justify-end">
             <!-- 1. Continuar editando -->
-            <button type="button" onclick="editProductFromCard('${prod.code}')" class="px-3.5 py-2 rounded-xl text-xs font-bold border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 transition shadow-2xs flex items-center gap-1.5 cursor-pointer">
+            <button type="button" onclick="openEditProductModal('${prod.code}')" class="px-3.5 py-2 rounded-xl text-xs font-bold border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 transition shadow-2xs flex items-center gap-1.5 cursor-pointer">
               <svg class="w-3.5 h-3.5 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
               </svg>
@@ -1530,7 +1530,7 @@ function renderProducerProducts() {
             </button>
 
             <!-- 3. Eliminar borrador -->
-            <button type="button" onclick="deleteProducerDraft('${prod.code}', event)" class="p-2 rounded-xl text-stone-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition cursor-pointer" title="Eliminar borrador">
+            <button type="button" onclick="openDeleteProductModal('${prod.code}', event)" class="p-2 rounded-xl text-stone-400 hover:text-red-600 hover:bg-red-50 border border-transparent hover:border-red-200 transition cursor-pointer" title="Eliminar borrador">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
               </svg>
@@ -1642,26 +1642,36 @@ function renderProducerProducts() {
         <!-- Acciones Inferiores -->
         <div class="p-4 sm:p-5 pt-0">
           <div class="flex items-center justify-between border-t border-stone-100 pt-3">
-            <button onclick="editProductFromCard('${prod.code}')" class="text-xs font-bold text-[#143628] hover:text-[#255440] flex items-center gap-1 transition cursor-pointer">
-              <span>${isBorrador ? 'Continuar editando' : 'Modificar'}</span>
-              <span>→</span>
-            </button>
+            <div class="flex items-center gap-1 sm:gap-1.5">
+              <button type="button" onclick="openEditProductModal('${prod.code}')" class="text-xs font-bold text-[#143628] hover:text-[#255440] hover:bg-emerald-50/70 rounded-lg px-2.5 py-1.5 flex items-center gap-1 transition cursor-pointer" title="Modificar este producto">
+                <svg class="w-3.5 h-3.5 text-[#143628]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                <span>${isBorrador ? 'Continuar editando' : 'Modificar'}</span>
+              </button>
+
+              <button type="button" onclick="openDeleteProductModal('${prod.code}', event)" class="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg px-2.5 py-1.5 text-xs font-medium transition flex items-center gap-1 cursor-pointer" title="Eliminar este producto">
+                <svg class="w-3.5 h-3.5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                <span>Eliminar</span>
+              </button>
+            </div>
 
             ${isBorrador ? `
-              <div class="flex items-center gap-2">
-                <button onclick="publishProductDirectly('${prod.code}')" class="bg-[#143628] hover:bg-[#1f4a38] text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="publishProductDirectly('${prod.code}')" class="bg-[#143628] hover:bg-[#1f4a38] text-white text-xs font-bold px-3 py-1.5 rounded-xl shadow-xs transition cursor-pointer">
                   Publicar
-                </button>
-                <button onclick="deleteProducerDraft('${prod.code}', event)" class="p-1.5 text-stone-400 hover:text-red-600 rounded-lg hover:bg-stone-100 transition cursor-pointer" title="Eliminar borrador">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
                 </button>
               </div>
             ` : isAgotado ? `
-              <button onclick="quickRestockProduct('${prod.code}', 15, event)" class="border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer">
-                Reponer stock
-              </button>
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="quickRestockProduct('${prod.code}', 15, event)" class="border border-stone-300 bg-white hover:bg-stone-50 text-stone-800 text-xs font-bold px-3 py-1.5 rounded-xl transition cursor-pointer">
+                  Reponer stock
+                </button>
+              </div>
             ` : `
-              <span class="text-[11px] text-stone-400">${escapeHtml(prod.lastUpdate || 'Hoy')}</span>
+              <span class="text-[11px] text-stone-400 font-medium">${escapeHtml(prod.lastUpdate || 'Hoy')}</span>
             `}
           </div>
         </div>
@@ -2766,7 +2776,7 @@ async function loadProductForEditing(codeOrId) {
 }
 
 function editProductFromCard(code) {
-  loadProductForEditing(code);
+  openEditProductModal(code);
 }
 
 function handleCancelNewProduct() {
@@ -3171,7 +3181,14 @@ async function publishProductDirectly(code) {
   updateKPIs();
 }
 
-async function deleteProducerDraft(code, event) {
+// =============================================================================
+// GESTIÓN DE MODALES: ELIMINAR Y EDICIÓN RÁPIDA DE PRODUCTOS
+// =============================================================================
+
+let productToDeleteCode = null;
+let editModalNewImageFile = null;
+
+function openDeleteProductModal(code, event) {
   if (event) {
     event.stopPropagation();
     event.preventDefault();
@@ -3179,23 +3196,322 @@ async function deleteProducerDraft(code, event) {
   const prod = producerProducts.find(p => p.code === code || p.id == code);
   if (!prod) return;
 
-  const confirmDelete = confirm(`¿Estás seguro de que deseas eliminar el borrador "${prod.title}"? Esta acción no se puede deshacer.`);
-  if (!confirmDelete) return;
+  productToDeleteCode = prod.code;
 
-  producerProducts = producerProducts.filter(p => p.code !== code && p.id != prod.id);
+  const modal = document.getElementById('delete-product-modal');
+  const nameEl = document.getElementById('delete-modal-product-name');
+  const codeEl = document.getElementById('delete-modal-product-code');
 
-  if (window.supabase && typeof window.supabase.deleteProduct === 'function' && prod.id) {
-    try {
-      await window.supabase.deleteProduct(prod.id);
-    } catch (err) {
-      console.warn('Error al eliminar producto en Supabase:', err);
-    }
+  if (nameEl) nameEl.textContent = prod.title || 'este producto';
+  if (codeEl) codeEl.textContent = prod.code || 'PR-???';
+
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeDeleteProductModal() {
+  productToDeleteCode = null;
+  const modal = document.getElementById('delete-product-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+}
+
+async function confirmDeleteProduct() {
+  if (!productToDeleteCode) return;
+  const prod = producerProducts.find(p => p.code === productToDeleteCode || p.id == productToDeleteCode);
+  if (!prod) {
+    closeDeleteProductModal();
+    return;
   }
 
-  showProducerToast(`El borrador "${prod.title}" ha sido eliminado.`);
-  renderProducerProducts();
-  updateKPIs();
+  const deleteBtn = document.getElementById('btn-confirm-delete-product');
+  const originalHtml = deleteBtn ? deleteBtn.innerHTML : 'Sí, eliminar producto';
+  if (deleteBtn) {
+    deleteBtn.disabled = true;
+    deleteBtn.innerHTML = `
+      <svg class="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+      </svg>
+      <span>Eliminando...</span>
+    `;
+  }
+
+  try {
+    if (window.supabase && typeof window.supabase.deleteProduct === 'function' && prod.id) {
+      await window.supabase.deleteProduct(prod.id);
+    }
+
+    // Remover localmente del arreglo de productos
+    const deletedTitle = prod.title;
+    producerProducts = producerProducts.filter(p => p.code !== prod.code && p.id != prod.id);
+
+    closeDeleteProductModal();
+    renderProducerProducts();
+    updateKPIs();
+    showProducerToast(`✓ Producto "${deletedTitle}" eliminado correctamente`);
+  } catch (err) {
+    console.error('Error al eliminar producto en Supabase:', err);
+    showProducerToast('Error al eliminar producto: ' + (err.message || 'Error en base de datos'), true);
+  } finally {
+    if (deleteBtn) {
+      deleteBtn.disabled = false;
+      deleteBtn.innerHTML = originalHtml;
+    }
+  }
 }
+
+function deleteProducerDraft(code, event) {
+  openDeleteProductModal(code, event);
+}
+
+function openEditProductModal(code) {
+  const prod = producerProducts.find(p => p.code === code || p.id == code);
+  if (!prod) return;
+
+  editModalNewImageFile = null;
+
+  const modal = document.getElementById('edit-product-modal');
+  const codeBadge = document.getElementById('edit-modal-code-badge');
+  const codeHidden = document.getElementById('edit-modal-product-code');
+  const idHidden = document.getElementById('edit-modal-product-id');
+  const imgPreview = document.getElementById('edit-modal-image-preview');
+  const imgInput = document.getElementById('edit-modal-image-input');
+  const nameInput = document.getElementById('edit-modal-name');
+  const descInput = document.getElementById('edit-modal-desc');
+  const catSelect = document.getElementById('edit-modal-category');
+  const unitSelect = document.getElementById('edit-modal-unit');
+  const priceInput = document.getElementById('edit-modal-price');
+  const stockInput = document.getElementById('edit-modal-stock');
+  const seasonSelect = document.getElementById('edit-modal-season');
+  const statusSelect = document.getElementById('edit-modal-status');
+
+  if (codeBadge) codeBadge.textContent = `EDICIÓN RÁPIDA · ${prod.code}`;
+  if (codeHidden) codeHidden.value = prod.code;
+  if (idHidden) idHidden.value = prod.id || '';
+
+  const currentImg = prod.image || prod.image_url || 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80';
+  if (imgPreview) imgPreview.src = currentImg;
+  if (imgInput) imgInput.value = '';
+
+  if (nameInput) nameInput.value = prod.title || '';
+  if (descInput) descInput.value = prod.description || prod.subtitle || '';
+
+  // Seleccionar categoría correspondiente
+  if (catSelect) {
+    const prodCatLower = (prod.category || '').toLowerCase();
+    let found = false;
+    for (let opt of catSelect.options) {
+      if (opt.text.toLowerCase().includes(prodCatLower) || prodCatLower.includes(opt.text.toLowerCase())) {
+        catSelect.value = opt.value;
+        found = true;
+        break;
+      }
+    }
+    if (!found) catSelect.selectedIndex = 0;
+  }
+
+  // Seleccionar unidad de venta
+  if (unitSelect) {
+    const unitLower = (prod.unit || prod.unitLabel || '').toLowerCase();
+    let found = false;
+    for (let opt of unitSelect.options) {
+      if (opt.value.toLowerCase().includes(unitLower) || opt.text.toLowerCase().includes(unitLower)) {
+        unitSelect.value = opt.value;
+        found = true;
+        break;
+      }
+    }
+    if (!found) unitSelect.selectedIndex = 0;
+  }
+
+  if (priceInput) priceInput.value = Number(prod.price || 0).toFixed(2);
+  if (stockInput) stockInput.value = parseInt(prod.stock || 0, 10);
+
+  if (seasonSelect) {
+    seasonSelect.value = prod.season_label || 'Disponible todo el año';
+  }
+
+  if (statusSelect) {
+    statusSelect.value = prod.status === 'borrador' ? 'draft' : 'published';
+  }
+
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeEditProductModal() {
+  editModalNewImageFile = null;
+  const modal = document.getElementById('edit-product-modal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+}
+
+function handleEditModalImageChange(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  if (file.size > 5 * 1024 * 1024) {
+    showProducerToast('La imagen supera los 5 MB permitidos.', true);
+    return;
+  }
+
+  editModalNewImageFile = file;
+  const imgPreview = document.getElementById('edit-modal-image-preview');
+  if (imgPreview) {
+    imgPreview.src = URL.createObjectURL(file);
+  }
+}
+
+async function saveEditedProductModal(event) {
+  if (event) {
+    event.preventDefault();
+  }
+
+  const codeInput = document.getElementById('edit-modal-product-code');
+  const code = codeInput ? codeInput.value : '';
+  const prod = producerProducts.find(p => p.code === code || p.id == code);
+  if (!prod) return;
+
+  const nameInput = document.getElementById('edit-modal-name');
+  const descInput = document.getElementById('edit-modal-desc');
+  const catSelect = document.getElementById('edit-modal-category');
+  const unitSelect = document.getElementById('edit-modal-unit');
+  const priceInput = document.getElementById('edit-modal-price');
+  const stockInput = document.getElementById('edit-modal-stock');
+  const seasonSelect = document.getElementById('edit-modal-season');
+  const statusSelect = document.getElementById('edit-modal-status');
+  const saveBtn = document.getElementById('btn-save-edit-modal');
+  const saveLabel = document.getElementById('btn-save-edit-modal-label');
+  const saveIcon = document.getElementById('btn-save-edit-modal-icon');
+
+  const title = (nameInput ? nameInput.value : '').trim();
+  if (!title) {
+    showProducerToast('Por favor escribe el nombre del producto.', true);
+    if (nameInput) nameInput.focus();
+    return;
+  }
+
+  const rawPrice = (priceInput ? priceInput.value : '').replace(/[^0-9.]/g, '');
+  const priceNum = parseFloat(rawPrice);
+  if (isNaN(priceNum) || priceNum <= 0) {
+    showProducerToast('Ingresa un precio de venta válido en dólares (USD).', true);
+    if (priceInput) priceInput.focus();
+    return;
+  }
+
+  const rawStock = (stockInput ? stockInput.value : '').replace(/[^0-9]/g, '');
+  const stockNum = parseInt(rawStock, 10);
+  if (isNaN(stockNum) || stockNum < 0) {
+    showProducerToast('Ingresa las existencias disponibles.', true);
+    if (stockInput) stockInput.focus();
+    return;
+  }
+
+  const desc = (descInput ? descInput.value : '').trim();
+  const categoryId = catSelect ? parseInt(catSelect.value, 10) : 2;
+  const unit = unitSelect ? unitSelect.value : 'Kilogramo (kg)';
+  const unitLabel = unit.split('·')[0].trim().toLowerCase() || 'kg';
+  const seasonLabel = seasonSelect ? seasonSelect.value : 'Disponible todo el año';
+  const isSeasonal = seasonLabel !== 'Disponible todo el año';
+  const isPublished = statusSelect ? statusSelect.value === 'published' : true;
+
+  if (saveBtn) saveBtn.disabled = true;
+  if (saveLabel) saveLabel.textContent = 'Guardando cambios...';
+  if (saveIcon) saveIcon.textContent = '⏳';
+
+  try {
+    let finalImageUrl = prod.image || prod.image_url;
+
+    // Si se subió un nuevo archivo de imagen
+    if (editModalNewImageFile && window.supabase && typeof window.supabase.uploadFile === 'function') {
+      try {
+        const fileExt = editModalNewImageFile.name.split('.').pop() || 'jpg';
+        const cleanName = editModalNewImageFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const fileName = `products/prod_${Date.now()}_${cleanName}`;
+        const uploadRes = await window.supabase.uploadFile('assets', fileName, editModalNewImageFile);
+        if (uploadRes && uploadRes.publicUrl) {
+          finalImageUrl = uploadRes.publicUrl;
+        }
+      } catch (uploadErr) {
+        console.warn('Fallo al subir a assets, intentando avatars:', uploadErr);
+        try {
+          const fileName = `prod_${Date.now()}.${editModalNewImageFile.name.split('.').pop() || 'jpg'}`;
+          const uploadRes = await window.supabase.uploadFile('avatars', fileName, editModalNewImageFile);
+          if (uploadRes && uploadRes.publicUrl) {
+            finalImageUrl = uploadRes.publicUrl;
+          }
+        } catch (_) {
+          console.warn('Fallback imagen previa');
+        }
+      }
+    }
+
+    const payload = {
+      category_id: categoryId,
+      title: title,
+      description: desc,
+      price: priceNum,
+      unit: unit,
+      stock_quantity: stockNum,
+      is_available: isPublished,
+      image_url: finalImageUrl,
+      is_seasonal: isSeasonal,
+      season_label: seasonLabel
+    };
+
+    if (window.supabase && typeof window.supabase.updateProduct === 'function' && prod.id) {
+      await window.supabase.updateProduct(prod.id, payload);
+    }
+
+    // Actualizar datos del producto en memoria
+    prod.title = title;
+    prod.description = desc;
+    prod.subtitle = desc.slice(0, 45);
+    prod.price = priceNum;
+    prod.unit = unit;
+    prod.unitLabel = unitLabel;
+    prod.stock = stockNum;
+    prod.origin = prod.origin || 'Hacienda San José · Daule';
+    prod.image = finalImageUrl;
+    prod.image_url = finalImageUrl;
+    prod.category = catSelect ? catSelect.options[catSelect.selectedIndex].text : prod.category;
+    prod.status = isPublished ? (stockNum > 0 ? 'publicado' : 'agotado') : 'borrador';
+    prod.statusText = isPublished ? (stockNum > 0 ? 'Publicado' : 'Agotado') : 'Borrador';
+    prod.is_available = isPublished;
+    prod.is_seasonal = isSeasonal;
+    prod.season_label = seasonLabel;
+    prod.lastUpdate = 'Hoy · recién guardado';
+
+    closeEditProductModal();
+    renderProducerProducts();
+    updateKPIs();
+    showProducerToast('✓ Producto actualizado con éxito');
+  } catch (err) {
+    console.error('Error actualizando producto desde modal:', err);
+    showProducerToast('Error al guardar cambios: ' + (err.message || 'Error de conexión'), true);
+  } finally {
+    if (saveBtn) saveBtn.disabled = false;
+    if (saveLabel) saveLabel.textContent = 'Guardar cambios';
+    if (saveIcon) saveIcon.textContent = '✓';
+  }
+}
+
+// Cierre de modales con clic en backdrop y tecla Escape
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    closeDeleteProductModal();
+    closeEditProductModal();
+  }
+});
 
 async function reponerStockDirectly(code) {
   const prod = producerProducts.find(p => p.code === code);
@@ -3254,6 +3570,13 @@ window.publishNewProduct = publishNewProduct;
 window.saveProductDraft = saveProductDraft;
 window.publishProductDirectly = publishProductDirectly;
 window.deleteProducerDraft = deleteProducerDraft;
+window.openDeleteProductModal = openDeleteProductModal;
+window.closeDeleteProductModal = closeDeleteProductModal;
+window.confirmDeleteProduct = confirmDeleteProduct;
+window.openEditProductModal = openEditProductModal;
+window.closeEditProductModal = closeEditProductModal;
+window.handleEditModalImageChange = handleEditModalImageChange;
+window.saveEditedProductModal = saveEditedProductModal;
 window.getActiveProducerId = getActiveProducerId;
 window.setProductFilter = setProductFilter;
 window.handleProducerSearch = handleProducerSearch;

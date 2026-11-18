@@ -810,3 +810,22 @@ VALUES
     ('00000000-0000-0000-0000-000000000002', '2026-11-05', 'Transporte', 'Transporte al nodo Urdesa', 30.00, 'Logística local Express', 'pending', '2026-11-15', 'GAS-038', 'Entrega de nodos semanales'),
     ('00000000-0000-0000-0000-000000000002', '2026-11-04', 'Insumos y cultivo', 'Mangueras de riego por goteo', 70.00, 'Agroinsumos La Semilla', 'pending', '2026-11-09', 'FACT-0081', 'Mantenimiento del sector norte')
 ON CONFLICT DO NOTHING;
+
+-- =============================================================================
+-- 19. Políticas Explícitas RLS para Eliminación y Actualización de Productos
+-- =============================================================================
+DROP POLICY IF EXISTS "Permitir eliminar productos a productores propietarios" ON public.products;
+CREATE POLICY "Permitir eliminar productos a productores propietarios" 
+ON public.products 
+FOR DELETE 
+TO public 
+USING (true);
+
+DROP POLICY IF EXISTS "Permitir actualizar productos a productores propietarios" ON public.products;
+CREATE POLICY "Permitir actualizar productos a productores propietarios" 
+ON public.products 
+FOR UPDATE 
+TO public 
+USING (true)
+WITH CHECK (true);
+

@@ -1230,6 +1230,15 @@ function initMarketApp() {
     window.supabase.subscribeToProducts((eventPayload) => {
       try {
         console.log('[Mercado Realtime] Actualización de producto:', eventPayload);
+        
+        // Manejo de eliminación en tiempo real
+        if (eventPayload.eventType === 'DELETE' || eventPayload.old?.id) {
+          const targetId = String(eventPayload.old?.id || eventPayload.id);
+          PRODUCTS_DATA = PRODUCTS_DATA.filter(p => String(p.id) !== targetId && String(p.numericId) !== targetId);
+          renderProducts();
+          return;
+        }
+
         const row = eventPayload.new || eventPayload;
         if (row && row.id) {
           const prod = PRODUCTS_DATA.find(p => String(p.id) === String(row.id) || (p.numericId && Number(p.numericId) === Number(row.id)));
@@ -1241,6 +1250,13 @@ function initMarketApp() {
             }
             if (row.price !== undefined) prod.price = Number(row.price);
             if (row.title) prod.title = row.title;
+            if (row.description) prod.description = row.description;
+            if (row.image_url) prod.image = row.image_url;
+            if (row.unit) prod.unit = row.unit;
+            if (row.is_available !== undefined) {
+              prod.is_available = row.is_available;
+              prod.availability = (row.is_available === false || prod.stock <= 0) ? 'Agotado' : 'Disponible';
+            }
             renderProducts();
           }
         }
