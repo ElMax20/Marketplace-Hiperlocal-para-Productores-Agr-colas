@@ -615,6 +615,174 @@
                   <input type="number" min="0" step="1" id="new-form-stock" placeholder="30" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#1a3d2f]">
                 </div>
               </div>
+
+              <!-- BLOQUE RECOMENDADOR INTELIGENTE DE PRECIOS -->
+              <div class="mt-5 pt-5 border-t border-stone-100 bg-[#FBF9F5] -mx-5 -mb-5 sm:-mx-6 sm:-mb-6 p-5 sm:p-6 rounded-b-2xl border-t border-stone-200/70">
+                <div class="flex items-center justify-between gap-2 mb-2">
+                  <div class="flex items-center gap-2">
+                    <span class="text-base">💡</span>
+                    <h4 class="font-bold text-stone-900 text-xs tracking-tight">Recomendador Inteligente de Precios</h4>
+                  </div>
+                  <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                    Ecuador · IVA 15%
+                  </span>
+                </div>
+                <p class="text-[11px] text-stone-500 mb-4 leading-relaxed">
+                  Calcula tu precio sugerido según tus costos de producción agrícola, margen neto deseado y canal de distribución.
+                </p>
+
+                <!-- Inputs del Productor: Costo Unitario & Margen -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                  <!-- Costo unitario de producción -->
+                  <div>
+                    <label for="new-form-production-cost" class="block text-[11px] font-bold text-stone-700 mb-1">
+                      Costo unitario de producción (USD)
+                    </label>
+                    <div class="relative">
+                      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">$</span>
+                      <input type="number" id="new-form-production-cost" min="0" step="0.01" placeholder="0.30"
+                        oninput="recalculatePricingAdvisor()"
+                        class="w-full pl-7 pr-3 py-2 bg-white border border-stone-200 rounded-xl text-xs font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#143628] focus:border-transparent transition">
+                    </div>
+                    <span class="text-[10px] text-stone-400 mt-1 block">Semillas, jornales, agua, abono por unidad</span>
+                  </div>
+
+                  <!-- Margen de ganancia deseado -->
+                  <div>
+                    <div class="flex items-center justify-between mb-1">
+                      <label for="new-form-margin-percent" class="block text-[11px] font-bold text-stone-700">
+                        Margen de ganancia neto (%)
+                      </label>
+                      <div class="flex items-center gap-1">
+                        <input type="number" id="new-form-margin-percent" min="1" max="300" step="1" value="35"
+                          oninput="handleCustomMarginInput(this.value)"
+                          class="w-12 px-1.5 py-0.5 bg-white border border-stone-200 rounded text-[11px] font-bold text-right text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#143628]">
+                        <span class="text-[11px] font-bold text-stone-500">%</span>
+                      </div>
+                    </div>
+
+                    <!-- Botones rápidos de margen -->
+                    <div class="grid grid-cols-3 gap-1.5">
+                      <button type="button" id="advisor-margin-btn-25" onclick="setAdvisorMargin(25)"
+                        class="advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 transition cursor-pointer">
+                        25%
+                      </button>
+                      <button type="button" id="advisor-margin-btn-35" onclick="setAdvisorMargin(35)"
+                        class="advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-[#143628] text-white border border-[#143628] shadow-2xs transition cursor-pointer">
+                        35% <span class="text-[9px] font-normal opacity-90 hidden sm:inline">★ Rec.</span>
+                      </button>
+                      <button type="button" id="advisor-margin-btn-50" onclick="setAdvisorMargin(50)"
+                        class="advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 transition cursor-pointer">
+                        50%
+                      </button>
+                    </div>
+                    <span class="text-[10px] text-stone-400 mt-1 block">Retorno sobre costo de cultivo</span>
+                  </div>
+                </div>
+
+                <!-- Comparativa en Tiempo Real: Opción A vs Opción B -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <!-- Opción A: Venta en Tienda Física / Retiro en Nodo -->
+                  <div class="bg-white rounded-xl p-3.5 border border-stone-200 shadow-2xs flex flex-col justify-between hover:border-emerald-700/50 transition">
+                    <div>
+                      <div class="flex items-center justify-between gap-1 mb-1">
+                        <span class="text-xs font-bold text-stone-900 flex items-center gap-1">
+                          <span>🏬</span> Tienda / Retiro en Nodo
+                        </span>
+                        <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800">
+                          Sede Urdesa
+                        </span>
+                      </div>
+                      <p class="text-[10px] text-stone-400 mb-2.5">Punto comunitario o retiro directo</p>
+
+                      <div class="space-y-1 text-[11px] text-stone-600 pb-2.5 border-b border-stone-100">
+                        <div class="flex justify-between">
+                          <span class="text-stone-500">Costo base:</span>
+                          <span class="font-medium text-stone-800" id="advisor-shop-cost">$0.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-stone-500">Logística consolidada:</span>
+                          <span class="font-medium text-emerald-700">$0.00 USD</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-stone-500">Margen neto (<span id="advisor-shop-margin-label">+35%</span>):</span>
+                          <span class="font-medium text-stone-800" id="advisor-shop-profit">+$0.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-stone-500">IVA 15% referencia:</span>
+                          <span class="font-medium text-stone-500" id="advisor-shop-iva">$0.00</span>
+                        </div>
+                      </div>
+
+                      <div class="pt-2 flex items-baseline justify-between mb-3">
+                        <span class="text-[11px] font-bold text-stone-700">Precio sugerido:</span>
+                        <div class="font-serif text-lg font-bold text-[#143628]" id="advisor-shop-price">$0.00</div>
+                      </div>
+                    </div>
+
+                    <button type="button" onclick="applySuggestedPrice('shop')"
+                      class="w-full py-2 px-3 rounded-lg bg-[#143628] hover:bg-[#1f4a38] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                      <span>Aplicar este precio</span>
+                      <span>✓</span>
+                    </button>
+                  </div>
+
+                  <!-- Opción B: Venta con Entrega a Domicilio -->
+                  <div class="bg-white rounded-xl p-3.5 border border-amber-200/90 shadow-2xs flex flex-col justify-between hover:border-amber-500 transition">
+                    <div>
+                      <div class="flex items-center justify-between gap-1 mb-1">
+                        <span class="text-xs font-bold text-stone-900 flex items-center gap-1">
+                          <span>🛵</span> Entrega a Domicilio
+                        </span>
+                        <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-50 text-amber-800">
+                          Guayaquil Urbano
+                        </span>
+                      </div>
+                      <p class="text-[10px] text-stone-400 mb-2.5">Envío directo o con logística de última milla</p>
+
+                      <div class="space-y-1 text-[11px] text-stone-600 pb-2.5 border-b border-stone-100">
+                        <div class="flex justify-between">
+                          <span class="text-stone-500">Costo base:</span>
+                          <span class="font-medium text-stone-800" id="advisor-delivery-cost">$0.00</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                          <span class="text-stone-500">Logística estimada:</span>
+                          <div class="flex items-center gap-0.5 font-medium text-stone-800">
+                            <span>$</span>
+                            <input type="number" id="new-form-delivery-logistics" min="0" step="0.10" value="1.50"
+                              oninput="recalculatePricingAdvisor()"
+                              class="w-12 px-1 py-0.2 bg-stone-50 border border-stone-200 rounded text-[11px] font-semibold text-right focus:outline-none focus:ring-1 focus:ring-[#143628]">
+                            <span class="text-[10px] text-stone-400">USD</span>
+                          </div>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-stone-500">Margen neto (<span id="advisor-delivery-margin-label">+35%</span>):</span>
+                          <span class="font-medium text-stone-800" id="advisor-delivery-profit">+$0.00</span>
+                        </div>
+                        <div class="flex justify-between">
+                          <span class="text-stone-500">IVA 15% referencia:</span>
+                          <span class="font-medium text-stone-500" id="advisor-delivery-iva">$0.00</span>
+                        </div>
+                      </div>
+
+                      <div class="pt-2 flex items-baseline justify-between mb-1.5">
+                        <span class="text-[11px] font-bold text-stone-700">Precio sugerido:</span>
+                        <div class="font-serif text-lg font-bold text-[#c85a32]" id="advisor-delivery-price">$0.00</div>
+                      </div>
+
+                      <p class="text-[9.5px] text-stone-400 italic mb-2 leading-tight">
+                        Al cliente se le cobra $2.50 de envío estándar en checkout. Usa esta opción si asumes o prorrateas transporte.
+                      </p>
+                    </div>
+
+                    <button type="button" onclick="applySuggestedPrice('delivery')"
+                      class="w-full py-2 px-3 rounded-lg bg-[#c85a32] hover:bg-[#b04b25] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                      <span>Aplicar este precio</span>
+                      <span>✓</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- Card 4: Origen y cosecha -->
@@ -1111,7 +1279,7 @@
             </button>
           </div>
           <div class="text-xs text-stone-500 font-medium">
-            <span id="econ-period-range-display">8 oct. – 6 nov. 2026</span> · USD · <span class="text-stone-400">Datos en tiempo real</span>
+            <span id="econ-period-range-display">Calculando período...</span> · USD · <span class="text-stone-400">Datos en tiempo real</span>
           </div>
         </div>
 
@@ -1120,29 +1288,29 @@
           <!-- 1. Ventas netas -->
           <div class="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs">
             <span class="text-xs text-stone-500 font-medium block mb-1.5">Ventas netas</span>
-            <div class="font-serif text-3xl font-bold text-stone-900 tracking-tight" id="econ-kpi-ventas-netas">$1,600.00</div>
-            <p class="text-[11px] text-stone-400 mt-2 truncate" id="econ-kpi-ventas-sub">Tras $20.00 en devoluciones</p>
+            <div class="font-serif text-3xl font-bold text-stone-900 tracking-tight" id="econ-kpi-ventas-netas">$0.00</div>
+            <p class="text-[11px] text-stone-400 mt-2 truncate" id="econ-kpi-ventas-sub">Tras $0.00 en devoluciones</p>
           </div>
 
           <!-- 2. Ganancia estimada (Destacada en Verde Bosque #143628) -->
           <div class="bg-[#143628] rounded-2xl p-5 shadow-sm text-white">
             <span class="text-xs text-emerald-200/80 font-medium block mb-1.5">Ganancia estimada</span>
-            <div class="font-serif text-3xl font-bold text-white tracking-tight" id="econ-kpi-ganancia">$900.00</div>
-            <p class="text-[11px] text-emerald-100/70 mt-2 truncate" id="econ-kpi-ganancia-sub">Margen del 56.3% · antes de impuestos</p>
+            <div class="font-serif text-3xl font-bold text-white tracking-tight" id="econ-kpi-ganancia">$0.00</div>
+            <p class="text-[11px] text-emerald-100/70 mt-2 truncate" id="econ-kpi-ganancia-sub">Margen del 0.0% · antes de impuestos</p>
           </div>
 
           <!-- 3. Presentaciones vendidas -->
           <div class="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs">
             <span class="text-xs text-stone-500 font-medium block mb-1.5">Presentaciones vendidas</span>
-            <div class="font-serif text-3xl font-bold text-stone-900 tracking-tight" id="econ-kpi-presentaciones">420</div>
-            <p class="text-[11px] text-stone-400 mt-2 truncate" id="econ-kpi-presentaciones-sub">300 paquetes de 1 kg + 120 manojos</p>
+            <div class="font-serif text-3xl font-bold text-stone-900 tracking-tight" id="econ-kpi-presentaciones">0</div>
+            <p class="text-[11px] text-stone-400 mt-2 truncate" id="econ-kpi-presentaciones-sub">0 paquetes</p>
           </div>
 
           <!-- 4. Por cobrar -->
           <div class="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs">
             <span class="text-xs text-stone-500 font-medium block mb-1.5">Por cobrar</span>
-            <div class="font-serif text-3xl font-bold text-stone-900 tracking-tight" id="econ-kpi-por-cobrar">$240.00</div>
-            <p class="text-[11px] text-stone-400 mt-2 truncate" id="econ-kpi-por-cobrar-sub">6 pedidos pendientes de pago</p>
+            <div class="font-serif text-3xl font-bold text-stone-900 tracking-tight" id="econ-kpi-por-cobrar">$0.00</div>
+            <p class="text-[11px] text-stone-400 mt-2 truncate" id="econ-kpi-por-cobrar-sub">0 pedidos pendientes de pago</p>
           </div>
         </div>
 
@@ -1154,7 +1322,7 @@
             <div>
               <div class="flex items-center justify-between gap-2 mb-1">
                 <h3 class="font-serif font-bold text-base text-stone-900">Así van tus ventas</h3>
-                <span id="econ-chart-total" class="text-xs font-bold text-stone-900">Total · $1,600.00</span>
+                <span id="econ-chart-total" class="text-xs font-bold text-stone-900">Total · $0.00</span>
               </div>
               <p class="text-xs text-stone-400 mb-6" id="econ-chart-subtitle">Ventas netas por tramo · últimos 30 días</p>
               
@@ -1178,10 +1346,10 @@
                 <div>
                   <div class="flex items-center justify-between text-xs mb-1.5 font-medium">
                     <span class="text-stone-700">Insumos y cultivo</span>
-                    <span class="font-bold text-stone-900" id="econ-cat-insumos-amount">$360.00</span>
+                    <span class="font-bold text-stone-900" id="econ-cat-insumos-amount">$0.00</span>
                   </div>
                   <div class="w-full bg-stone-100 rounded-full h-2 overflow-hidden">
-                    <div id="econ-cat-insumos-bar" class="bg-[#143628] h-full rounded-full transition-all duration-500" style="width: 58%;"></div>
+                    <div id="econ-cat-insumos-bar" class="bg-[#143628] h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
                   </div>
                 </div>
 
@@ -1189,10 +1357,10 @@
                 <div>
                   <div class="flex items-center justify-between text-xs mb-1.5 font-medium">
                     <span class="text-stone-700">Transporte</span>
-                    <span class="font-bold text-stone-900" id="econ-cat-transporte-amount">$180.00</span>
+                    <span class="font-bold text-stone-900" id="econ-cat-transporte-amount">$0.00</span>
                   </div>
                   <div class="w-full bg-stone-100 rounded-full h-2 overflow-hidden">
-                    <div id="econ-cat-transporte-bar" class="bg-[#A3B899] h-full rounded-full transition-all duration-500" style="width: 29%;"></div>
+                    <div id="econ-cat-transporte-bar" class="bg-[#A3B899] h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
                   </div>
                 </div>
 
@@ -1200,10 +1368,10 @@
                 <div>
                   <div class="flex items-center justify-between text-xs mb-1.5 font-medium">
                     <span class="text-stone-700">Empaques</span>
-                    <span class="font-bold text-stone-900" id="econ-cat-empaques-amount">$80.00</span>
+                    <span class="font-bold text-stone-900" id="econ-cat-empaques-amount">$0.00</span>
                   </div>
                   <div class="w-full bg-stone-100 rounded-full h-2 overflow-hidden">
-                    <div id="econ-cat-empaques-bar" class="bg-[#c85a32] h-full rounded-full transition-all duration-500" style="width: 13%;"></div>
+                    <div id="econ-cat-empaques-bar" class="bg-[#c85a32] h-full rounded-full transition-all duration-500" style="width: 0%;"></div>
                   </div>
                 </div>
 
@@ -1222,12 +1390,12 @@
               <!-- Total de gastos -->
               <div class="flex items-baseline justify-between pt-5 mt-5 border-t border-stone-100">
                 <span class="text-xs font-bold text-stone-800">Total de gastos</span>
-                <span class="font-serif text-xl font-bold text-stone-900" id="econ-total-gastos">$620.00</span>
+                <span class="font-serif text-xl font-bold text-stone-900" id="econ-total-gastos">$0.00</span>
               </div>
             </div>
 
             <p class="text-[11px] text-stone-400 mt-4 pt-3 border-t border-stone-100" id="econ-comision-nota">
-              Comisión de la plataforma: $80.00 adicionales.
+              Comisión de la plataforma: 5% sobre ventas netas.
             </p>
           </div>
 
@@ -1264,7 +1432,7 @@
         <div class="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs mb-6 overflow-hidden">
           <div class="flex items-center justify-between mb-3">
             <h3 class="font-serif font-bold text-base text-stone-900">Lo que ha vendido tu finca</h3>
-            <span class="text-[11px] text-stone-400" id="econ-sold-products-count">30 días · 2 productos con ventas</span>
+            <span class="text-[11px] text-stone-400" id="econ-sold-products-count">Cargando productos vendidos...</span>
           </div>
           <div class="overflow-x-auto -mx-5 px-5">
             <table class="w-full text-left text-xs whitespace-nowrap">
@@ -1284,7 +1452,7 @@
           </div>
           <div class="mt-3 pt-3 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
             <div id="econ-formula-resumen" class="font-semibold text-stone-800">
-              Ventas brutas: $1,620.00 − Devoluciones: $20.00 = Ventas netas: $1,600.00
+              Ventas brutas: $0.00 − Devoluciones: $0.00 = Ventas netas: $0.00
             </div>
           </div>
           <p class="text-[11px] text-stone-400 mt-2">
@@ -1300,7 +1468,7 @@
             <div>
               <div class="flex items-center justify-between gap-2 mb-3">
                 <h3 class="font-serif font-bold text-base text-stone-900">Movimientos recientes</h3>
-                <span class="text-[11px] text-stone-400" id="econ-movements-count-label">5 de 24 · 30 días</span>
+                <span class="text-[11px] text-stone-400" id="econ-movements-count-label">Cargando movimientos...</span>
               </div>
 
               <!-- Filtro y Búsqueda -->
@@ -1350,9 +1518,9 @@
 
               <!-- Tarjeta Por cobrar -->
               <div class="bg-[#eef5f0] border border-emerald-100 rounded-2xl p-4 mb-4">
-                <span class="text-xs font-bold text-emerald-900 block" id="econ-por-cobrar-badge">Por cobrar · 6 pedidos</span>
-                <div class="font-serif text-3xl font-bold text-stone-900 my-1.5" id="econ-por-cobrar-amount">$240.00</div>
-                <p class="text-[11px] text-stone-500" id="econ-por-cobrar-date">Cobro previsto: 7–10 nov. 2026</p>
+                <span class="text-xs font-bold text-emerald-900 block" id="econ-por-cobrar-badge">Por cobrar · 0 pedidos</span>
+                <div class="font-serif text-3xl font-bold text-stone-900 my-1.5" id="econ-por-cobrar-amount">$0.00</div>
+                <p class="text-[11px] text-stone-500" id="econ-por-cobrar-date">Cobro previsto en próximo corte</p>
                 <button type="button" onclick="showPendingOrdersModal()" class="text-xs font-bold text-emerald-900 hover:text-[#143628] inline-flex items-center gap-1 mt-2.5 transition cursor-pointer">
                   <span>Ver pedidos pendientes</span>
                   <span>→</span>
@@ -1361,8 +1529,8 @@
 
               <!-- Tarjeta Por pagar -->
               <div class="bg-[#fdf6f0] border border-[#f5dfd5] rounded-2xl p-4 mb-4">
-                <span class="text-xs font-bold text-[#943b1c] block" id="econ-por-pagar-badge">Por pagar · 2 gastos</span>
-                <div class="font-serif text-3xl font-bold text-stone-900 my-1.5" id="econ-por-pagar-amount">$100.00</div>
+                <span class="text-xs font-bold text-[#943b1c] block" id="econ-por-pagar-badge">Por pagar · 0 gastos</span>
+                <div class="font-serif text-3xl font-bold text-stone-900 my-1.5" id="econ-por-pagar-amount">$0.00</div>
                 
                 <!-- Desglose de gastos por pagar -->
                 <div class="space-y-1.5 my-2.5 text-xs" id="econ-pending-expenses-list">
@@ -1378,8 +1546,8 @@
               <!-- Tarjeta Flujo de caja del período -->
               <div class="pt-3 border-t border-stone-100">
                 <span class="text-xs font-bold text-stone-800 block">Flujo de caja del período</span>
-                <p class="text-[11px] text-stone-400 mt-0.5" id="econ-flujo-caja-sub">Cobrado $1,360.00 − pagado $600.00</p>
-                <div class="font-serif text-2xl font-bold text-emerald-800 mt-1" id="econ-flujo-caja-amount">+$760.00</div>
+                <p class="text-[11px] text-stone-400 mt-0.5" id="econ-flujo-caja-sub">Cobrado $0.00 − pagado $0.00</p>
+                <div class="font-serif text-2xl font-bold text-emerald-800 mt-1" id="econ-flujo-caja-amount">+$0.00</div>
                 <p class="text-[10px] text-stone-400 mt-1 leading-snug">
                   Incluye gastos y comisión pagados. No incluye saldo inicial ni impuestos.
                 </p>
@@ -1565,38 +1733,38 @@
             <div class="bg-white rounded-2xl border border-stone-200/90 p-5 shadow-2xs">
               <h3 class="font-serif font-bold text-base text-stone-900">Antes de guardar</h3>
               <p class="text-xs text-stone-400 mt-0.5">Vista previa · 30 días</p>
-              <p class="text-[11px] text-stone-400 mb-4" id="expense-preview-range">8 oct. – 6 nov. 2026</p>
+              <p class="text-[11px] text-stone-400 mb-4" id="expense-preview-range">Últimos 30 días</p>
 
               <div class="space-y-3.5 text-xs">
                 <div>
                   <span class="text-stone-500 block">Nuevo gasto</span>
-                  <div class="font-serif text-2xl font-bold text-stone-900 mt-0.5" id="expense-preview-new-amount">$85.00</div>
+                  <div class="font-serif text-2xl font-bold text-stone-900 mt-0.5" id="expense-preview-new-amount">$0.00</div>
                 </div>
 
                 <div class="pt-3 border-t border-stone-100">
                   <span class="text-stone-500 block mb-1">Gastos registrados</span>
                   <div class="font-bold text-stone-900 flex items-center gap-1.5" id="expense-preview-total-comp">
-                    <span class="text-stone-500">$620.00</span>
+                    <span class="text-stone-500">$0.00</span>
                     <span class="text-stone-400">→</span>
-                    <span class="text-stone-900 font-extrabold">$705.00</span>
+                    <span class="text-stone-900 font-extrabold">$0.00</span>
                   </div>
                 </div>
 
                 <div class="pt-3 border-t border-stone-100">
                   <span class="text-stone-500 block mb-1">Ganancia estimada</span>
                   <div class="font-bold text-stone-900 flex items-center gap-1.5" id="expense-preview-profit-comp">
-                    <span class="text-stone-500">$900.00</span>
+                    <span class="text-stone-500">$0.00</span>
                     <span class="text-stone-400">→</span>
-                    <span class="text-emerald-800 font-extrabold">$815.00</span>
+                    <span class="text-emerald-800 font-extrabold">$0.00</span>
                   </div>
                 </div>
 
                 <div class="pt-3 border-t border-stone-100">
                   <span class="text-stone-500 block mb-1">Por pagar</span>
                   <div class="font-bold text-stone-900 flex items-center gap-1.5" id="expense-preview-pending-comp">
-                    <span class="text-stone-500">$100.00</span>
+                    <span class="text-stone-500">$0.00</span>
                     <span class="text-stone-400">→</span>
-                    <span class="text-[#c85a32] font-extrabold">$185.00</span>
+                    <span class="text-[#c85a32] font-extrabold">$0.00</span>
                   </div>
                 </div>
               </div>
@@ -1976,6 +2144,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/productor.js?v=5.1"></script>
+  <script src="js/economia.js?v=2.0"></script>
+  <script src="js/productor.js?v=5.2"></script>
 </body>
 </html>

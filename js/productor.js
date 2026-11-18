@@ -1419,6 +1419,7 @@ async function loadProducerProductsFromSupabase() {
           unit: unit,
           price: Number(p.price || 0.50),
           stock: stock,
+          production_cost: Number(p.production_cost || 0),
           unitLabel: unitLabel,
           status: status,
           statusText: statusText,
@@ -2649,6 +2650,19 @@ function resetNewProductForm() {
   const statusSelect = document.getElementById('new-form-status');
   if (statusSelect) statusSelect.value = 'published';
 
+  // Reiniciar recomendador de precios
+  const costInput = document.getElementById('new-form-production-cost');
+  if (costInput) costInput.value = '';
+  const marginInput = document.getElementById('new-form-margin-percent');
+  if (marginInput) marginInput.value = '35';
+  const logisticsInput = document.getElementById('new-form-delivery-logistics');
+  if (logisticsInput) logisticsInput.value = '1.50';
+  if (typeof setAdvisorMargin === 'function') {
+    setAdvisorMargin(35);
+  } else if (typeof recalculatePricingAdvisor === 'function') {
+    recalculatePricingAdvisor();
+  }
+
   setProductType('individual');
   basketItems = [];
   basketSavingsPercent = 0;
@@ -2715,6 +2729,15 @@ async function loadProductForEditing(codeOrId) {
 
   const stockInput = document.getElementById('new-form-stock');
   if (stockInput) stockInput.value = prod.stock || 0;
+
+  // Restaurar costo de producción y recalcular recomendador
+  const costInput = document.getElementById('new-form-production-cost');
+  if (costInput) {
+    costInput.value = (prod.production_cost && prod.production_cost > 0) ? prod.production_cost : '';
+  }
+  if (typeof recalculatePricingAdvisor === 'function') {
+    recalculatePricingAdvisor();
+  }
 
   const originInput = document.getElementById('new-form-origin');
   if (originInput) originInput.value = prod.origin || 'Hacienda San José · Daule';
@@ -2896,6 +2919,8 @@ async function publishNewProduct() {
     const isSavePublished = !statusSelect || statusSelect.value === 'published';
     const unitLabel = unit.split('·')[0].trim().toLowerCase() || 'kg';
     const activeProducerId = getActiveProducerId();
+    const costInput = document.getElementById('new-form-production-cost');
+    const costNum = costInput ? (parseFloat(costInput.value) || 0) : 0;
 
     if (productFormMode === 'new') {
       const newCode = `PR-${String(producerProducts.length + 1).padStart(3, '0')}`;
@@ -2911,6 +2936,7 @@ async function publishNewProduct() {
         title: title,
         description: desc,
         price: priceNum,
+        production_cost: costNum,
         unit: unit,
         stock_quantity: stockNum,
         is_available: isSavePublished,
@@ -2939,6 +2965,7 @@ async function publishNewProduct() {
         category: catSelect ? catSelect.options[catSelect.selectedIndex].text : (isBasket ? 'Canastas Familiares' : 'Verduras & Raíces'),
         unit: unit,
         price: priceNum,
+        production_cost: costNum,
         stock: stockNum,
         unitLabel: unitLabel,
         status: isSavePublished ? (stockNum > 0 ? 'publicado' : 'agotado') : 'borrador',
@@ -2971,6 +2998,7 @@ async function publishNewProduct() {
         title: title,
         description: desc,
         price: priceNum,
+        production_cost: costNum,
         unit: unit,
         stock_quantity: stockNum,
         is_available: isSavePublished,
@@ -2991,6 +3019,7 @@ async function publishNewProduct() {
         prod.title = title;
         prod.description = desc;
         prod.price = priceNum;
+        prod.production_cost = costNum;
         prod.unit = unit;
         prod.unitLabel = unitLabel;
         prod.stock = stockNum;
@@ -3064,6 +3093,8 @@ async function saveProductDraft() {
     const seasonLabel = seasonSelect ? seasonSelect.value : 'Disponible todo el año';
     const isBasket = productType === 'basket';
     const activeProducerId = getActiveProducerId();
+    const costInput = document.getElementById('new-form-production-cost');
+    const costNum = costInput ? (parseFloat(costInput.value) || 0) : 0;
 
     if (productFormMode === 'new') {
       const newCode = `PR-${String(producerProducts.length + 1).padStart(3, '0')}`;
@@ -3073,6 +3104,7 @@ async function saveProductDraft() {
         title: title,
         description: desc,
         price: priceNum,
+        production_cost: costNum,
         unit: unit,
         stock_quantity: stockNum,
         is_available: false,
@@ -3101,6 +3133,7 @@ async function saveProductDraft() {
         category: catSelect ? catSelect.options[catSelect.selectedIndex].text : (isBasket ? 'Canastas Familiares' : 'Verduras & Raíces'),
         unit: unit,
         price: priceNum,
+        production_cost: costNum,
         stock: stockNum,
         unitLabel: unitLabel,
         status: 'borrador',
@@ -3128,6 +3161,7 @@ async function saveProductDraft() {
         title: title,
         description: desc,
         price: priceNum,
+        production_cost: costNum,
         unit: unit,
         stock_quantity: stockNum,
         is_available: false,
@@ -3148,6 +3182,7 @@ async function saveProductDraft() {
         prod.title = title;
         prod.description = desc;
         prod.price = priceNum;
+        prod.production_cost = costNum;
         prod.unit = unit;
         prod.stock = stockNum;
         prod.origin = origin;
@@ -3633,881 +3668,228 @@ window.populateBasketProductSelect = populateBasketProductSelect;
 
 
 // =============================================================================
-// MÓDULO FINANCIERO: MI ECONOMÍA, GASTOS Y FLUJO DE CAJA
+// RECOMENDADOR INTELIGENTE DE PRECIOS (Costos, Margen e IVA Ecuador 15%)
 // =============================================================================
 
-let currentEconomyPeriod = '30d'; // '7d' | '30d' | '1y' | 'custom'
-let customDateRange = { start: null, end: null };
-let currentMovementsFilter = 'todos'; // 'todos' | 'ventas' | 'gastos' | 'devoluciones'
-let currentMovementsSearch = '';
-let expensePaymentStatus = 'pending';
-let uploadedExpenseReceiptFile = null;
+let currentAdvisorMargin = 35; // 35% por defecto
 
-function formatUSDWithCommas(num) {
-  if (num === null || num === undefined || isNaN(num)) return '0.00';
-  return Number(num).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-// Datos base de ventas para Max Productor
-let economySalesData = {
-  '7d': {
-    rangeLabel: '31 oct. – 6 nov. 2026',
-    ventasBrutas: 420.00,
-    devoluciones: 0.00,
-    ventasNetas: 420.00,
-    comision: 21.00,
-    presentaciones: 110,
-    presentacionesSub: '80 paquetes de 1 kg + 30 manojos',
-    porCobrar: 120.00,
-    porCobrarCount: 3,
-    cobroPrevistoDate: '7–10 nov. 2026',
-    bars: [
-      { label: '31 oct.–1 nov.', amount: 90.00 },
-      { label: '2–3 nov.', amount: 110.00 },
-      { label: '4–5 nov.', amount: 100.00 },
-      { label: '6 nov.', amount: 120.00, active: true }
-    ],
-    soldProducts: [
-      { product: 'Zanahoria de tierra', presentation: 'Paquete de 1 kg', quantity: 80, unitPrice: 4.00, total: 320.00 },
-      { product: 'Acelga de la huerta', presentation: 'Manojo', quantity: 30, unitPrice: 3.50, total: 100.00 }
-    ]
-  },
-  '30d': {
-    rangeLabel: '8 oct. – 6 nov. 2026',
-    ventasBrutas: 1620.00,
-    devoluciones: 20.00,
-    ventasNetas: 1600.00,
-    comision: 80.00,
-    presentaciones: 420,
-    presentacionesSub: '300 paquetes de 1 kg + 120 manojos',
-    porCobrar: 240.00,
-    porCobrarCount: 6,
-    cobroPrevistoDate: '7–10 nov. 2026',
-    bars: [
-      { label: '8–14 oct.', amount: 280.00 },
-      { label: '15–21 oct.', amount: 360.00 },
-      { label: '22–28 oct.', amount: 410.00 },
-      { label: '29 oct.–6 nov.', amount: 550.00, active: true }
-    ],
-    soldProducts: [
-      { product: 'Zanahoria de tierra', presentation: 'Paquete de 1 kg', quantity: 300, unitPrice: 4.00, total: 1200.00 },
-      { product: 'Acelga de la huerta', presentation: 'Manojo', quantity: 120, unitPrice: 3.50, total: 420.00 }
-    ]
-  },
-  '1y': {
-    rangeLabel: '7 nov. 2025 – 6 nov. 2026',
-    ventasBrutas: 18450.00,
-    devoluciones: 250.00,
-    ventasNetas: 18200.00,
-    comision: 910.00,
-    presentaciones: 4800,
-    presentacionesSub: '3,400 paquetes + 1,400 manojos',
-    porCobrar: 240.00,
-    porCobrarCount: 6,
-    cobroPrevistoDate: '7–10 nov. 2026',
-    bars: [
-      { label: 'Nov–Ene', amount: 4200.00 },
-      { label: 'Feb–Abr', amount: 4600.00 },
-      { label: 'May–Jul', amount: 4500.00 },
-      { label: 'Ago–Oct', amount: 4900.00, active: true }
-    ],
-    soldProducts: [
-      { product: 'Zanahoria de tierra', presentation: 'Paquete de 1 kg', quantity: 3400, unitPrice: 4.00, total: 13600.00 },
-      { product: 'Acelga de la huerta', presentation: 'Manojo', quantity: 1400, unitPrice: 3.50, total: 4850.00 }
-    ]
+function setAdvisorMargin(pct) {
+  currentAdvisorMargin = parseFloat(pct) || 35;
+  const marginInput = document.getElementById('new-form-margin-percent');
+  if (marginInput) {
+    marginInput.value = currentAdvisorMargin;
   }
-};
 
-// Gastos registrados
-let defaultProducerExpenses = [
-  { id: 1, date: '2026-10-18', category: 'Insumos y cultivo', concept: 'Semillas agroecológicas certificadas', amount: 120.00, supplier: 'AgroBio Daule', status: 'paid', invoiceRef: 'FACT-0062' },
-  { id: 2, date: '2026-10-24', category: 'Insumos y cultivo', concept: 'Compost orgánico y biol fermentado', amount: 170.00, supplier: 'Finca La Esperanza', status: 'paid', invoiceRef: 'FACT-0071' },
-  { id: 3, date: '2026-10-28', category: 'Transporte', concept: 'Flete de cosecha hacia centro de acopio', amount: 150.00, supplier: 'Cooperativa Daule Express', status: 'paid', invoiceRef: 'FAC-0988' },
-  { id: 4, date: '2026-11-03', category: 'Empaques', concept: 'Compra de cajas de cartón y atados de yute', amount: 50.00, supplier: 'Empaques Ecológicos del Guayas', status: 'paid', invoiceRef: 'FACT-0079' },
-  { id: 5, date: '2026-11-03', category: 'Empaques', concept: 'Compra de empaques biodegradables', amount: 30.00, supplier: 'Suministros Agrícolas Guayas', status: 'paid', invoiceRef: 'GAS-023' },
-  { id: 6, date: '2026-11-04', category: 'Insumos y cultivo', concept: 'Mangueras de riego por goteo', amount: 70.00, supplier: 'Agroinsumos La Semilla', status: 'pending', dueDate: '2026-11-09', invoiceRef: 'FACT-0081' },
-  { id: 7, date: '2026-11-05', category: 'Transporte', concept: 'Transporte al nodo Urdesa', amount: 30.00, supplier: 'Logística local Express', status: 'pending', dueDate: '2026-11-15', invoiceRef: 'GAS-038' }
-];
-
-let producerExpensesList = [...defaultProducerExpenses];
-
-// Movimientos cronológicos
-let defaultEconomyMovements = [
-  { id: 'mov-1', type: 'venta', date: '6 nov.', concept: 'Venta de zanahoria', ref: 'PED-1042 · 15 paquetes de 1 kg', amount: 60.00, status: 'Por cobrar', statusClass: 'bg-amber-50 text-amber-800 border-amber-200' },
-  { id: 'mov-2', type: 'gasto', date: '5 nov.', concept: 'Transporte al nodo', ref: 'GAS-038 · Logística local', amount: -60.00, status: 'Pagado', statusClass: 'bg-stone-100 text-stone-700 border-stone-200' },
-  { id: 'mov-3', type: 'venta', date: '4 nov.', concept: 'Venta de acelga', ref: 'PED-1038 · 24 manojos', amount: 84.00, status: 'Cobrado', statusClass: 'bg-emerald-50 text-emerald-800 border-emerald-200' },
-  { id: 'mov-4', type: 'gasto', date: '3 nov.', concept: 'Compra de empaques', ref: 'GAS-023 · Suministros', amount: -30.00, status: 'Pagado', statusClass: 'bg-stone-100 text-stone-700 border-stone-200' },
-  { id: 'mov-5', type: 'devolucion', date: '2 nov.', concept: 'Devolución a comprador', ref: 'DEV-008 · Ajuste de pedido', amount: -20.00, status: 'Reembolsado', statusClass: 'bg-[#faece6] text-[#c85a32] border-[#f3d9ce]' }
-];
-
-let economyMovementsList = [...defaultEconomyMovements];
-
-async function initEconomyModule() {
-  await loadProducerExpensesFromSupabase();
-  if (currentEconomyPeriod) {
-    renderEconomyDashboard();
-  }
-}
-
-async function loadProducerExpensesFromSupabase() {
-  try {
-    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
-      const dbExpenses = await window.supabase.fetchApi(`producer_expenses?producer_id=eq.${PRODUCER_USER_ID}&order=expense_date.desc`);
-      if (Array.isArray(dbExpenses) && dbExpenses.length > 0) {
-        producerExpensesList = dbExpenses.map(e => ({
-          id: e.id,
-          date: e.expense_date,
-          category: e.category || 'Otros',
-          concept: e.concept || 'Gasto registrado',
-          amount: Number(e.amount || 0),
-          supplier: e.supplier || '',
-          status: e.payment_status || 'paid',
-          dueDate: e.due_date,
-          invoiceRef: e.invoice_ref,
-          receiptUrl: e.receipt_url,
-          notes: e.notes
-        }));
-        console.log(`[Economía] ${producerExpensesList.length} gastos cargados desde Supabase.`);
-      }
-    }
-  } catch (err) {
-    console.warn('Aviso cargando gastos de Supabase:', err);
-  }
-}
-
-function setEconomyPeriod(period) {
-  currentEconomyPeriod = period;
-
-  const btnIds = ['7d', '30d', '1y', 'custom'];
-  btnIds.forEach(id => {
-    const el = document.getElementById(`econ-period-${id}`);
-    if (el) {
-      if (id === period) {
-        el.className = 'econ-period-btn px-3.5 py-1.5 rounded-lg font-bold bg-[#143628] text-white shadow-2xs transition cursor-pointer';
+  // Actualizar botones visuales
+  const buttons = [25, 35, 50];
+  buttons.forEach(b => {
+    const btn = document.getElementById('advisor-margin-btn-' + b);
+    if (btn) {
+      if (b === currentAdvisorMargin) {
+        btn.className = 'advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-[#143628] text-white border border-[#143628] shadow-2xs transition cursor-pointer';
       } else {
-        el.className = 'econ-period-btn px-3.5 py-1.5 rounded-lg font-bold text-stone-600 hover:text-stone-900 transition cursor-pointer';
+        btn.className = 'advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 transition cursor-pointer';
       }
     }
   });
 
-  renderEconomyDashboard();
+  recalculatePricingAdvisor();
 }
 
-function toggleCustomPeriodModal() {
-  const startPrompt = prompt('Ingresa fecha inicial (AAAA-MM-DD):', '2026-10-01');
-  if (!startPrompt) return;
-  const endPrompt = prompt('Ingresa fecha final (AAAA-MM-DD):', '2026-11-06');
-  if (!endPrompt) return;
+function handleCustomMarginInput(val) {
+  const num = parseFloat(val) || 0;
+  currentAdvisorMargin = num;
 
-  customDateRange = { start: startPrompt, end: endPrompt };
-  currentEconomyPeriod = 'custom';
+  [25, 35, 50].forEach(b => {
+    const btn = document.getElementById('advisor-margin-btn-' + b);
+    if (btn) {
+      if (b === num) {
+        btn.className = 'advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-[#143628] text-white border border-[#143628] shadow-2xs transition cursor-pointer';
+      } else {
+        btn.className = 'advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 transition cursor-pointer';
+      }
+    }
+  });
 
-  const rangeDisplay = document.getElementById('econ-period-range-display');
-  if (rangeDisplay) {
-    rangeDisplay.textContent = `${startPrompt} – ${endPrompt}`;
+  recalculatePricingAdvisor();
+}
+
+function recalculatePricingAdvisor() {
+  const costInput = document.getElementById('new-form-production-cost');
+  const logisticsInput = document.getElementById('new-form-delivery-logistics');
+
+  const cost = Math.max(0, parseFloat(costInput ? costInput.value : '0') || 0);
+  const marginPct = Math.max(0, currentAdvisorMargin);
+  const deliveryLogistics = Math.max(0, parseFloat(logisticsInput ? logisticsInput.value : '1.50') || 0);
+
+  const IVA_RATE = 0.15; // 15% IVA Ecuador
+
+  // 1. Opción A: Tienda Física / Retiro en Nodo (Sede Urdesa)
+  // Logística = $0.00 consolidada
+  const shopProfit = cost * (marginPct / 100);
+  const shopSubtotal = cost + shopProfit;
+  const shopIva = shopSubtotal * IVA_RATE;
+  const shopSuggestedPrice = shopSubtotal + shopIva;
+
+  const shopCostEl = document.getElementById('advisor-shop-cost');
+  const shopProfitEl = document.getElementById('advisor-shop-profit');
+  const shopMarginLabel = document.getElementById('advisor-shop-margin-label');
+  const shopIvaEl = document.getElementById('advisor-shop-iva');
+  const shopPriceEl = document.getElementById('advisor-shop-price');
+
+  if (shopCostEl) shopCostEl.textContent = '$' + cost.toFixed(2);
+  if (shopProfitEl) shopProfitEl.textContent = '+$' + shopProfit.toFixed(2);
+  if (shopMarginLabel) shopMarginLabel.textContent = '+' + marginPct + '%';
+  if (shopIvaEl) shopIvaEl.textContent = '$' + shopIva.toFixed(2);
+  if (shopPriceEl) shopPriceEl.textContent = '$' + shopSuggestedPrice.toFixed(2);
+
+  // 2. Opción B: Entrega a Domicilio (Guayaquil Urbano)
+  const deliveryProfit = cost * (marginPct / 100);
+  const deliverySubtotal = cost + deliveryLogistics + deliveryProfit;
+  const deliveryIva = deliverySubtotal * IVA_RATE;
+  const deliverySuggestedPrice = deliverySubtotal + deliveryIva;
+
+  const deliveryCostEl = document.getElementById('advisor-delivery-cost');
+  const deliveryProfitEl = document.getElementById('advisor-delivery-profit');
+  const deliveryMarginLabel = document.getElementById('advisor-delivery-margin-label');
+  const deliveryIvaEl = document.getElementById('advisor-delivery-iva');
+  const deliveryPriceEl = document.getElementById('advisor-delivery-price');
+
+  if (deliveryCostEl) deliveryCostEl.textContent = '$' + cost.toFixed(2);
+  if (deliveryProfitEl) deliveryProfitEl.textContent = '+$' + deliveryProfit.toFixed(2);
+  if (deliveryMarginLabel) deliveryMarginLabel.textContent = '+' + marginPct + '%';
+  if (deliveryIvaEl) deliveryIvaEl.textContent = '$' + deliveryIva.toFixed(2);
+  if (deliveryPriceEl) deliveryPriceEl.textContent = '$' + deliverySuggestedPrice.toFixed(2);
+
+  // Guardar cálculo para botón Aplicar
+  window.__pricingAdvisorCalculations = {
+    shopPrice: shopSuggestedPrice,
+    deliveryPrice: deliverySuggestedPrice
+  };
+}
+
+function applySuggestedPrice(channel) {
+  recalculatePricingAdvisor();
+  const calcs = window.__pricingAdvisorCalculations || {};
+  let priceToApply = 0;
+
+  if (channel === 'shop') {
+    priceToApply = calcs.shopPrice !== undefined ? calcs.shopPrice : 0;
+  } else if (channel === 'delivery') {
+    priceToApply = calcs.deliveryPrice !== undefined ? calcs.deliveryPrice : 0;
   }
 
-  setEconomyPeriod('custom');
+  const priceInput = document.getElementById('new-form-price');
+  if (priceInput) {
+    priceInput.value = '$ ' + priceToApply.toFixed(2);
+    // Destello de feedback visual
+    priceInput.classList.add('ring-2', 'ring-emerald-500', 'bg-emerald-50/50');
+    setTimeout(() => {
+      priceInput.classList.remove('ring-2', 'ring-emerald-500', 'bg-emerald-50/50');
+    }, 1200);
+
+    if (typeof updateLivePreview === 'function') {
+      updateLivePreview();
+    }
+    if (typeof showProducerToast === 'function') {
+      const canalStr = channel === 'shop' ? 'Tienda / Retiro en Nodo' : 'Entrega a Domicilio';
+      showProducerToast('✓ Precio sugerido de $' + priceToApply.toFixed(2) + ' USD aplicado (' + canalStr + ').');
+    }
+  }
 }
 
+// Inicializar eventos del recomendador al cargar
+document.addEventListener('DOMContentLoaded', () => {
+  const costInput = document.getElementById('new-form-production-cost');
+  if (costInput) {
+    costInput.addEventListener('input', recalculatePricingAdvisor);
+  }
+  const logisticsInput = document.getElementById('new-form-delivery-logistics');
+  if (logisticsInput) {
+    logisticsInput.addEventListener('input', recalculatePricingAdvisor);
+  }
+});
+
+// Exponer funciones globales del recomendador de precios
+window.setAdvisorMargin = setAdvisorMargin;
+window.handleCustomMarginInput = handleCustomMarginInput;
+window.recalculatePricingAdvisor = recalculatePricingAdvisor;
+window.applySuggestedPrice = applySuggestedPrice;
+
+// Delegación segura al módulo financiero independiente js/economia.js
 function renderEconomyDashboard() {
-  const sales = economySalesData[currentEconomyPeriod] || economySalesData['30d'];
-
-  // 1. Rango de fechas
-  const rangeDisplay = document.getElementById('econ-period-range-display');
-  if (rangeDisplay && currentEconomyPeriod !== 'custom') {
-    rangeDisplay.textContent = sales.rangeLabel;
-  }
-
-  // 2. Gastos filtrados por período
-  let relevantExpenses = [...producerExpensesList];
-  if (currentEconomyPeriod === '7d') {
-    relevantExpenses = producerExpensesList.filter(e => {
-      const d = new Date(e.date);
-      return (new Date('2026-11-06') - d) <= (7 * 24 * 60 * 60 * 1000);
-    });
-    if (relevantExpenses.length === 0) {
-      relevantExpenses = producerExpensesList.slice(0, 3);
-    }
-  }
-
-  const gastosTotal = relevantExpenses.reduce((acc, e) => acc + Number(e.amount || 0), 0);
-  const comision = sales.comision || (Math.round(sales.ventasNetas * 0.05 * 100) / 100);
-  const gastosMasComision = gastosTotal + comision;
-  const gananciaEstimada = Math.max(0, sales.ventasNetas - gastosMasComision);
-  const margen = sales.ventasNetas > 0 ? ((gananciaEstimada / sales.ventasNetas) * 100).toFixed(1) : '0.0';
-
-  const porPagar = relevantExpenses
-    .filter(e => e.status === 'pending')
-    .reduce((acc, e) => acc + Number(e.amount || 0), 0);
-
-  const pagado = relevantExpenses
-    .filter(e => e.status === 'paid')
-    .reduce((acc, e) => acc + Number(e.amount || 0), 0) + comision;
-
-  const cobrado = sales.ventasNetas - sales.porCobrar;
-  const flujoCaja = cobrado - pagado;
-
-  // 3. Tarjetas KPI
-  const kpiVentas = document.getElementById('econ-kpi-ventas-netas');
-  const kpiVentasSub = document.getElementById('econ-kpi-ventas-sub');
-  if (kpiVentas) kpiVentas.textContent = `$${formatUSDWithCommas(sales.ventasNetas)}`;
-  if (kpiVentasSub) kpiVentasSub.textContent = `Tras $${formatUSDWithCommas(sales.devoluciones)} en devoluciones`;
-
-  const kpiGanancia = document.getElementById('econ-kpi-ganancia');
-  const kpiGananciaSub = document.getElementById('econ-kpi-ganancia-sub');
-  if (kpiGanancia) kpiGanancia.textContent = `$${formatUSDWithCommas(gananciaEstimada)}`;
-  if (kpiGananciaSub) kpiGananciaSub.textContent = `Margen del ${margen}% · antes de impuestos`;
-
-  const kpiPresentaciones = document.getElementById('econ-kpi-presentaciones');
-  const kpiPresentacionesSub = document.getElementById('econ-kpi-presentaciones-sub');
-  if (kpiPresentaciones) kpiPresentaciones.textContent = sales.presentaciones;
-  if (kpiPresentacionesSub) kpiPresentacionesSub.textContent = sales.presentacionesSub;
-
-  const kpiPorCobrar = document.getElementById('econ-kpi-por-cobrar');
-  const kpiPorCobrarSub = document.getElementById('econ-kpi-por-cobrar-sub');
-  if (kpiPorCobrar) kpiPorCobrar.textContent = `$${formatUSDWithCommas(sales.porCobrar)}`;
-  if (kpiPorCobrarSub) kpiPorCobrarSub.textContent = `${sales.porCobrarCount} pedidos pendientes de pago`;
-
-  // 4. Gráfico de barras de ventas
-  renderSalesBarChart(sales.bars, sales.ventasNetas);
-
-  // 5. Desglose de Inversión por Categoría
-  const catInsumos = relevantExpenses.filter(e => e.category === 'Insumos y cultivo').reduce((a, e) => a + Number(e.amount || 0), 0);
-  const catTransporte = relevantExpenses.filter(e => e.category === 'Transporte').reduce((a, e) => a + Number(e.amount || 0), 0);
-  const catEmpaques = relevantExpenses.filter(e => e.category === 'Empaques').reduce((a, e) => a + Number(e.amount || 0), 0);
-  const catOtros = relevantExpenses.filter(e => !['Insumos y cultivo', 'Transporte', 'Empaques'].includes(e.category)).reduce((a, e) => a + Number(e.amount || 0), 0);
-
-  const maxExpense = Math.max(1, gastosTotal);
-
-  const elInsumos = document.getElementById('econ-cat-insumos-amount');
-  const barInsumos = document.getElementById('econ-cat-insumos-bar');
-  if (elInsumos) elInsumos.textContent = `$${formatUSDWithCommas(catInsumos)}`;
-  if (barInsumos) barInsumos.style.width = `${Math.min(100, Math.round((catInsumos / maxExpense) * 100))}%`;
-
-  const elTransporte = document.getElementById('econ-cat-transporte-amount');
-  const barTransporte = document.getElementById('econ-cat-transporte-bar');
-  if (elTransporte) elTransporte.textContent = `$${formatUSDWithCommas(catTransporte)}`;
-  if (barTransporte) barTransporte.style.width = `${Math.min(100, Math.round((catTransporte / maxExpense) * 100))}%`;
-
-  const elEmpaques = document.getElementById('econ-cat-empaques-amount');
-  const barEmpaques = document.getElementById('econ-cat-empaques-bar');
-  if (elEmpaques) elEmpaques.textContent = `$${formatUSDWithCommas(catEmpaques)}`;
-  if (barEmpaques) barEmpaques.style.width = `${Math.min(100, Math.round((catEmpaques / maxExpense) * 100))}%`;
-
-  const elOtros = document.getElementById('econ-cat-otros-amount');
-  const barOtros = document.getElementById('econ-cat-otros-bar');
-  if (elOtros) elOtros.textContent = `$${formatUSDWithCommas(catOtros)}`;
-  if (barOtros) barOtros.style.width = `${Math.min(100, Math.round((catOtros / maxExpense) * 100))}%`;
-
-  const elTotalGastos = document.getElementById('econ-total-gastos');
-  if (elTotalGastos) elTotalGastos.textContent = `$${formatUSDWithCommas(gastosTotal)}`;
-
-  const elComisionNota = document.getElementById('econ-comision-nota');
-  if (elComisionNota) elComisionNota.textContent = `Comisión de la plataforma: $${formatUSDWithCommas(comision)} adicionales.`;
-
-  // 6. Tablas
-  renderPerspectiveTable(gastosMasComision, gananciaEstimada);
-  renderSoldProductsTable(sales.soldProducts, sales.ventasBrutas, sales.devoluciones, sales.ventasNetas);
-
-  // 7. Movimientos y Cuentas por atender
-  renderMovementsList();
-  renderPendingAccounts(sales.porCobrar, sales.porCobrarCount, sales.cobroPrevistoDate, porPagar, cobrado, pagado, flujoCaja, relevantExpenses);
-}
-
-function renderSalesBarChart(bars, totalAmount) {
-  const container = document.getElementById('econ-bar-chart-container');
-  const totalDisplay = document.getElementById('econ-chart-total');
-  const subtitle = document.getElementById('econ-chart-subtitle');
-
-  if (totalDisplay) totalDisplay.textContent = `Total · $${formatUSDWithCommas(totalAmount || 0)}`;
-  if (subtitle) {
-    const label = currentEconomyPeriod === '7d' ? 'últimos 7 días' : currentEconomyPeriod === '1y' ? 'último año' : 'últimos 30 días';
-    subtitle.textContent = `Ventas netas por tramo · ${label}`;
-  }
-
-  if (!container) return;
-  if (!Array.isArray(bars) || bars.length === 0 || Number(totalAmount || 0) <= 0) {
-    container.innerHTML = `
-      <div class="w-full h-full flex flex-col items-center justify-center text-xs text-stone-400 py-8">
-        <span class="text-xl mb-1">🌱</span>
-        <span>Aún no hay ventas registradas en este período.</span>
-      </div>
-    `;
-    return;
-  }
-
-  const maxVal = Math.max(...bars.map(b => b.amount), 100);
-
-  container.innerHTML = bars.map(bar => {
-    const heightPercent = Math.max(15, Math.min(100, Math.round((bar.amount / maxVal) * 100)));
-    const isHighlight = bar.active || bar.amount === maxVal;
-    const barBg = isHighlight ? 'bg-[#143628]' : 'bg-[#A3B899]';
-    const textColor = isHighlight ? 'text-stone-900 font-extrabold' : 'text-stone-600 font-bold';
-
-    return `
-      <div class="flex-1 flex flex-col items-center h-full justify-end group">
-        <!-- Monto USD sobre la barra -->
-        <span class="text-[11px] ${textColor} mb-1.5 transition group-hover:scale-105">
-          $${formatUSDWithCommas(bar.amount)}
-        </span>
-        <!-- Barra vertical -->
-        <div class="w-full max-w-[48px] ${barBg} rounded-t-lg transition-all duration-500 hover:opacity-90 shadow-2xs" style="height: ${heightPercent}%;"></div>
-        <!-- Etiqueta de fecha -->
-        <span class="text-[10px] text-stone-500 font-medium mt-2 whitespace-nowrap">
-          ${bar.label}
-        </span>
-      </div>
-    `;
-  }).join('');
-}
-
-function renderPerspectiveTable(currentGastosMasCom, currentGanancia) {
-  const tbody = document.getElementById('econ-perspective-tbody');
-  if (!tbody) return;
-
-  const periods = [
-    { key: '7d', label: '7 días · 31 oct. – 6 nov.', ventas: 420.00, gastos: 180.00, ganancia: 240.00, pres: 110 },
-    { key: '30d', label: '30 días · 8 oct. – 6 nov.', ventas: 1600.00, gastos: currentGastosMasCom || 700.00, ganancia: currentGanancia || 900.00, pres: 420 },
-    { key: '1y', label: '1 año · 7 nov. 2025 – 6 nov. 2026', ventas: 18200.00, gastos: 8000.00, ganancia: 10200.00, pres: 4800 }
-  ];
-
-  tbody.innerHTML = periods.map(p => {
-    const isActive = p.key === currentEconomyPeriod || (currentEconomyPeriod === 'custom' && p.key === '30d');
-    const rowClass = isActive ? 'bg-[#f2f6f3] font-bold text-stone-900' : 'text-stone-700 hover:bg-stone-50';
-    const tagActive = isActive ? '<span class="ml-1 text-[9px] px-1.5 py-0.5 rounded bg-[#143628] text-white">Activo</span>' : '';
-
-    return `
-      <tr class="${rowClass} transition">
-        <td class="py-3 px-2 font-medium">${p.label} ${tagActive}</td>
-        <td class="py-3 px-2">$${formatUSDWithCommas(p.ventas)}</td>
-        <td class="py-3 px-2 text-stone-500">$${formatUSDWithCommas(p.gastos)}</td>
-        <td class="py-3 px-2 font-bold ${isActive ? 'text-emerald-900' : 'text-stone-900'}">$${formatUSDWithCommas(p.ganancia)}</td>
-        <td class="py-3 px-2 text-right font-medium">${p.pres.toLocaleString()}</td>
-      </tr>
-    `;
-  }).join('');
-}
-
-function renderSoldProductsTable(products, brutas, devoluciones, netas) {
-  const tbody = document.getElementById('econ-sold-products-tbody');
-  const countBadge = document.getElementById('econ-sold-products-count');
-  const formulaResumen = document.getElementById('econ-formula-resumen');
-
-  if (countBadge) {
-    countBadge.textContent = `${currentEconomyPeriod === '7d' ? '7 días' : currentEconomyPeriod === '1y' ? '1 año' : '30 días'} · ${products.length} productos con ventas`;
-  }
-
-  if (formulaResumen) {
-    formulaResumen.innerHTML = `Ventas brutas: <span class="font-bold">$${formatUSDWithCommas(brutas)}</span> − Devoluciones: <span class="font-bold text-[#c85a32]">$${formatUSDWithCommas(devoluciones)}</span> = Ventas netas: <span class="font-extrabold text-stone-900">$${formatUSDWithCommas(netas)}</span>`;
-  }
-
-  if (!tbody) return;
-
-  if (products.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-stone-400">No se registraron ventas en este período.</td></tr>`;
-    return;
-  }
-
-  tbody.innerHTML = products.map(p => `
-    <tr class="text-stone-700 hover:bg-stone-50 transition">
-      <td class="py-3 px-2 font-bold text-stone-900">${escapeHtml(p.product)}</td>
-      <td class="py-3 px-2 text-stone-500">${escapeHtml(p.presentation)}</td>
-      <td class="py-3 px-2 text-center font-bold">${p.quantity}</td>
-      <td class="py-3 px-2 text-stone-600">$${formatUSDWithCommas(p.unitPrice)}</td>
-      <td class="py-3 px-2 text-right font-bold text-stone-900">$${formatUSDWithCommas(p.total)}</td>
-    </tr>
-  `).join('');
-}
-
-function handleMovementsSearch(val) {
-  currentMovementsSearch = (val || '').toLowerCase().trim();
-  renderMovementsList();
-}
-
-function handleMovementsTypeFilter(type) {
-  currentMovementsFilter = type || 'todos';
-  renderMovementsList();
-}
-
-function renderMovementsList() {
-  const container = document.getElementById('econ-movements-list');
-  const countLabel = document.getElementById('econ-movements-count-label');
-  if (!container) return;
-
-  let filtered = economyMovementsList.filter(m => {
-    if (currentMovementsFilter !== 'todos') {
-      if (currentMovementsFilter === 'ventas' && m.type !== 'venta') return false;
-      if (currentMovementsFilter === 'gastos' && m.type !== 'gasto') return false;
-      if (currentMovementsFilter === 'devoluciones' && m.type !== 'devolucion') return false;
-    }
-    if (currentMovementsSearch) {
-      const c = m.concept.toLowerCase();
-      const r = m.ref.toLowerCase();
-      return c.includes(currentMovementsSearch) || r.includes(currentMovementsSearch);
-    }
-    return true;
-  });
-
-  if (countLabel) {
-    countLabel.textContent = `${Math.min(5, filtered.length)} de ${filtered.length} · 30 días`;
-  }
-
-  const displayed = filtered.slice(0, 5);
-
-  if (displayed.length === 0) {
-    container.innerHTML = `
-      <div class="py-8 text-center text-xs text-stone-400">
-        No se encontraron movimientos con los filtros aplicados.
-      </div>
-    `;
-    return;
-  }
-
-  container.innerHTML = displayed.map(m => {
-    const isPositive = m.amount > 0;
-    const amountText = isPositive ? `+$${formatUSDWithCommas(m.amount)}` : `-$${formatUSDWithCommas(Math.abs(m.amount))}`;
-    const amountClass = isPositive ? 'text-emerald-800 font-extrabold' : 'text-[#c85a32] font-extrabold';
-
-    return `
-      <div class="py-3 flex items-center justify-between gap-3 text-xs">
-        <div>
-          <div class="font-bold text-stone-800 flex items-center gap-1.5">
-            <span class="text-stone-400 font-medium">${m.date} ·</span>
-            <span>${escapeHtml(m.concept)}</span>
-          </div>
-          <span class="text-[11px] text-stone-400 block mt-0.5">${escapeHtml(m.ref)}</span>
-        </div>
-        <div class="text-right shrink-0">
-          <div class="${amountClass} text-sm">${amountText}</div>
-          <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-bold border mt-0.5 ${m.statusClass || 'bg-stone-100 text-stone-700'}">
-            ${m.status}
-          </span>
-        </div>
-      </div>
-    `;
-  }).join('');
-}
-
-function renderPendingAccounts(porCobrarVal, porCobrarCount, cobroDate, porPagarVal, cobradoVal, pagadoVal, flujoCajaVal, expenses) {
-  // 1. Por cobrar
-  const porCobrarBadge = document.getElementById('econ-por-cobrar-badge');
-  const porCobrarAmt = document.getElementById('econ-por-cobrar-amount');
-  const porCobrarDate = document.getElementById('econ-por-cobrar-date');
-  if (porCobrarBadge) porCobrarBadge.textContent = `Por cobrar · ${porCobrarCount} pedidos`;
-  if (porCobrarAmt) porCobrarAmt.textContent = `$${formatUSDWithCommas(porCobrarVal)}`;
-  if (porCobrarDate) porCobrarDate.textContent = `Cobro previsto: ${cobroDate}`;
-
-  // 2. Por pagar
-  const pendingExpenses = expenses.filter(e => e.status === 'pending');
-  const porPagarBadge = document.getElementById('econ-por-pagar-badge');
-  const porPagarAmt = document.getElementById('econ-por-pagar-amount');
-  const pendingList = document.getElementById('econ-pending-expenses-list');
-
-  if (porPagarBadge) porPagarBadge.textContent = `Por pagar · ${pendingExpenses.length} gastos`;
-  if (porPagarAmt) porPagarAmt.textContent = `$${formatUSDWithCommas(porPagarVal)}`;
-
-  if (pendingList) {
-    if (pendingExpenses.length === 0) {
-      pendingList.innerHTML = `<p class="text-stone-400 text-xs italic">¡Al día! No tienes gastos pendientes de pago.</p>`;
-    } else {
-      pendingList.innerHTML = pendingExpenses.map(e => `
-        <div class="flex items-center justify-between bg-white/70 p-2 rounded-xl border border-stone-200/60 shadow-2xs">
-          <div>
-            <span class="font-bold text-stone-800">${escapeHtml(e.category)} · $${formatUSDWithCommas(e.amount)}</span>
-            <span class="text-[10px] text-stone-500 block">vence ${e.dueDate ? formatDateShort(e.dueDate) : 'próximamente'} (${escapeHtml(e.concept)})</span>
-          </div>
-          <button type="button" onclick="markExpenseAsPaid(${e.id})" class="px-2 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-[10px] border border-emerald-200 cursor-pointer transition shrink-0" title="Marcar como pagado">
-            ✓ Pagado
-          </button>
-        </div>
-      `).join('');
-    }
-  }
-
-  // 3. Flujo de caja
-  const flujoSub = document.getElementById('econ-flujo-caja-sub');
-  const flujoAmt = document.getElementById('econ-flujo-caja-amount');
-  if (flujoSub) flujoSub.textContent = `Cobrado $${formatUSDWithCommas(cobradoVal)} − pagado $${formatUSDWithCommas(pagadoVal)}`;
-  if (flujoAmt) {
-    const isPos = flujoCajaVal >= 0;
-    flujoAmt.textContent = `${isPos ? '+' : ''}$${formatUSDWithCommas(flujoCajaVal)}`;
-    flujoAmt.className = `font-serif text-2xl font-bold mt-1 ${isPos ? 'text-emerald-800' : 'text-[#c85a32]'}`;
+  if (typeof window.renderEconomyDashboard === 'function') {
+    window.renderEconomyDashboard();
   }
 }
-
-async function markExpenseAsPaid(expenseId) {
-  const expense = producerExpensesList.find(e => e.id == expenseId);
-  if (!expense) return;
-
-  expense.status = 'paid';
-
-  // Buscar en movimientos y actualizar badge
-  const mov = economyMovementsList.find(m => m.concept === expense.concept || m.ref.includes(expense.invoiceRef || ''));
-  if (mov) {
-    mov.status = 'Pagado';
-    mov.statusClass = 'bg-stone-100 text-stone-700 border-stone-200';
-  }
-
-  if (window.supabase && typeof window.supabase.fetchApi === 'function') {
-    try {
-      await window.supabase.fetchApi(`producer_expenses?id=eq.${expenseId}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ payment_status: 'paid' })
-      });
-    } catch (e) {
-      console.warn('Aviso actualizando estado en Supabase:', e);
-    }
-  }
-
-  showProducerToast(`✓ Gasto "${expense.concept}" marcado como pagado.`);
-  renderEconomyDashboard();
-}
-
-function formatDateShort(dateStr) {
-  if (!dateStr) return 'Hoy';
-  try {
-    const d = new Date(dateStr + 'T00:00:00');
-    const months = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
-    return `${d.getDate()} ${months[d.getMonth()]}`;
-  } catch (_) {
-    return dateStr;
+function setEconomyPeriod(period) {
+  if (typeof window.setEconomyPeriod === 'function') {
+    window.setEconomyPeriod(period);
   }
 }
-
-// =============================================================================
-// FORMULARIO: REGISTRAR GASTO
-// =============================================================================
-
-function openExpenseForm() {
-  resetExpenseForm();
-  switchProducerTab('registrar-gasto');
-}
-
-function resetExpenseForm() {
-  const dateInput = document.getElementById('expense-form-date');
-  const catSelect = document.getElementById('expense-form-category');
-  const conceptInput = document.getElementById('expense-form-concept');
-  const amountInput = document.getElementById('expense-form-amount');
-  const supplierInput = document.getElementById('expense-form-supplier');
-  const dueDateInput = document.getElementById('expense-form-due-date');
-  const invoiceRefInput = document.getElementById('expense-form-invoice-ref');
-  const notesInput = document.getElementById('expense-form-notes');
-  const filenameEl = document.getElementById('expense-receipt-filename');
-
-  const today = new Date().toISOString().split('T')[0];
-  if (dateInput) dateInput.value = today;
-  if (dueDateInput) {
-    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    dueDateInput.value = nextWeek;
-  }
-
-  if (catSelect) catSelect.selectedIndex = 0;
-  if (conceptInput) conceptInput.value = '';
-  if (amountInput) amountInput.value = '85.00';
-  if (supplierInput) supplierInput.value = '';
-  if (invoiceRefInput) invoiceRefInput.value = '';
-  if (notesInput) notesInput.value = '';
-  if (filenameEl) filenameEl.textContent = 'Ningún archivo seleccionado';
-
-  uploadedExpenseReceiptFile = null;
-  setExpensePaymentStatus('pending');
-  updateExpenseLivePreview(85.00);
-}
-
-function setExpensePaymentStatus(status) {
-  expensePaymentStatus = status;
-
-  const btnPaid = document.getElementById('expense-btn-paid');
-  const btnPending = document.getElementById('expense-btn-pending');
-  const pendingFields = document.getElementById('expense-pending-fields');
-
-  if (status === 'paid') {
-    if (btnPaid) {
-      btnPaid.className = 'py-2.5 px-3 rounded-lg text-xs font-bold bg-[#143628] text-white shadow-2xs transition cursor-pointer';
-    }
-    if (btnPending) {
-      btnPending.className = 'py-2.5 px-3 rounded-lg text-xs font-bold text-stone-700 hover:text-stone-900 transition cursor-pointer';
-    }
-    if (pendingFields) pendingFields.classList.add('hidden');
-  } else {
-    if (btnPending) {
-      btnPending.className = 'py-2.5 px-3 rounded-lg text-xs font-bold bg-[#143628] text-white shadow-2xs transition cursor-pointer';
-    }
-    if (btnPaid) {
-      btnPaid.className = 'py-2.5 px-3 rounded-lg text-xs font-bold text-stone-700 hover:text-stone-900 transition cursor-pointer';
-    }
-    if (pendingFields) pendingFields.classList.remove('hidden');
-  }
-
-  const amountInput = document.getElementById('expense-form-amount');
-  const val = parseFloat((amountInput ? amountInput.value : '').replace(/[^0-9.]/g, '')) || 0;
-  updateExpenseLivePreview(val);
-}
-
-function handleExpenseAmountChange(val) {
-  const clean = val.replace(/[^0-9.]/g, '');
-  const num = parseFloat(clean) || 0;
-  updateExpenseLivePreview(num);
-}
-
-function updateExpenseLivePreview(newExpenseAmount) {
-  const previewNew = document.getElementById('expense-preview-new-amount');
-  const previewTotal = document.getElementById('expense-preview-total-comp');
-  const previewProfit = document.getElementById('expense-preview-profit-comp');
-  const previewPending = document.getElementById('expense-preview-pending-comp');
-
-  if (previewNew) previewNew.textContent = `$${formatUSDWithCommas(newExpenseAmount)}`;
-
-  const currentTotal = producerExpensesList.reduce((acc, e) => acc + Number(e.amount || 0), 0);
-  const nextTotal = currentTotal + newExpenseAmount;
-
-  if (previewTotal) {
-    previewTotal.innerHTML = `
-      <span class="text-stone-500">$${formatUSDWithCommas(currentTotal)}</span>
-      <span class="text-stone-400">→</span>
-      <span class="text-stone-900 font-extrabold">$${formatUSDWithCommas(nextTotal)}</span>
-    `;
-  }
-
-  const currentNetSales = 1600.00;
-  const currentProfit = Math.max(0, currentNetSales - currentTotal - 80.00);
-  const nextProfit = Math.max(0, currentNetSales - nextTotal - 80.00);
-
-  if (previewProfit) {
-    previewProfit.innerHTML = `
-      <span class="text-stone-500">$${formatUSDWithCommas(currentProfit)}</span>
-      <span class="text-stone-400">→</span>
-      <span class="text-emerald-800 font-extrabold">$${formatUSDWithCommas(nextProfit)}</span>
-    `;
-  }
-
-  const currentPending = producerExpensesList.filter(e => e.status === 'pending').reduce((acc, e) => acc + Number(e.amount || 0), 0);
-  const nextPending = expensePaymentStatus === 'pending' ? currentPending + newExpenseAmount : currentPending;
-
-  if (previewPending) {
-    previewPending.innerHTML = `
-      <span class="text-stone-500">$${formatUSDWithCommas(currentPending)}</span>
-      <span class="text-stone-400">→</span>
-      <span class="text-[#c85a32] font-extrabold">$${formatUSDWithCommas(nextPending)}</span>
-    `;
-  }
-}
-
-function handleExpenseReceiptFile(input) {
-  if (!input || !input.files || input.files.length === 0) return;
-  const file = input.files[0];
-
-  if (file.size > 10 * 1024 * 1024) {
-    showProducerToast('El comprobante excede el tamaño máximo permitido de 10 MB.', true);
-    input.value = '';
-    return;
-  }
-
-  uploadedExpenseReceiptFile = file;
-  const filenameEl = document.getElementById('expense-receipt-filename');
-  if (filenameEl) {
-    filenameEl.textContent = `✓ ${file.name} (${(file.size / 1024).toFixed(0)} KB)`;
-    filenameEl.className = 'text-xs text-emerald-800 font-bold';
-  }
-}
-
-async function saveProducerExpense() {
-  const dateInput = document.getElementById('expense-form-date');
-  const catSelect = document.getElementById('expense-form-category');
-  const conceptInput = document.getElementById('expense-form-concept');
-  const amountInput = document.getElementById('expense-form-amount');
-  const supplierInput = document.getElementById('expense-form-supplier');
-  const dueDateInput = document.getElementById('expense-form-due-date');
-  const invoiceRefInput = document.getElementById('expense-form-invoice-ref');
-  const notesInput = document.getElementById('expense-form-notes');
-  const saveBtn = document.getElementById('btn-save-expense');
-  const saveLabel = document.getElementById('btn-save-expense-label');
-  const saveIcon = document.getElementById('btn-save-expense-icon');
-
-  const concept = (conceptInput ? conceptInput.value : '').trim();
-  if (!concept) {
-    showProducerToast('Por favor escribe el concepto del gasto.', true);
-    if (conceptInput) conceptInput.focus();
-    return;
-  }
-
-  const rawAmount = (amountInput ? amountInput.value : '').replace(/[^0-9.]/g, '');
-  const amountNum = parseFloat(rawAmount);
-  if (isNaN(amountNum) || amountNum <= 0) {
-    showProducerToast('Ingresa un importe numérico válido en dólares (USD).', true);
-    if (amountInput) amountInput.focus();
-    return;
-  }
-
-  const expenseDate = dateInput ? dateInput.value : new Date().toISOString().split('T')[0];
-  const category = catSelect ? catSelect.value : 'Insumos y cultivo';
-  const supplier = supplierInput ? supplierInput.value.trim() : '';
-  const invoiceRef = invoiceRefInput ? invoiceRefInput.value.trim() : `GAS-${Date.now() % 1000}`;
-  const dueDate = (expensePaymentStatus === 'pending' && dueDateInput) ? dueDateInput.value : null;
-  const notes = notesInput ? notesInput.value.trim() : '';
-
-  if (saveBtn) saveBtn.disabled = true;
-  if (saveLabel) saveLabel.textContent = 'Guardando gasto...';
-  if (saveIcon) saveIcon.textContent = '⏳';
-
-  try {
-    let receiptUrl = null;
-
-    // 1. Subida a Supabase Storage (bucket: expense-receipts)
-    if (uploadedExpenseReceiptFile && window.supabase && window.supabase.storage) {
-      try {
-        const ext = uploadedExpenseReceiptFile.name.split('.').pop() || 'png';
-        const storagePath = `receipt_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${ext}`;
-        const uploadRes = await window.supabase.storage.from('expense-receipts').upload(storagePath, uploadedExpenseReceiptFile, {
-          contentType: uploadedExpenseReceiptFile.type,
-          upsert: true
-        });
-
-        if (uploadRes && !uploadRes.error) {
-          receiptUrl = `${SUPABASE_STORAGE_URL}/expense-receipts/${storagePath}`;
-        }
-      } catch (uploadErr) {
-        console.warn('Aviso subiendo comprobante a Storage:', uploadErr);
-      }
-    }
-
-    // 2. Inserción en Supabase Database (tabla: producer_expenses)
-    const payload = {
-      producer_id: PRODUCER_USER_ID,
-      expense_date: expenseDate,
-      category: category,
-      concept: concept,
-      amount: amountNum,
-      supplier: supplier,
-      payment_status: expensePaymentStatus,
-      due_date: dueDate,
-      invoice_ref: invoiceRef,
-      receipt_url: receiptUrl,
-      notes: notes
-    };
-
-    let insertedId = Date.now() % 100000;
-    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
-      try {
-        const resp = await window.supabase.fetchApi('producer_expenses', {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
-        if (resp && resp[0] && resp[0].id) {
-          insertedId = resp[0].id;
-        }
-      } catch (dbErr) {
-        console.warn('Aviso guardando en tabla producer_expenses:', dbErr);
-      }
-    }
-
-    // 3. Agregar a memoria local
-    const newExpenseObj = {
-      id: insertedId,
-      date: expenseDate,
-      category: category,
-      concept: concept,
-      amount: amountNum,
-      supplier: supplier,
-      status: expensePaymentStatus,
-      dueDate: dueDate,
-      invoiceRef: invoiceRef,
-      receiptUrl: receiptUrl,
-      notes: notes
-    };
-
-    producerExpensesList.unshift(newExpenseObj);
-
-    // 4. Agregar a movimientos recientes
-    economyMovementsList.unshift({
-      id: `mov-${insertedId}`,
-      type: 'gasto',
-      date: formatDateShort(expenseDate),
-      concept: concept,
-      ref: invoiceRef ? `${invoiceRef} · ${category}` : `GAS-${insertedId} · ${category}`,
-      amount: -amountNum,
-      status: expensePaymentStatus === 'paid' ? 'Pagado' : 'Pendiente',
-      statusClass: expensePaymentStatus === 'paid' ? 'bg-stone-100 text-stone-700 border-stone-200' : 'bg-amber-50 text-amber-800 border-amber-200'
-    });
-
-    showProducerToast(`✓ Gasto de $${formatUSD(amountNum)} guardado con éxito.`);
-    switchProducerTab('mi-economia');
-  } catch (err) {
-    console.error('Error guardando gasto:', err);
-    showProducerToast('Ocurrió un error al guardar el gasto.', true);
-  } finally {
-    if (saveBtn) saveBtn.disabled = false;
-    if (saveLabel) saveLabel.textContent = 'Guardar gasto';
-    if (saveIcon) saveIcon.textContent = '✓';
-  }
-}
-
-// =============================================================================
-// EXPORTACIÓN DE MOVIMIENTOS A CSV REAL
-// =============================================================================
-
 function exportEconomyCSV() {
-  try {
-    const periodLabel = currentEconomyPeriod;
-    const header = ['Fecha', 'Tipo', 'Concepto', 'Referencia', 'Monto USD', 'Estado', 'Categoría'];
-    const rows = [header];
-
-    economyMovementsList.forEach(m => {
-      const tipo = m.type === 'venta' ? 'Venta' : m.type === 'gasto' ? 'Gasto' : 'Devolución';
-      rows.push([
-        `"${m.date}"`,
-        `"${tipo}"`,
-        `"${m.concept.replace(/"/g, '""')}"`,
-        `"${m.ref.replace(/"/g, '""')}"`,
-        m.amount.toFixed(2),
-        `"${m.status}"`,
-        `"Finanzas Hacienda San José"`
-      ]);
-    });
-
-    const csvContent = '\uFEFF' + rows.map(e => e.join(',')).join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `economia_hacienda_san_jose_${periodLabel}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-
-    showProducerToast('✓ Archivo CSV descargado con éxito.');
-  } catch (err) {
-    console.error('Error exportando CSV:', err);
-    showProducerToast('No fue posible generar el CSV.', true);
+  if (typeof window.exportEconomyCSV === 'function') {
+    window.exportEconomyCSV();
+  }
+}
+function openExpenseForm() {
+  if (typeof window.openExpenseForm === 'function') {
+    window.openExpenseForm();
+  }
+}
+function resetExpenseForm() {
+  if (typeof window.resetExpenseForm === 'function') {
+    window.resetExpenseForm();
+  }
+}
+function setExpensePaymentStatus(status) {
+  if (typeof window.setExpensePaymentStatus === 'function') {
+    window.setExpensePaymentStatus(status);
+  }
+}
+function handleExpenseAmountChange(val) {
+  if (typeof window.handleExpenseAmountChange === 'function') {
+    window.handleExpenseAmountChange(val);
+  }
+}
+function handleExpenseReceiptFile(input) {
+  if (typeof window.handleExpenseReceiptFile === 'function') {
+    window.handleExpenseReceiptFile(input);
+  }
+}
+function saveProducerExpense(e) {
+  if (typeof window.saveProducerExpense === 'function') {
+    return window.saveProducerExpense(e);
+  }
+}
+function markExpenseAsPaid(id) {
+  if (typeof window.markExpenseAsPaid === 'function') {
+    window.markExpenseAsPaid(id);
+  }
+}
+function handleMovementsSearch(q) {
+  if (typeof window.handleMovementsSearch === 'function') {
+    window.handleMovementsSearch(q);
+  }
+}
+function handleMovementsTypeFilter(f) {
+  if (typeof window.handleMovementsTypeFilter === 'function') {
+    window.handleMovementsTypeFilter(f);
+  }
+}
+function toggleAllMovementsModal() {
+  if (typeof window.toggleAllMovementsModal === 'function') {
+    window.toggleAllMovementsModal();
+  }
+}
+function showPendingOrdersModal() {
+  if (typeof window.showPendingOrdersModal === 'function') {
+    window.showPendingOrdersModal();
+  }
+}
+function toggleCustomPeriodModal() {
+  if (typeof window.toggleCustomPeriodModal === 'function') {
+    window.toggleCustomPeriodModal();
   }
 }
 
-function toggleAllMovementsModal() {
-  const count = economyMovementsList.length;
-  alert(`Historial completo: ${count} movimientos registrados en Hacienda San José durante este ciclo de cultivo.`);
-}
-
-function showPendingOrdersModal() {
-  const sales = economySalesData[currentEconomyPeriod] || economySalesData['30d'];
-  alert(`Cuentas por cobrar: ${sales.porCobrarCount} pedidos entregados a la red de nodos comunitarios. Cobro programado para el próximo corte: ${sales.cobroPrevistoDate}.`);
-}
-
-// Exponer funciones globales para el módulo de economía
-window.initEconomyModule = initEconomyModule;
-window.setEconomyPeriod = setEconomyPeriod;
-window.toggleCustomPeriodModal = toggleCustomPeriodModal;
-window.renderEconomyDashboard = renderEconomyDashboard;
-window.openExpenseForm = openExpenseForm;
-window.resetExpenseForm = resetExpenseForm;
-window.setExpensePaymentStatus = setExpensePaymentStatus;
-window.handleExpenseAmountChange = handleExpenseAmountChange;
-window.handleExpenseReceiptFile = handleExpenseReceiptFile;
-window.saveProducerExpense = saveProducerExpense;
-window.markExpenseAsPaid = markExpenseAsPaid;
-window.exportEconomyCSV = exportEconomyCSV;
-window.handleMovementsSearch = handleMovementsSearch;
-window.handleMovementsTypeFilter = handleMovementsTypeFilter;
-window.toggleAllMovementsModal = toggleAllMovementsModal;
-window.showPendingOrdersModal = showPendingOrdersModal;

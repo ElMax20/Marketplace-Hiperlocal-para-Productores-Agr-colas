@@ -30,6 +30,7 @@ ALTER TABLE public.products ADD COLUMN IF NOT EXISTS season_label text DEFAULT '
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS is_basket boolean DEFAULT false;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS basket_items jsonb DEFAULT '[]'::jsonb;
 ALTER TABLE public.products ADD COLUMN IF NOT EXISTS basket_savings_percent numeric DEFAULT 0;
+ALTER TABLE public.products ADD COLUMN IF NOT EXISTS production_cost numeric(10, 2) DEFAULT 0;
 
 -- Sincronización de secuencia de ID para products para evitar errores de clave única duplicada
 DO $$
