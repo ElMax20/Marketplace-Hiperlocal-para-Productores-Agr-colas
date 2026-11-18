@@ -1817,30 +1817,6 @@ function renderProducts() {
               <span class="${stats.hasReviews ? 'text-amber-500' : 'text-stone-400'} font-bold">★ ${stats.ratingDisplay}</span>
               <span class="text-stone-400 text-[10px]">(${stats.reviewsCount})</span>
             </div>
-
-            <!-- Desglose Desplegable para Canastas Semanales -->
-            ${isBasket && basketItems.length > 0 ? `
-              <div class="mt-3 pt-2 border-t border-dashed border-stone-200" onclick="event.stopPropagation()">
-                <button type="button" onclick="event.stopPropagation(); toggleBasketContents('${p.id}')" class="text-xs font-bold text-[#143628] hover:text-[#255240] flex items-center justify-between w-full py-1 cursor-pointer">
-                  <span class="flex items-center gap-1">
-                    <span>🧺</span>
-                    <span>Ver contenido (${basketItems.length} alimentos)</span>
-                  </span>
-                  <span id="basket-arrow-${p.id}" class="text-[10px] transition-transform duration-200">▼</span>
-                </button>
-                <div id="basket-drawer-${p.id}" class="hidden mt-1.5 space-y-1 bg-emerald-50/60 p-2.5 rounded-xl text-[11px] border border-emerald-100">
-                  ${basketItems.map(it => `
-                    <div class="flex items-center justify-between text-stone-700 py-0.5">
-                      <span class="flex items-center gap-1 font-medium">
-                        <span class="text-emerald-700">•</span>
-                        <span>${escapeHtml(it.name)}</span>
-                      </span>
-                      <span class="text-stone-500 text-[10px]">${escapeHtml(it.quantity_label || '1 un')}</span>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>
-            ` : ''}
           </div>
 
           <div class="mt-4 pt-3 border-t border-stone-100">
@@ -2816,12 +2792,23 @@ function handleProceedToCheckout() {
     return;
   }
 
-  const user = getCurrentUser();
+  const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
 
-  // Si el usuario NO tiene cuenta -> Pedir crearse una cuenta
+  // REGLA ESTRICTA: Sin sesión activa NO se puede pagar ni entrar al checkout
   if (!user || !user.loggedIn) {
     if (window.closeCartDrawer) window.closeCartDrawer();
-    openAuthModal('register');
+    sessionStorage.setItem('pendingCheckout', 'true');
+    if (typeof openLoginModalWithNotice === 'function') {
+      openLoginModalWithNotice('Inicia sesión o regístrate para completar tu compra y elegir tu punto de entrega.');
+    } else if (typeof openLoginModal === 'function') {
+      openLoginModal('cliente');
+      const noticeBox = document.getElementById('auth-checkout-notice');
+      if (noticeBox) noticeBox.classList.remove('hidden');
+    } else {
+      openAuthModal('login');
+      const noticeBox = document.getElementById('auth-checkout-notice');
+      if (noticeBox) noticeBox.classList.remove('hidden');
+    }
     return;
   }
 
@@ -3004,6 +2991,23 @@ async function handleLogout() {
 function openCheckoutModal(user) {
   if (cart.length === 0) {
     showToast('Tu canasta de compras está vacía.');
+    return;
+  }
+  const u = user || ((typeof getCurrentUser === 'function') ? getCurrentUser() : null);
+  if (!u || !u.loggedIn) {
+    if (window.closeCartDrawer) window.closeCartDrawer();
+    sessionStorage.setItem('pendingCheckout', 'true');
+    if (typeof openLoginModalWithNotice === 'function') {
+      openLoginModalWithNotice('Inicia sesión o regístrate para completar tu compra y elegir tu punto de entrega.');
+    } else if (typeof openLoginModal === 'function') {
+      openLoginModal('cliente');
+      const noticeBox = document.getElementById('auth-checkout-notice');
+      if (noticeBox) noticeBox.classList.remove('hidden');
+    } else {
+      openAuthModal('login');
+      const noticeBox = document.getElementById('auth-checkout-notice');
+      if (noticeBox) noticeBox.classList.remove('hidden');
+    }
     return;
   }
   saveCartToStorage();

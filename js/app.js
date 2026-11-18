@@ -298,7 +298,22 @@ function handleCartCheckout() {
     return;
   }
   saveCartToStorage();
-  window.location.href = 'mercado.html';
+
+  const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : null;
+  if (!user || !user.loggedIn) {
+    if (typeof closeCartDrawer === 'function') closeCartDrawer();
+    sessionStorage.setItem('pendingCheckout', 'true');
+    if (typeof openLoginModalWithNotice === 'function') {
+      openLoginModalWithNotice('Inicia sesión o regístrate para completar tu compra y elegir tu punto de entrega.');
+    } else if (typeof openLoginModal === 'function') {
+      openLoginModal('cliente');
+      const noticeBox = document.getElementById('auth-checkout-notice');
+      if (noticeBox) noticeBox.classList.remove('hidden');
+    }
+    return;
+  }
+
+  window.location.href = 'checkout.html';
 }
 
 /* ==========================================================================

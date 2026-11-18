@@ -225,6 +225,56 @@ function getCurrentUser() {
 }
 window.getCurrentUser = getCurrentUser;
 
+function isUserLoggedIn() {
+  try {
+    const u = getCurrentUser();
+    return Boolean(u && u.loggedIn);
+  } catch (_) {
+    return false;
+  }
+}
+window.isUserLoggedIn = isUserLoggedIn;
+
+async function checkActiveSession() {
+  if (isUserLoggedIn()) return true;
+  if (window.supabase && window.supabase.auth && typeof window.supabase.auth.getSession === 'function') {
+    try {
+      const res = await window.supabase.auth.getSession();
+      if (res?.data?.session?.user) {
+        return true;
+      }
+    } catch (_) {}
+  }
+  return false;
+}
+window.checkActiveSession = checkActiveSession;
+
+function openLoginModalWithNotice(noticeText = 'Inicia sesión o regístrate para completar tu compra y elegir tu punto de entrega.') {
+  sessionStorage.setItem('pendingCheckout', 'true');
+  openLoginModal('cliente');
+  const noticeBox = document.getElementById('auth-checkout-notice');
+  if (noticeBox) {
+    const textEl = noticeBox.querySelector('.notice-text') || noticeBox;
+    if (textEl !== noticeBox) {
+      textEl.textContent = noticeText;
+    } else {
+      noticeBox.textContent = noticeText;
+    }
+    noticeBox.classList.remove('hidden');
+  }
+  const regNoticeBox = document.getElementById('register-checkout-notice');
+  if (regNoticeBox) {
+    const textEl = regNoticeBox.querySelector('.notice-text') || regNoticeBox;
+    if (textEl !== regNoticeBox) {
+      textEl.textContent = noticeText;
+    } else {
+      regNoticeBox.textContent = noticeText;
+    }
+    regNoticeBox.classList.remove('hidden');
+  }
+}
+window.openLoginModalWithNotice = openLoginModalWithNotice;
+
 // Guardar sesión persistente con rb_cached_profile y token Supabase
 function setCurrentUser(user) {
   if (user) {
@@ -628,6 +678,224 @@ function safeRAF(cb) {
   }
 }
 
+function ensureLoginModalExists() {
+  let modal = document.getElementById('login-auth-modal');
+  if (modal) return modal;
+
+  const div = document.createElement('div');
+  div.id = 'login-auth-modal';
+  div.className = 'modal-overlay-gpu fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 p-4 overflow-y-auto';
+  div.onclick = function(e) { if (e.target === this) closeLoginModal(); };
+  div.innerHTML = `
+    <div class="modal-card-gpu relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white p-6 sm:p-8 shadow-xl my-auto z-10 modal-scroll border border-stone-200">
+      <button onclick="closeLoginModal()" class="absolute top-5 right-5 p-2 text-stone-400 hover:text-stone-700 rounded-full hover:bg-stone-100 transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+
+      <!-- Selector de Tipo de Acceso (Tabs) -->
+      <div id="auth-modal-tabs-wrapper" class="flex items-center p-1 bg-stone-100 rounded-xl mb-6">
+        <button id="tab-login-cliente" onclick="openLoginModal('cliente')" class="flex-1 py-2 text-xs font-bold rounded-lg bg-[#1a3d2f] text-white transition shadow-sm">
+          🛒 Comprador / Vecino
+        </button>
+        <button id="tab-login-productor" onclick="openLoginModal('productor')" class="flex-1 py-2 text-xs font-semibold rounded-lg text-stone-600 hover:text-stone-900 transition">
+          🚜 Soy Productor
+        </button>
+      </div>
+
+      <div id="auth-modal-header" class="text-left mb-6">
+        <span id="auth-modal-badge" class="inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200">
+          Clientes y Vecinos
+        </span>
+        <h3 id="auth-modal-title" class="font-serif text-2xl text-[#1a3d2f] font-bold mt-2">Acceso de Compradores</h3>
+        <p id="auth-modal-desc" class="text-xs text-stone-500 mt-1">Ingresa con tu cuenta de cliente para realizar pedidos de productos frescos de cercanía.</p>
+      </div>
+
+      <!-- Aviso sutil de Checkout Protegido -->
+      <div id="auth-checkout-notice" class="hidden mb-4 p-3.5 bg-amber-50/90 border border-amber-200/90 rounded-xl text-xs text-amber-900 font-medium flex items-center gap-2.5 shadow-2xs">
+        <span class="text-base shrink-0">🔒</span>
+        <span class="notice-text leading-snug">Inicia sesión o regístrate para completar tu compra y elegir tu punto de entrega.</span>
+      </div>
+
+      <!-- Cuadro de Error -->
+      <div id="auth-error-box" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium"></div>
+
+      <!-- Formulario -->
+      <form id="login-auth-form" onsubmit="event.preventDefault(); handleAuthSubmit(event); return false;" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-stone-700 mb-1">Usuario o Correo</label>
+          <input 
+            type="text" 
+            id="auth-username" 
+            placeholder="Ej: tu_usuario o correo@ejemplo.com" 
+            required 
+            class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition text-stone-800"
+          >
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="block text-xs font-semibold text-stone-700">Contraseña</label>
+            <button 
+              type="button" 
+              onclick="switchToForgotPasswordView()" 
+              class="text-xs font-medium text-[#143628] hover:underline cursor-pointer transition"
+            >
+              ¿Olvidaste tu contraseña?
+            </button>
+          </div>
+          <input 
+            type="password" 
+            id="auth-password" 
+            placeholder="••••••••" 
+            required 
+            class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#1a3d2f] focus:outline-none transition text-stone-800"
+          >
+        </div>
+
+        <button 
+          type="button"
+          onclick="handleAuthSubmit(event)" 
+          id="auth-submit-btn" 
+          class="w-full bg-[#1a3d2f] hover:bg-[#255440] text-white py-3 rounded-xl font-bold text-sm shadow-md transition"
+        >
+          Ingresar como Cliente
+        </button>
+
+        <!-- Enlace a Registro para Compradores -->
+        <div id="auth-buyer-register-link" class="mt-4 pt-3 border-t border-stone-100 text-center">
+          <p class="text-xs text-stone-500">
+            ¿No tienes una cuenta aún? 
+            <button 
+              type="button" 
+              onclick="openRegisterModal()" 
+              class="text-[#1a3d2f] hover:text-[#255440] hover:underline font-bold transition ml-1 cursor-pointer"
+            >
+              Regístrate aquí
+            </button>
+          </p>
+        </div>
+      </form>
+
+      <!-- Panel de Recuperar Contraseña -->
+      <div id="forgot-password-panel" class="hidden">
+        <div id="forgot-error-box" class="hidden mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium"></div>
+        <div id="forgot-success-box" class="hidden mb-4 p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-medium leading-relaxed"></div>
+
+        <form id="forgot-password-form" onsubmit="handleForgotPasswordSubmit(event)" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-stone-700 mb-1">Correo electrónico</label>
+            <input 
+              type="email" 
+              id="forgot-email-input" 
+              placeholder="correo@ejemplo.com" 
+              required 
+              class="w-full text-xs p-3 rounded-xl border border-stone-200 bg-stone-50/50 focus:bg-white focus:border-[#143628] focus:outline-none transition text-stone-800"
+            >
+          </div>
+
+          <button 
+            type="submit" 
+            id="forgot-submit-btn" 
+            class="w-full bg-[#143628] hover:bg-[#1f4e3b] text-white py-3 rounded-full font-bold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer"
+          >
+            Enviar enlace de recuperación
+          </button>
+
+          <div class="pt-2 text-center">
+            <button 
+              type="button" 
+              onclick="switchToLoginView()" 
+              class="text-xs font-medium text-stone-500 hover:text-stone-800 cursor-pointer"
+            >
+              ← Volver al inicio de sesión
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(div);
+  return div;
+}
+window.ensureLoginModalExists = ensureLoginModalExists;
+
+function ensureRegisterModalExists() {
+  let modal = document.getElementById('register-auth-modal');
+  if (modal) return modal;
+
+  const div = document.createElement('div');
+  div.id = 'register-auth-modal';
+  div.className = 'modal-overlay-gpu fixed inset-0 z-50 hidden flex items-center justify-center bg-black/50 p-4 overflow-y-auto';
+  div.onclick = function(e) { if (e.target === this) closeRegisterModal(); };
+  div.innerHTML = `
+    <div class="modal-card-gpu relative w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl my-auto z-10 modal-scroll border border-stone-200">
+      <div class="p-6 pb-4 bg-gradient-to-b from-[#FAF7F2] to-white border-b border-stone-200 text-center relative">
+        <button type="button" onclick="closeRegisterModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-700 text-sm font-bold w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center transition">✕</button>
+        <div class="w-12 h-12 rounded-2xl bg-[#1a3d2f] text-white flex items-center justify-center mx-auto mb-3 shadow-md">
+          <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>
+        </div>
+        <h3 class="font-serif text-2xl font-bold text-[#1a3d2f]">Crea tu cuenta para comprar</h3>
+        <p class="text-xs text-stone-600 mt-1">Estás comprando directo a agricultores locales. Regístrate para coordinar la cosecha y entrega en tu nodo.</p>
+
+        <!-- Aviso sutil de Checkout Protegido en Registro -->
+        <div id="register-checkout-notice" class="hidden mt-3 p-3 bg-amber-50/90 border border-amber-200/90 rounded-xl text-xs text-amber-900 font-medium flex items-center gap-2 text-left">
+          <span class="text-base shrink-0">🔒</span>
+          <span class="notice-text leading-snug">Inicia sesión o regístrate para completar tu compra y elegir tu punto de entrega.</span>
+        </div>
+
+        <div class="flex border-b border-stone-200 mt-4 text-xs font-bold">
+          <button type="button" class="flex-1 py-2.5 border-b-2 border-[#1a3d2f] text-[#1a3d2f] transition">
+            Crear Cuenta
+          </button>
+          <button type="button" onclick="openLoginModal('cliente'); closeRegisterModal();" class="flex-1 py-2.5 border-b-2 border-transparent text-stone-400 hover:text-stone-700 transition">
+            Ya tengo cuenta
+          </button>
+        </div>
+      </div>
+
+      <!-- Formulario de Registro -->
+      <form id="form-register-customer" onsubmit="handleCustomerRegister(event)" class="p-6 space-y-3.5 text-xs">
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Nombre completo *</label>
+          <input type="text" id="reg-name" required placeholder="Ej: Max Campoverde" oninput="validateRegisterForm()" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none transition">
+        </div>
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Nombre de usuario *</label>
+          <input type="text" id="reg-username" required placeholder="Ej: max_campoverde" autocomplete="username" oninput="handleUsernameInput(event)" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none transition">
+          <div id="reg-username-feedback" class="text-[11px] mt-1 font-medium hidden"></div>
+        </div>
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Correo electrónico *</label>
+          <input type="email" id="reg-email" required placeholder="tucorreo@ejemplo.com" autocomplete="email" oninput="handleEmailInput(event)" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none transition">
+          <div id="reg-email-feedback" class="text-[11px] mt-1 font-medium hidden"></div>
+        </div>
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Teléfono / WhatsApp *</label>
+          <input type="tel" id="reg-phone" required placeholder="Ej: 099 123 4567" oninput="handlePhoneInput(event)" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none transition">
+          <div id="reg-phone-feedback" class="text-[11px] mt-1 font-medium hidden"></div>
+        </div>
+        <div>
+          <label class="block font-bold text-stone-700 mb-1">Contraseña *</label>
+          <input type="password" id="reg-pass" required placeholder="Mínimo 8 caracteres seguros" autocomplete="new-password" oninput="handlePasswordInput(event)" class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#1a3d2f] outline-none transition">
+          <div id="password-checklist" class="mt-2 p-2.5 bg-stone-50 rounded-xl border border-stone-200 text-[11px] space-y-1">
+            <div id="pwd-rule-len" class="flex items-center gap-1.5 text-stone-400"><span class="rule-icon font-mono">○</span> <span>Mínimo 8 caracteres (recomendado 10-12)</span></div>
+            <div id="pwd-rule-case" class="flex items-center gap-1.5 text-stone-400"><span class="rule-icon font-mono">○</span> <span>Al menos 1 mayúscula y 1 minúscula</span></div>
+            <div id="pwd-rule-num" class="flex items-center gap-1.5 text-stone-400"><span class="rule-icon font-mono">○</span> <span>Al menos 1 número (0-9)</span></div>
+            <div id="pwd-rule-sym" class="flex items-center gap-1.5 text-stone-400"><span class="rule-icon font-mono">○</span> <span>Al menos 1 símbolo especial (!@#$%...)</span></div>
+          </div>
+        </div>
+        <button type="submit" id="reg-submit-btn" disabled class="w-full mt-3 bg-[#1a3d2f] hover:bg-[#24523f] text-white font-bold py-3 rounded-xl shadow-md transition text-xs flex items-center justify-center gap-1.5 opacity-50 cursor-not-allowed">
+          <span>Crear cuenta y completar compra</span>
+          <span>➔</span>
+        </button>
+      </form>
+    </div>
+  `;
+  document.body.appendChild(div);
+  return div;
+}
+window.ensureRegisterModalExists = ensureRegisterModalExists;
+
 /**
  * Conmuta o establece el rol activo del modal de login
  * @param {'cliente' | 'productor'} type 
@@ -644,7 +912,10 @@ window.setAuthType = setAuthType;
 function openLoginModal(type = 'cliente') {
   currentAuthType = type;
   window.currentAuthType = type;
-  const modal = document.getElementById('login-auth-modal');
+  let modal = document.getElementById('login-auth-modal');
+  if (!modal) {
+    modal = ensureLoginModalExists();
+  }
   if (!modal) return;
 
   modal.setAttribute('data-role', type);
@@ -661,6 +932,16 @@ function openLoginModal(type = 'cliente') {
   if (errorBox) {
     errorBox.classList.add('hidden');
     errorBox.textContent = '';
+  }
+
+  // Aviso de checkout protegido
+  const checkoutNotice = document.getElementById('auth-checkout-notice');
+  if (checkoutNotice) {
+    if (sessionStorage.getItem('pendingCheckout') === 'true') {
+      checkoutNotice.classList.remove('hidden');
+    } else {
+      checkoutNotice.classList.add('hidden');
+    }
   }
 
   // Limpiar contraseña por seguridad al cambiar o abrir
@@ -764,6 +1045,12 @@ function closeLoginModal() {
   if ((clientForgotPanel && !clientForgotPanel.classList.contains('hidden')) || 
       (producerForgotView && !producerForgotView.classList.contains('hidden'))) {
     switchToLoginView();
+  }
+
+  // Si estamos en checkout.html y no hay sesión activa, redirigir al catálogo en mercado.html
+  if (window.location.pathname.includes('checkout.html') && !isUserLoggedIn()) {
+    sessionStorage.removeItem('pendingCheckout');
+    window.location.href = 'mercado.html';
   }
 }
 window.openLoginModal = openLoginModal;
@@ -1287,6 +1574,23 @@ async function handleAuthSubmit(event) {
     setCurrentUser(clienteUser);
     closeLoginModal();
     updateAuthUI();
+
+    const isPending = sessionStorage.getItem('pendingCheckout') === 'true';
+    sessionStorage.removeItem('pendingCheckout');
+
+    if (isPending) {
+      if (window.location.pathname.includes('checkout.html')) {
+        if (typeof initCheckout === 'function') {
+          initCheckout();
+        } else {
+          window.location.reload();
+        }
+      } else {
+        window.location.href = 'checkout.html';
+      }
+      return false;
+    }
+
     if (window.location.pathname.includes('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/')) {
       window.location.replace('mercado.html');
     }
@@ -1926,6 +2230,22 @@ async function handleCustomerRegister(e) {
       alert(`¡Bienvenido a Raíz & Barrio, ${name}! Tu cuenta ha sido creada exitosamente.`);
     }
 
+    const isPending = sessionStorage.getItem('pendingCheckout') === 'true';
+    sessionStorage.removeItem('pendingCheckout');
+
+    if (isPending) {
+      if (window.location.pathname.includes('checkout.html')) {
+        if (typeof initCheckout === 'function') {
+          initCheckout();
+        } else {
+          window.location.reload();
+        }
+      } else {
+        window.location.href = 'checkout.html';
+      }
+      return false;
+    }
+
     // Si estamos en el mercado y hay productos en el carrito, proceder con checkout
     if (window.cart && window.cart.length > 0 && typeof openCheckoutModal === 'function') {
       setTimeout(() => openCheckoutModal(sessionUser), 400);
@@ -1947,8 +2267,19 @@ async function handleCustomerRegister(e) {
  */
 function openRegisterModal() {
   closeLoginModal();
-  const regModal = document.getElementById('register-auth-modal');
+  let regModal = document.getElementById('register-auth-modal');
+  if (!regModal && typeof ensureRegisterModalExists === 'function') {
+    regModal = ensureRegisterModalExists();
+  }
   if (regModal) {
+    const regNotice = document.getElementById('register-checkout-notice');
+    if (regNotice) {
+      if (sessionStorage.getItem('pendingCheckout') === 'true') {
+        regNotice.classList.remove('hidden');
+      } else {
+        regNotice.classList.add('hidden');
+      }
+    }
     regModal.classList.remove('hidden');
     regModal.scrollTop = 0;
     document.body.classList.add('modal-open');

@@ -27,6 +27,45 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function initCheckout() {
+  // 0. Bloqueo estricto de seguridad: Checkout requiere sesión activa obligatoria
+  let loggedIn = (typeof isUserLoggedIn === 'function') ? isUserLoggedIn() : (function() {
+    try {
+      if (typeof getCurrentUser === 'function') {
+        const u = getCurrentUser();
+        if (u && u.loggedIn) return true;
+      }
+      const raw = localStorage.getItem('rb_cached_profile') || 
+                  localStorage.getItem('rb_current_user') || 
+                  localStorage.getItem('raiz_user');
+      if (raw) {
+        const p = JSON.parse(raw);
+        if (p && (p.loggedIn || p.id)) return true;
+      }
+    } catch (_) {}
+    return false;
+  })();
+
+  if (!loggedIn && window.supabase && window.supabase.auth && typeof window.supabase.auth.getSession === 'function') {
+    try {
+      const res = await window.supabase.auth.getSession();
+      if (res?.data?.session?.user) loggedIn = true;
+    } catch (_) {}
+  }
+
+  if (!loggedIn) {
+    sessionStorage.setItem('pendingCheckout', 'true');
+    if (typeof openLoginModalWithNotice === 'function') {
+      openLoginModalWithNotice('Inicia sesión o regístrate para completar tu compra y elegir tu punto de entrega.');
+    } else if (typeof openLoginModal === 'function') {
+      openLoginModal('cliente');
+      const noticeBox = document.getElementById('auth-checkout-notice');
+      if (noticeBox) noticeBox.classList.remove('hidden');
+    } else {
+      window.location.replace('mercado.html?openLogin=checkout');
+    }
+    return;
+  }
+
   // 1. Obtener usuario autenticado
   try {
     const rawUser = localStorage.getItem('rb_cached_profile') || 

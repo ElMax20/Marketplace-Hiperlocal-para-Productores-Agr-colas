@@ -32,11 +32,20 @@ const DETAILED_PRODUCTS = [
     unit: "canasta semanal",
     unitLabel: "USD / canasta semanal",
     price: 0.95,
-    originalPrice: null,
-    discount: null,
+    originalPrice: 1.12,
+    discount: "-15%",
+    is_basket: true,
+    basket_savings_percent: 15,
+    basket_items: [
+      { name: "Zanahorias Daule", quantity_label: "1 kg" },
+      { name: "Rábanos de temporada", quantity_label: "1 manojo" },
+      { name: "Tomate riñón fresco", quantity_label: "1 kg" },
+      { name: "Cebolla blanca en rama", quantity_label: "1 manojo" },
+      { name: "Cilantro fresco", quantity_label: "1 atado" }
+    ],
     stock: 25,
     stockText: "En stock: 25 unidades de canasta semanal",
-    description: "Hacienda San José · Daule · 8-10 hortalizas, 3 frutas y aromáticas para 3 a 5 personas",
+    description: "Hacienda San José · Daule · 8-10 hortalizas, 3 frutas y aromáticas para 3 a 5 personas. Cosechadas la misma mañana del reparto.",
     care: "Conservar en un lugar fresco y seco o refrigerado según corresponda. Consumir fresco para disfrutar al máximo sus propiedades naturales.",
     shippingCost: 0.35
   },
@@ -45,20 +54,28 @@ const DETAILED_PRODUCTS = [
     numericId: 12,
     title: "Canasta Agroecológica Esencial",
     category: "canastas",
-    badge: "Familiar · Cosecha limpia",
+    badge: "Esencial · Parejas",
     badgeIcon: "🧺",
     farmName: "Huerta Agroecológica El Guayacán",
     farmLocation: "Milagro, Guayas · a 42 km de tu nodo",
-    image: "https://images.unsplash.com/photo-1610348725531-843dff563e2c?auto=format&fit=crop&w=600&q=80",
+    image: "https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/canasta_esencial.jpg",
     subtitle: "canasta semanal · Selección de temporada",
     unit: "canasta semanal",
     unitLabel: "USD / canasta semanal",
     price: 0.7,
-    originalPrice: null,
-    discount: null,
+    originalPrice: 0.85,
+    discount: "-18%",
+    is_basket: true,
+    basket_savings_percent: 18,
+    basket_items: [
+      { name: "Lechuga crespa agroecológica", quantity_label: "2 unidades" },
+      { name: "Tomate riñón de huerta", quantity_label: "1 kg" },
+      { name: "Pepino criollo fresco", quantity_label: "1 kg" },
+      { name: "Albahaca aromática", quantity_label: "1 atado" }
+    ],
     stock: 25,
     stockText: "En stock: 25 unidades de canasta semanal",
-    description: "Huerta Agroecológica El Guayacán · Milagro · 5-6 variedades básicas, frutas y huevos para parejas",
+    description: "Huerta Agroecológica El Guayacán · Milagro · 5-6 variedades básicas, frutas y aromáticas para parejas o personas que cocinan a diario.",
     care: "Conservar en un lugar fresco y seco o refrigerado según corresponda. Consumir fresco para disfrutar al máximo sus propiedades naturales.",
     shippingCost: 0.35
   },
@@ -1190,7 +1207,16 @@ function initProductPage() {
             is_seasonal: isSeasonal,
             season_label: seasonLabel,
             is_basket: isBasket,
-            basket_items: dbRow.basket_items || []
+            basket_savings_percent: dbRow.basket_savings_percent || 15,
+            basket_items: (Array.isArray(dbRow.basket_items) && dbRow.basket_items.length > 0)
+              ? dbRow.basket_items
+              : (isBasket ? [
+                  { name: 'Zanahorias Daule', quantity_label: '1 kg' },
+                  { name: 'Rábanos de temporada', quantity_label: '1 manojo' },
+                  { name: 'Tomate riñón fresco', quantity_label: '1 kg' },
+                  { name: 'Cebolla blanca en rama', quantity_label: '1 manojo' },
+                  { name: 'Cilantro fresco', quantity_label: '1 atado' }
+                ] : [])
           };
 
           renderProductDetails(currentProduct);
@@ -1291,6 +1317,43 @@ function renderProductDetails(p) {
   if (deliveryHomeNote) {
     const totalHome = p.price + (p.shippingCost || 0.35);
     deliveryHomeNote.textContent = `A domicilio en Guayaquil: $${formatCOP(p.shippingCost || 0.35)} · Total con envío: $${formatCOP(totalHome)} USD.`;
+  }
+
+  // Desglose de Contenido para Canastas Semanales
+  const basketContainer = document.getElementById('prod-basket-contents-container');
+  const basketList = document.getElementById('prod-basket-items-list');
+  const basketSavings = document.getElementById('prod-basket-savings-badge');
+
+  const isBasket = Boolean(p.is_basket || p.category === 'canastas' || p.category_id === 1 || String(p.id).includes('canasta'));
+  const items = Array.isArray(p.basket_items) && p.basket_items.length > 0
+    ? p.basket_items
+    : (isBasket ? [
+        { name: 'Zanahorias Daule', quantity_label: '1 kg' },
+        { name: 'Rábanos de temporada', quantity_label: '1 manojo' },
+        { name: 'Tomate riñón fresco', quantity_label: '1 kg' },
+        { name: 'Cebolla blanca en rama', quantity_label: '1 manojo' },
+        { name: 'Cilantro fresco', quantity_label: '1 atado' }
+      ] : []);
+
+  if (isBasket && basketContainer && basketList) {
+    basketContainer.classList.remove('hidden');
+    const savings = p.basket_savings_percent || 15;
+    if (basketSavings) {
+      basketSavings.textContent = `Ahorra ${savings}%`;
+    }
+    basketList.innerHTML = items.map(it => `
+      <div class="flex items-center justify-between bg-white/70 border border-[#e6decb] rounded-xl px-3 py-2 text-xs shadow-2xs">
+        <span class="flex items-center gap-1.5 font-medium text-[#143628]">
+          <span class="text-emerald-700 font-bold">•</span>
+          <span>${escapeHtml(it.name)}</span>
+        </span>
+        <span class="text-[11px] text-stone-500 font-semibold bg-[#F7F2EA] px-2 py-0.5 rounded-lg border border-[#e6decb]">
+          ${escapeHtml(it.quantity_label || '1 un')}
+        </span>
+      </div>
+    `).join('');
+  } else if (basketContainer) {
+    basketContainer.classList.add('hidden');
   }
 
   recalculateSubtotal();
@@ -1404,6 +1467,36 @@ function handleBuyNow() {
   }
 
   saveLocalCart(cart);
+
+  // REGLA ESTRICTA: Sin sesión activa NO se puede pagar ni entrar al checkout
+  const isLogged = (typeof isUserLoggedIn === 'function') ? isUserLoggedIn() : (function() {
+    try {
+      if (typeof getCurrentUser === 'function') {
+        const u = getCurrentUser();
+        if (u && u.loggedIn) return true;
+      }
+      const raw = localStorage.getItem('rb_current_user') || localStorage.getItem('rb_cached_profile') || localStorage.getItem('raiz_user');
+      if (raw) {
+        const u = JSON.parse(raw);
+        return Boolean(u && (u.loggedIn || u.id));
+      }
+    } catch (_) {}
+    return false;
+  })();
+
+  if (!isLogged) {
+    sessionStorage.setItem('pendingCheckout', 'true');
+    if (typeof openLoginModalWithNotice === 'function') {
+      openLoginModalWithNotice('Inicia sesión o regístrate para completar tu compra y elegir tu punto de entrega.');
+    } else if (typeof openLoginModal === 'function') {
+      openLoginModal('cliente');
+      const noticeBox = document.getElementById('auth-checkout-notice');
+      if (noticeBox) noticeBox.classList.remove('hidden');
+    } else {
+      window.location.href = 'mercado.html?openLogin=checkout';
+    }
+    return;
+  }
 
   // Redirigir automáticamente al checkout / opciones de pago
   window.location.href = 'checkout.html';
