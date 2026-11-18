@@ -622,7 +622,7 @@ BEGIN
         -- Actualizar existencias y disponibilidad en products
         UPDATE public.products
         SET stock_quantity = new_stock,
-            is_available = (new_stock > 0),
+            availability = CASE WHEN new_stock <= 0 THEN 'Agotado' ELSE 'Disponible' END,
             updated_at = now()
         WHERE id = p_id;
 
@@ -630,6 +630,7 @@ BEGIN
             'product_id', p_id,
             'previous_stock', curr_stock,
             'new_stock', new_stock,
+            'stock_quantity', new_stock,
             'is_available', (new_stock > 0)
         );
     END LOOP;

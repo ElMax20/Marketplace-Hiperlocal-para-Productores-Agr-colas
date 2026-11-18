@@ -267,15 +267,42 @@ async function initProducerSession() {
     window.supabase.subscribeToProducts((eventPayload) => {
       try {
         console.log('[Productor Realtime] Cambio de inventario recibido:', eventPayload);
+
+        // 1. Manejo de decremento de existencias desde checkout
+        if (eventPayload.updated_products && Array.isArray(eventPayload.updated_products)) {
+          let anyUpdated = false;
+          eventPayload.updated_products.forEach(up => {
+            const pId = up.product_id || up.id;
+            const prod = producerProducts.find(p => p.id == pId || p.numericId == pId);
+            if (prod) {
+              const newStk = Number(up.new_stock !== undefined ? up.new_stock : up.stock_quantity);
+              prod.stock = newStk;
+              if (prod.status !== 'borrador') {
+                const isAvail = newStk > 0;
+                prod.status = isAvail ? 'publicado' : 'agotado';
+                prod.statusText = isAvail ? 'Publicado' : 'Agotado';
+              }
+              anyUpdated = true;
+            }
+          });
+          if (anyUpdated) {
+            renderProducerProducts();
+            updateKPIs();
+          }
+          return;
+        }
+
         const row = eventPayload.new || eventPayload;
         if (row && row.id) {
           const prod = producerProducts.find(p => p.id == row.id || p.numericId == row.id);
           if (prod) {
             if (row.stock_quantity !== undefined) {
               prod.stock = Number(row.stock_quantity);
-              const isAvail = row.is_available !== false && prod.stock > 0;
-              prod.status = isAvail ? 'publicado' : 'agotado';
-              prod.statusText = isAvail ? 'Publicado' : 'Agotado';
+              if (prod.status !== 'borrador') {
+                const isAvail = row.is_available !== false && prod.stock > 0;
+                prod.status = isAvail ? 'publicado' : 'agotado';
+                prod.statusText = isAvail ? 'Publicado' : 'Agotado';
+              }
             }
             if (row.price !== undefined) prod.price = Number(row.price);
             if (row.title) prod.title = row.title;
@@ -2887,6 +2914,7 @@ async function publishNewProduct() {
         unit: unit,
         stock_quantity: stockNum,
         is_available: isSavePublished,
+        status: isSavePublished ? 'published' : 'draft',
         image_url: coverUrl,
         is_seasonal: isSeasonal,
         season_label: seasonLabel,
@@ -2946,6 +2974,7 @@ async function publishNewProduct() {
         unit: unit,
         stock_quantity: stockNum,
         is_available: isSavePublished,
+        status: isSavePublished ? 'published' : 'draft',
         image_url: coverUrl,
         is_seasonal: isSeasonal,
         season_label: seasonLabel,
@@ -3047,6 +3076,7 @@ async function saveProductDraft() {
         unit: unit,
         stock_quantity: stockNum,
         is_available: false,
+        status: 'draft',
         image_url: coverUrl,
         is_seasonal: isSeasonal,
         season_label: seasonLabel,
@@ -3101,6 +3131,7 @@ async function saveProductDraft() {
         unit: unit,
         stock_quantity: stockNum,
         is_available: false,
+        status: 'draft',
         image_url: coverUrl,
         is_seasonal: isSeasonal,
         season_label: seasonLabel,
@@ -3170,7 +3201,7 @@ async function publishProductDirectly(code) {
 
   if (window.supabase && typeof window.supabase.updateProduct === 'function' && prod.id) {
     try {
-      await window.supabase.updateProduct(prod.id, { is_available: true });
+      await window.supabase.updateProduct(prod.id, { is_available: true, status: 'published' });
     } catch (err) {
       console.warn('Error al actualizar disponibilidad en Supabase:', err);
     }

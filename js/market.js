@@ -6,7 +6,7 @@
 // =============================================================================
 // 1. Base de datos de productos (Coincide exactamente con la imagen de referencia)
 // =============================================================================
-const PRODUCTS_DATA = [
+let PRODUCTS_DATA = [
   {
     id: "canasta-huerto-familiar",
     numericId: 11,
@@ -1231,7 +1231,27 @@ function initMarketApp() {
       try {
         console.log('[Mercado Realtime] Actualización de producto:', eventPayload);
         
-        // Manejo de eliminación en tiempo real
+        // 1. Manejo de decremento de stock en lote desde checkout
+        if (eventPayload.updated_products && Array.isArray(eventPayload.updated_products)) {
+          let anyUpdated = false;
+          eventPayload.updated_products.forEach(up => {
+            const pId = String(up.product_id || up.id);
+            const prod = PRODUCTS_DATA.find(p => String(p.id) === pId || (p.numericId && String(p.numericId) === pId));
+            if (prod) {
+              const newStk = Number(up.new_stock !== undefined ? up.new_stock : up.stock_quantity);
+              prod.stock = newStk;
+              prod.stock_quantity = newStk;
+              prod.availability = (newStk <= 0) ? 'Agotado' : 'Disponible · Supabase';
+              anyUpdated = true;
+            }
+          });
+          if (anyUpdated) {
+            renderProducts();
+          }
+          return;
+        }
+
+        // 2. Manejo de eliminación en tiempo real
         if (eventPayload.eventType === 'DELETE' || eventPayload.old?.id) {
           const targetId = String(eventPayload.old?.id || eventPayload.id);
           PRODUCTS_DATA = PRODUCTS_DATA.filter(p => String(p.id) !== targetId && String(p.numericId) !== targetId);
@@ -1241,12 +1261,19 @@ function initMarketApp() {
 
         const row = eventPayload.new || eventPayload;
         if (row && row.id) {
+          // Si el producto fue pasado a borrador o desactivado, retirarlo de inmediato del catálogo
+          if (row.is_available === false || row.status === 'draft' || row.status === 'borrador' || row.is_active === false) {
+            PRODUCTS_DATA = PRODUCTS_DATA.filter(p => String(p.id) !== String(row.id) && String(p.numericId) !== String(row.id));
+            renderProducts();
+            return;
+          }
+
           const prod = PRODUCTS_DATA.find(p => String(p.id) === String(row.id) || (p.numericId && Number(p.numericId) === Number(row.id)));
           if (prod) {
             if (row.stock_quantity !== undefined) {
               prod.stock = Number(row.stock_quantity);
               prod.stock_quantity = Number(row.stock_quantity);
-              prod.availability = (row.is_available === false || prod.stock <= 0) ? 'Agotado' : 'Disponible';
+              prod.availability = (prod.stock <= 0) ? 'Agotado' : 'Disponible';
             }
             if (row.price !== undefined) prod.price = Number(row.price);
             if (row.title) prod.title = row.title;
@@ -1255,7 +1282,7 @@ function initMarketApp() {
             if (row.unit) prod.unit = row.unit;
             if (row.is_available !== undefined) {
               prod.is_available = row.is_available;
-              prod.availability = (row.is_available === false || prod.stock <= 0) ? 'Agotado' : 'Disponible';
+              prod.availability = (prod.stock <= 0) ? 'Agotado' : 'Disponible';
             }
             renderProducts();
           }
@@ -1323,6 +1350,15 @@ async function loadProductsFromSupabase() {
           p.title.toLowerCase() === dbP.title.toLowerCase()
         );
 
+        // Regla estricta: Los productos en borrador son 100% invisibles en el catálogo y búsqueda
+        const isDraft = (dbP.is_available === false || dbP.is_active === false || dbP.status === 'draft' || dbP.status === 'borrador');
+        if (isDraft) {
+          if (existingIdx !== -1) {
+            PRODUCTS_DATA.splice(existingIdx, 1);
+          }
+          return;
+        }
+
         const normalizedImg = normalizeProductImageUrl(dbP.image_url);
         const priceNum = Number(dbP.price);
         const origPrice = Math.round(priceNum * 1.15 * 100) / 100;
@@ -1363,7 +1399,7 @@ async function loadProductsFromSupabase() {
             basket_savings_percent: basketSavings,
             subtitle: `${dbP.unit || 'kg'} · Cosechado en finca`,
             origin: dbP.description || PRODUCTS_DATA[existingIdx].origin,
-            availability: (isAvail && stockQty > 0) ? 'Disponible · Supabase' : 'Agotado'
+            availability: (stockQty > 0) ? 'Disponible · Supabase' : 'Agotado'
           };
         } else {
           PRODUCTS_DATA.push({
@@ -1386,7 +1422,7 @@ async function loadProductsFromSupabase() {
             is_basket: isBasket,
             basket_items: basketItemsData,
             basket_savings_percent: basketSavings,
-            availability: (isAvail && stockQty > 0) ? 'Disponible · Supabase' : 'Agotado',
+            availability: (stockQty > 0) ? 'Disponible · Supabase' : 'Agotado',
             distanceKm: 38,
             isOffer: false
           });
@@ -1493,6 +1529,11 @@ function renderProducts() {
   }
 
   let filtered = PRODUCTS_DATA.filter(p => {
+    // 0. Regla estricta: Ocultar 100% productos en borrador para compradores (nunca deben verse ni como Agotado)
+    if (p.is_available === false || p.is_active === false || p.status === 'draft' || p.status === 'borrador') {
+      return false;
+    }
+
     // Filtro por Productor / Finca
     if (currentProducer) {
       const orig = (p.origin || '').toLowerCase();
@@ -2398,8 +2439,10 @@ function updateActiveFiltersUI() {
  * Actualiza los contadores numéricos de cada categoría y disponibilidad en la barra lateral
  */
 function updateCategoryBadgesCounts() {
+  const publishedProducts = PRODUCTS_DATA.filter(p => p.is_available !== false && p.is_active !== false && p.status !== 'draft' && p.status !== 'borrador');
+
   const catCounts = {
-    todos: PRODUCTS_DATA.length,
+    todos: publishedProducts.length,
     canastas: 0,
     verduras: 0,
     frutas: 0,
@@ -2407,7 +2450,7 @@ function updateCategoryBadgesCounts() {
     despensa: 0
   };
 
-  PRODUCTS_DATA.forEach(p => {
+  publishedProducts.forEach(p => {
     if (catCounts[p.category] !== undefined) {
       catCounts[p.category]++;
     }
@@ -2422,7 +2465,7 @@ function updateCategoryBadgesCounts() {
 
   const weeklyEl = document.getElementById('weekly-count-label');
   if (weeklyEl) {
-    const weeklyCount = PRODUCTS_DATA.filter(p => {
+    const weeklyCount = publishedProducts.filter(p => {
       const avail = (p.availability || '').toLowerCase();
       return !avail.includes('agotado') && !avail.includes('no disponible');
     }).length;
@@ -2430,9 +2473,9 @@ function updateCategoryBadgesCounts() {
   }
 
   // Actualizar contadores estacionales y de canastas
-  const seasonalCount = PRODUCTS_DATA.filter(p => Boolean(p.is_seasonal || (p.season_label && p.season_label !== 'Disponible todo el año') || (p.tag && p.tag.toLowerCase().includes('temporada')))).length;
-  const basketCount = PRODUCTS_DATA.filter(p => Boolean(p.is_basket || p.category === 'canastas' || p.category_id === 1)).length;
-  const totalCount = PRODUCTS_DATA.length;
+  const seasonalCount = publishedProducts.filter(p => Boolean(p.is_seasonal || (p.season_label && p.season_label !== 'Disponible todo el año') || (p.tag && p.tag.toLowerCase().includes('temporada')))).length;
+  const basketCount = publishedProducts.filter(p => Boolean(p.is_basket || p.category === 'canastas' || p.category_id === 1)).length;
+  const totalCount = publishedProducts.length;
 
   const pillSeasonalCount = document.getElementById('pill-count-seasonal');
   if (pillSeasonalCount) pillSeasonalCount.textContent = seasonalCount;

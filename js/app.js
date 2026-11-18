@@ -760,7 +760,7 @@ async function initCosechaDeHoy() {
       if (products.length === 0 && typeof window.supabase.getProducts === 'function') {
         const all = await window.supabase.getProducts();
         if (Array.isArray(all)) {
-          products = all.filter(p => p.is_available !== false);
+          products = all.filter(p => p.is_available !== false && p.is_active !== false && p.status !== 'draft' && p.status !== 'borrador');
         }
       }
     } catch (err) {
@@ -776,7 +776,7 @@ async function initCosechaDeHoy() {
   // 1. Filtrar únicamente los productos disponibles con valoración válida (rating > 0 o reviews_count > 0)
   const ratedProducts = [];
   for (const p of products) {
-    if (p.is_available === false || p.is_active === false) continue;
+    if (p.is_available === false || p.is_active === false || p.status === 'draft' || p.status === 'borrador') continue;
     const stats = getProductRealRating(p);
     if (stats.hasRating && (stats.rating > 0 || stats.reviewsCount > 0)) {
       ratedProducts.push({

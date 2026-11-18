@@ -1070,10 +1070,44 @@ class SupabaseService {
   async decrementStock(items = []) {
     if (!Array.isArray(items) || items.length === 0) return { success: true };
 
-    const formatted = items.map(it => ({
-      product_id: Number(it.numericId || it.product_id || it.id),
-      quantity: Number(it.quantity || it.qty || 1)
-    })).filter(it => !isNaN(it.product_id) && it.quantity > 0);
+    const slugToIdMap = {
+      'tomate-de-huerta': 1,
+      'cebolla-colorada': 2,
+      'pimiento-verde': 3,
+      'zanahoria-tierra': 4,
+      'acelga-fresca': 5,
+      'banano-criollo-de-ladera': 6,
+      'naranja-valencia': 7,
+      'maracuya-silvestre': 8,
+      'leche-fresca-entera': 9,
+      'huevos-campo-libre': 10,
+      'canasta-huerto-familiar': 11,
+      'canasta-agroecologica-esencial': 12,
+      'platano-verde-barraganete': 25,
+      'canasta-cosecha-campesina': 47,
+      'canasta-huerta-y-frutas': 48
+    };
+
+    const formatted = [];
+    for (const it of items) {
+      let pId = Number(it.numericId || it.product_id);
+      if (isNaN(pId) || pId <= 0) {
+        if (!isNaN(Number(it.id))) {
+          pId = Number(it.id);
+        } else if (it.id && slugToIdMap[it.id]) {
+          pId = slugToIdMap[it.id];
+        } else if (typeof PRODUCTS_DATA !== 'undefined' && Array.isArray(PRODUCTS_DATA)) {
+          const match = PRODUCTS_DATA.find(p => p.id === it.id || p.title === it.title);
+          if (match && match.numericId) pId = Number(match.numericId);
+        }
+      }
+      const qty = Number(it.quantity || it.qty || 1);
+      if (!isNaN(pId) && pId > 0 && qty > 0) {
+        formatted.push({ product_id: pId, quantity: qty });
+      }
+    }
+
+    if (formatted.length === 0) return { success: true };
 
     // 1. Intentar llamada a la RPC en PostgreSQL (atómica y segura contra concurrencia)
     try {
@@ -1097,19 +1131,18 @@ class SupabaseService {
         if (Array.isArray(prods) && prods.length > 0) {
           const currentStock = Number(prods[0].stock_quantity || 0);
           const newStock = Math.max(0, currentStock - it.quantity);
-          const isAvail = newStock > 0;
           await this.fetchApi(`products?id=eq.${it.product_id}`, {
             method: 'PATCH',
             body: JSON.stringify({
-              stock_quantity: newStock,
-              is_available: isAvail
+              stock_quantity: newStock
             })
           });
           updated.push({
             product_id: it.product_id,
             previous_stock: currentStock,
             new_stock: newStock,
-            is_available: isAvail
+            stock_quantity: newStock,
+            is_available: newStock > 0
           });
         }
       } catch (errFallback) {
@@ -1119,7 +1152,7 @@ class SupabaseService {
 
     this.broadcastProductChange({
       eventType: 'STOCK_DECREMENT',
-      updated_products: updated
+      updated_products: updated.length > 0 ? updated : formatted
     });
 
     return { success: true, updated_products: updated };

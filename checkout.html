@@ -313,7 +313,7 @@
             </span>
           </div>
 
-          <!-- Selector de Método de Pago: Tarjeta vs En Nodo / Contraentrega -->
+          <!-- Selector de Método de Pago: Tarjeta vs Tienda Física / Contraentrega -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6">
             
             <!-- Opción A: Tarjeta (Crédito / Débito) [Por Defecto] -->
@@ -337,7 +337,7 @@
               </div>
             </label>
 
-            <!-- Opción B: En Nodo / Contraentrega -->
+            <!-- Opción B: Pago en Tienda Física / Contraentrega -->
             <label 
               id="pay-tab-cod"
               onclick="selectPaymentTab('CASH_ON_DELIVERY')"
@@ -351,9 +351,9 @@
               >
               <div>
                 <span class="font-bold text-stone-900 text-xs sm:text-sm flex items-center gap-1.5">
-                  <span>🤝</span> En Nodo / Contraentrega
+                  <span>🏪</span> Pago en Tienda Física / Contraentrega
                 </span>
-                <span class="text-[10px] text-stone-400 block mt-0.5">Paga al recibir tus productos</span>
+                <span class="text-[10px] text-stone-400 block mt-0.5">Cancela en caja de la tienda física o al recibir</span>
               </div>
             </label>
           </div>
@@ -465,13 +465,13 @@
 
           </div>
 
-          <!-- Panel de Pago en Nodo / Contraentrega -->
+          <!-- Panel de Pago en Tienda Física / Contraentrega -->
           <div id="panel-payment-cod" class="hidden mt-6 p-4 rounded-2xl bg-amber-50/70 border border-amber-200 text-xs text-amber-900 space-y-1.5">
             <p class="font-bold flex items-center gap-1.5 text-stone-800">
-              <span>🤝</span> Pago al momento de la entrega
+              <span>🏪</span> Pago presencial en tienda física o contraentrega
             </p>
             <p class="text-stone-600 leading-relaxed text-[11px]">
-              Paga directamente en el punto de recogida del nodo o al repartidor al momento de recibir tu pedido. Se acepta efectivo y datáfono físico. Te recomendamos tener el valor exacto si abonas en efectivo.
+              Paga directamente en la caja de nuestra tienda física al retirar tu pedido o al repartidor si elegiste envío a domicilio. Aceptamos efectivo y tarjetas con datáfono físico.
             </p>
           </div>
 

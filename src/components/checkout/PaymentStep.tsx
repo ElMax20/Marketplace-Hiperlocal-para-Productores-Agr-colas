@@ -143,7 +143,7 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
           </div>
         </div>
 
-        {/* Opción 2: En Nodo / Contraentrega */}
+        {/* Opción 2: Pago en Tienda Física / Contraentrega */}
         <div
           onClick={() => onSelectPaymentMethod('CASH_ON_DELIVERY')}
           className={`cursor-pointer rounded-2xl p-4 border-2 transition ${
@@ -162,9 +162,9 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
             />
             <div>
               <span className="font-bold text-stone-900 text-sm flex items-center gap-1.5">
-                <span>🤝</span> En Nodo / Contraentrega
+                <span>🏪</span> Pago en Tienda Física / Contraentrega
               </span>
-              <span className="text-[10px] text-stone-400 block mt-0.5">Paga al recibir tus productos</span>
+              <span className="text-[10px] text-stone-400 block mt-0.5">Cancela en caja de la tienda física o al recibir</span>
             </div>
           </div>
         </div>
@@ -318,14 +318,14 @@ export const PaymentStep: React.FC<PaymentStepProps> = ({
         </div>
       )}
 
-      {/* Información para En Nodo / Contraentrega */}
+      {/* Información para Pago en Tienda Física / Contraentrega */}
       {isCOD && (
         <div className="mt-6 p-4 rounded-2xl bg-amber-50/60 border border-amber-200 text-xs text-amber-900">
           <p className="font-bold flex items-center gap-1.5">
-            <span>📦</span> Pago en el momento de entrega
+            <span>🏪</span> Pago presencial en tienda física o contraentrega
           </p>
           <p className="mt-1 text-stone-600 leading-relaxed">
-            Puedes pagar en efectivo o tarjeta física cuando recibas tu pedido en el nodo comunitario o al repartidor en tu puerta. Te recomendamos tener el valor exacto si pagas en efectivo.
+            Paga directamente en la caja de nuestra tienda física al retirar tu pedido o al repartidor si elegiste envío a domicilio. Aceptamos efectivo y tarjetas con datáfono físico.
           </p>
         </div>
       )}

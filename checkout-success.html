@@ -218,7 +218,7 @@
           const last4 = order.payment_details?.last4 ? `•••• ${order.payment_details.last4}` : '';
           payEl.textContent = `Tarjeta (${brand} ${last4})`.trim();
         } else {
-          payEl.textContent = 'En Nodo / Contraentrega';
+          payEl.textContent = 'Pago en Tienda Física / Contraentrega';
         }
       }
 

@@ -1124,14 +1124,87 @@ function initProductPage() {
   const params = new URLSearchParams(window.location.search);
   const paramId = params.get('id');
 
-  // Buscar el producto por id de texto, número o título
+  // 1. Buscar en catálogo estático local primero
   currentProduct = DETAILED_PRODUCTS.find(p => 
     p.id === paramId || 
-    String(p.numericId) === paramId ||
+    (paramId && String(p.numericId) === String(paramId)) ||
     (paramId && p.title.toLowerCase() === paramId.toLowerCase())
   );
+
+  // 2. Si no se encontró en DETAILED_PRODUCTS o si existe un ID numérico / título, buscar en Supabase
+  if ((!currentProduct || (paramId && !isNaN(Number(paramId)))) && window.supabase) {
+    (async () => {
+      try {
+        let dbRow = null;
+        if (typeof window.supabase.from === 'function') {
+          if (paramId && !isNaN(Number(paramId))) {
+            const { data } = await window.supabase.from('products').select('*').eq('id', Number(paramId)).limit(1);
+            if (data && data.length > 0) dbRow = data[0];
+          } else if (paramId) {
+            const { data } = await window.supabase.from('products').select('*').ilike('title', paramId).limit(1);
+            if (data && data.length > 0) dbRow = data[0];
+          }
+        }
+        if (!dbRow && typeof window.supabase.fetchApi === 'function' && paramId) {
+          if (!isNaN(Number(paramId))) {
+            const res = await window.supabase.fetchApi(`products?id=eq.${paramId}`);
+            if (Array.isArray(res) && res.length > 0) dbRow = res[0];
+          } else {
+            const res = await window.supabase.fetchApi(`products?title=ilike.${encodeURIComponent(paramId)}`);
+            if (Array.isArray(res) && res.length > 0) dbRow = res[0];
+          }
+        }
+
+        if (dbRow) {
+          const catMap = { 1: 'canastas', 2: 'verduras', 3: 'frutas', 4: 'lacteos', 5: 'despensa' };
+          const catKey = catMap[dbRow.category_id] || 'verduras';
+          const isBasket = Boolean(dbRow.is_basket || dbRow.category_id === 1);
+          const isSeasonal = Boolean(dbRow.is_seasonal || (dbRow.season_label && dbRow.season_label !== 'Disponible todo el año'));
+          const seasonLabel = dbRow.season_label || 'Cosecha fresca';
+          const priceNum = Number(dbRow.price);
+          const origPrice = dbRow.original_price ? Number(dbRow.original_price) : Math.round(priceNum * 1.15 * 100) / 100;
+          const stockQty = Number(dbRow.stock_quantity ?? (dbRow.stock ?? 25));
+          const unit = dbRow.unit || 'kg';
+
+          currentProduct = {
+            id: String(dbRow.id),
+            numericId: dbRow.id,
+            title: dbRow.title,
+            category: catKey,
+            badge: isBasket ? 'Canasta familiar · Cosecha limpia' : (isSeasonal ? `${seasonLabel} · Cosecha limpia` : 'Cosecha fresca · Cosecha limpia'),
+            badgeIcon: isBasket ? '🧺' : (isSeasonal ? '🌿' : '🌱'),
+            farmName: dbRow.farm_name || 'Hacienda San José',
+            farmLocation: dbRow.farm_location || 'Daule, Guayas · a 45 km de tu nodo',
+            image: normalizeProductImageUrl(dbRow.image_url),
+            subtitle: `${unit} · Selección de temporada`,
+            unit: unit,
+            unitLabel: `USD / ${unit}`,
+            price: priceNum,
+            originalPrice: origPrice > priceNum ? origPrice : null,
+            discount: null,
+            stock: stockQty,
+            stockText: `En stock: ${stockQty} unidades de ${unit}`,
+            description: dbRow.description || 'Producto cosechado en finca con prácticas agroecológicas limpias.',
+            care: 'Conservar en un lugar fresco y seco o refrigerado según corresponda. Consumir fresco para disfrutar al máximo sus propiedades naturales.',
+            shippingCost: 0.35,
+            is_seasonal: isSeasonal,
+            season_label: seasonLabel,
+            is_basket: isBasket,
+            basket_items: dbRow.basket_items || []
+          };
+
+          renderProductDetails(currentProduct);
+          updateCartPresenceHint();
+        }
+      } catch (errDb) {
+        console.warn('Error buscando producto en Supabase:', errDb);
+      }
+    })();
+  }
+
+  // 3. Fallback a tomate de huerta únicamente si no hay nada especificado
   if (!currentProduct) {
-    currentProduct = DETAILED_PRODUCTS[0]; // Tomate de huerta por defecto
+    currentProduct = DETAILED_PRODUCTS[0];
   }
 
   // Cargar datos en la interfaz
@@ -1284,13 +1357,14 @@ function saveLocalCart(cart) {
 function handleAddToCart() {
   if (!currentProduct) return;
   const cart = getLocalCart();
-  const existingIdx = cart.findIndex(item => item.id === currentProduct.id);
+  const existingIdx = cart.findIndex(item => item.id === currentProduct.id || (item.numericId && item.numericId === currentProduct.numericId));
 
   if (existingIdx !== -1) {
     cart[existingIdx].quantity += currentQuantity;
   } else {
     cart.push({
       id: currentProduct.id,
+      numericId: currentProduct.numericId,
       title: currentProduct.title,
       price: currentProduct.price,
       subtitle: currentProduct.subtitle,
@@ -1311,13 +1385,14 @@ function handleBuyNow() {
 
   // Agregar o actualizar el producto con la cantidad seleccionada en el carrito
   const cart = getLocalCart();
-  const existingIdx = cart.findIndex(item => item.id === currentProduct.id);
+  const existingIdx = cart.findIndex(item => item.id === currentProduct.id || (item.numericId && item.numericId === currentProduct.numericId));
 
   if (existingIdx !== -1) {
     cart[existingIdx].quantity = currentQuantity;
   } else {
     cart.push({
       id: currentProduct.id,
+      numericId: currentProduct.numericId,
       title: currentProduct.title,
       price: currentProduct.price,
       subtitle: currentProduct.subtitle,
@@ -1331,7 +1406,7 @@ function handleBuyNow() {
   saveLocalCart(cart);
 
   // Redirigir automáticamente al checkout / opciones de pago
-  window.location.href = 'mercado.html?checkout=1';
+  window.location.href = 'checkout.html';
 }
 
 function updateCartPresenceHint() {

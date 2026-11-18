@@ -208,8 +208,8 @@ function cleanPaymentMethodName(method, details) {
   if (m.includes('transferencia') || m.includes('bancaria')) {
     return 'Transferencia bancaria';
   }
-  if (m.includes('nodo') || m.includes('cash') || m.includes('efectivo')) {
-    return 'Efectivo en nodo';
+  if (m.includes('tienda') || m.includes('contraentrega') || m.includes('nodo') || m.includes('cash') || m.includes('efectivo')) {
+    return 'Pago en Tienda Física / Contraentrega';
   }
   return method;
 }
