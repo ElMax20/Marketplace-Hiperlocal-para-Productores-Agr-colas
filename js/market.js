@@ -1378,7 +1378,11 @@ async function loadProductsFromSupabase() {
           ];
         }
         const basketSavings = Number(dbP.basket_savings_percent || dbP.basketSavingsPercent || (isBasket ? 15 : 0));
-        const stockQty = Number(dbP.stock_quantity ?? (dbP.stock ?? 30));
+        let stockQty = Number(dbP.stock ?? (dbP.stock_quantity ?? 30));
+        try {
+          const overrides = JSON.parse(localStorage.getItem('rb_stock_overrides') || '{}');
+          if (overrides[dbP.id] !== undefined) stockQty = Number(overrides[dbP.id]);
+        } catch (_) {}
 
         if (existingIdx !== -1) {
           // Preservar el slug ID original (ej: 'tomate-huerta') para mantener coherencia en las URLs

@@ -1375,7 +1375,12 @@ async function loadProducerProductsFromSupabase() {
         const id = p.id || p.numericId || 1;
         const code = `PR-${String(id).padStart(3, '0')}`;
         const isAvailable = p.is_available !== false;
-        const stock = Number(p.stock_quantity ?? (p.stock ?? 30));
+        let stock = Number(p.stock ?? (p.stock_quantity ?? 30));
+        try {
+          const overrides = JSON.parse(localStorage.getItem('rb_stock_overrides') || '{}');
+          if (overrides[id] !== undefined) stock = Number(overrides[id]);
+          else if (overrides[code] !== undefined) stock = Number(overrides[code]);
+        } catch (_) {}
         let status = 'publicado';
         let statusText = 'Publicado';
         if (p.status === 'borrador' || p.status === 'draft' || isAvailable === false) {
@@ -3666,6 +3671,161 @@ window.quickRestockProduct = quickRestockProduct;
 window.calculateBasketSavings = calculateBasketSavings;
 window.populateBasketProductSelect = populateBasketProductSelect;
 
+// =============================================================================
+// RECOMENDADOR INTELIGENTE DE PRECIOS (ACORDEÓN Y CALCULADORA DINÁMICA)
+// =============================================================================
+
+let activeAdvisorMarginPercent = 35;
+
+function togglePricingAdvisorAccordion() {
+  const content = document.getElementById('advisor-accordion-content');
+  const chevron = document.getElementById('advisor-accordion-chevron');
+  if (!content) return;
+
+  const isHidden = content.classList.contains('hidden');
+  if (isHidden) {
+    content.classList.remove('hidden');
+    void content.offsetHeight;
+    content.classList.remove('opacity-0', 'max-h-0');
+    content.classList.add('opacity-100', 'max-h-[1200px]');
+    if (chevron) chevron.classList.add('rotate-180');
+    recalculatePricingAdvisor();
+  } else {
+    content.classList.remove('opacity-100', 'max-h-[1200px]');
+    content.classList.add('opacity-0', 'max-h-0');
+    if (chevron) chevron.classList.remove('rotate-180');
+    setTimeout(() => {
+      content.classList.add('hidden');
+    }, 300);
+  }
+}
+
+function setAdvisorMargin(percent) {
+  activeAdvisorMarginPercent = Number(percent) || 35;
+  const marginInput = document.getElementById('new-form-margin-percent');
+  if (marginInput) marginInput.value = activeAdvisorMarginPercent;
+
+  [25, 35, 50].forEach(p => {
+    const btn = document.getElementById(`advisor-margin-btn-${p}`);
+    if (btn) {
+      if (p === activeAdvisorMarginPercent) {
+        btn.className = 'advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-[#143628] text-white border border-[#143628] shadow-2xs transition cursor-pointer';
+      } else {
+        btn.className = 'advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 transition cursor-pointer';
+      }
+    }
+  });
+
+  recalculatePricingAdvisor();
+}
+
+function handleCustomMarginInput(val) {
+  const num = parseFloat(val);
+  if (!isNaN(num) && num > 0) {
+    activeAdvisorMarginPercent = num;
+    [25, 35, 50].forEach(p => {
+      const btn = document.getElementById(`advisor-margin-btn-${p}`);
+      if (btn) {
+        if (p === Math.round(num)) {
+          btn.className = 'advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-[#143628] text-white border border-[#143628] shadow-2xs transition cursor-pointer';
+        } else {
+          btn.className = 'advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 transition cursor-pointer';
+        }
+      }
+    });
+    recalculatePricingAdvisor();
+  }
+}
+
+function recalculatePricingAdvisor() {
+  const costInput = document.getElementById('new-form-production-cost');
+  const logisticsInput = document.getElementById('new-form-delivery-logistics');
+
+  const rawCost = costInput ? parseFloat(costInput.value) : 0;
+  const cost = (!isNaN(rawCost) && rawCost > 0) ? rawCost : 0.30;
+  const marginPercent = activeAdvisorMarginPercent || 35;
+  const logisticsFee = (logisticsInput && !isNaN(parseFloat(logisticsInput.value))) ? parseFloat(logisticsInput.value) : 1.50;
+
+  const profit = cost * (marginPercent / 100);
+
+  // Opción A: Tienda / Retiro en Nodo ($0.00 logística)
+  const subtotalShop = cost + profit;
+  const ivaShop = subtotalShop * 0.15;
+  const priceShop = subtotalShop + ivaShop;
+
+  // Opción B: Entrega a Domicilio ($1.50 logística)
+  const subtotalDelivery = cost + logisticsFee + profit;
+  const ivaDelivery = subtotalDelivery * 0.15;
+  const priceDelivery = subtotalDelivery + ivaDelivery;
+
+  // Actualizar DOM Opción A
+  const elShopCost = document.getElementById('advisor-shop-cost');
+  const elShopMargin = document.getElementById('advisor-shop-margin-label');
+  const elShopProfit = document.getElementById('advisor-shop-profit');
+  const elShopIva = document.getElementById('advisor-shop-iva');
+  const elShopPrice = document.getElementById('advisor-shop-price');
+
+  if (elShopCost) elShopCost.textContent = `$${cost.toFixed(2)}`;
+  if (elShopMargin) elShopMargin.textContent = `+${marginPercent}%`;
+  if (elShopProfit) elShopProfit.textContent = `+$${profit.toFixed(2)}`;
+  if (elShopIva) elShopIva.textContent = `$${ivaShop.toFixed(2)}`;
+  if (elShopPrice) elShopPrice.textContent = `$${priceShop.toFixed(2)}`;
+
+  // Actualizar DOM Opción B
+  const elDelCost = document.getElementById('advisor-delivery-cost');
+  const elDelMargin = document.getElementById('advisor-delivery-margin-label');
+  const elDelProfit = document.getElementById('advisor-delivery-profit');
+  const elDelIva = document.getElementById('advisor-delivery-iva');
+  const elDelPrice = document.getElementById('advisor-delivery-price');
+
+  if (elDelCost) elDelCost.textContent = `$${cost.toFixed(2)}`;
+  if (elDelMargin) elDelMargin.textContent = `+${marginPercent}%`;
+  if (elDelProfit) elDelProfit.textContent = `+$${profit.toFixed(2)}`;
+  if (elDelIva) elDelIva.textContent = `$${ivaDelivery.toFixed(2)}`;
+  if (elDelPrice) elDelPrice.textContent = `$${priceDelivery.toFixed(2)}`;
+}
+
+function applySuggestedPrice(mode) {
+  recalculatePricingAdvisor();
+  const costInput = document.getElementById('new-form-production-cost');
+  const logisticsInput = document.getElementById('new-form-delivery-logistics');
+  const rawCost = costInput ? parseFloat(costInput.value) : 0;
+  const cost = (!isNaN(rawCost) && rawCost > 0) ? rawCost : 0.30;
+  const marginPercent = activeAdvisorMarginPercent || 35;
+  const logisticsFee = (logisticsInput && !isNaN(parseFloat(logisticsInput.value))) ? parseFloat(logisticsInput.value) : 1.50;
+  const profit = cost * (marginPercent / 100);
+
+  let targetPrice = 0;
+  let modeName = '';
+  if (mode === 'shop') {
+    const subtotalShop = cost + profit;
+    targetPrice = subtotalShop * 1.15;
+    modeName = 'Venta en Tienda ($0.00 envío)';
+  } else {
+    const subtotalDelivery = cost + logisticsFee + profit;
+    targetPrice = subtotalDelivery * 1.15;
+    modeName = 'Venta a Domicilio ($1.50 envío)';
+  }
+
+  const priceInput = document.getElementById('new-form-price');
+  if (priceInput) {
+    priceInput.value = `$ ${targetPrice.toFixed(2)}`;
+    priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  if (typeof updateLivePreview === 'function') {
+    updateLivePreview();
+  }
+
+  showProducerToast(`✓ Precio sugerido para ${modeName} aplicado: $${targetPrice.toFixed(2)}`);
+}
+
+window.togglePricingAdvisorAccordion = togglePricingAdvisorAccordion;
+window.setAdvisorMargin = setAdvisorMargin;
+window.handleCustomMarginInput = handleCustomMarginInput;
+window.recalculatePricingAdvisor = recalculatePricingAdvisor;
+window.applySuggestedPrice = applySuggestedPrice;
+
 
 // =============================================================================
 // MÓDULO FINANCIERO: MI ECONOMÍA, GASTOS Y FLUJO DE CAJA
@@ -4529,20 +4689,22 @@ function showPendingOrdersModal() {
   alert(`Cuentas por cobrar: ${sales.porCobrarCount} pedidos entregados a la red de nodos comunitarios. Cobro programado para el próximo corte: ${sales.cobroPrevistoDate}.`);
 }
 
-// Exponer funciones globales para el módulo de economía
-window.initEconomyModule = initEconomyModule;
-window.setEconomyPeriod = setEconomyPeriod;
-window.toggleCustomPeriodModal = toggleCustomPeriodModal;
-window.renderEconomyDashboard = renderEconomyDashboard;
-window.openExpenseForm = openExpenseForm;
-window.resetExpenseForm = resetExpenseForm;
-window.setExpensePaymentStatus = setExpensePaymentStatus;
-window.handleExpenseAmountChange = handleExpenseAmountChange;
-window.handleExpenseReceiptFile = handleExpenseReceiptFile;
-window.saveProducerExpense = saveProducerExpense;
-window.markExpenseAsPaid = markExpenseAsPaid;
-window.exportEconomyCSV = exportEconomyCSV;
-window.handleMovementsSearch = handleMovementsSearch;
-window.handleMovementsTypeFilter = handleMovementsTypeFilter;
-window.toggleAllMovementsModal = toggleAllMovementsModal;
-window.showPendingOrdersModal = showPendingOrdersModal;
+// Exponer funciones globales para el módulo de economía (solo como fallback si economia.js no está presente)
+if (!window.__rb_real_economy) {
+  window.initEconomyModule = window.initEconomyModule || initEconomyModule;
+  window.setEconomyPeriod = window.setEconomyPeriod || setEconomyPeriod;
+  window.toggleCustomPeriodModal = window.toggleCustomPeriodModal || toggleCustomPeriodModal;
+  window.renderEconomyDashboard = window.renderEconomyDashboard || renderEconomyDashboard;
+  window.openExpenseForm = window.openExpenseForm || openExpenseForm;
+  window.resetExpenseForm = window.resetExpenseForm || resetExpenseForm;
+  window.setExpensePaymentStatus = window.setExpensePaymentStatus || setExpensePaymentStatus;
+  window.handleExpenseAmountChange = window.handleExpenseAmountChange || handleExpenseAmountChange;
+  window.handleExpenseReceiptFile = window.handleExpenseReceiptFile || handleExpenseReceiptFile;
+  window.saveProducerExpense = window.saveProducerExpense || saveProducerExpense;
+  window.markExpenseAsPaid = window.markExpenseAsPaid || markExpenseAsPaid;
+  window.exportEconomyCSV = window.exportEconomyCSV || exportEconomyCSV;
+  window.handleMovementsSearch = window.handleMovementsSearch || handleMovementsSearch;
+  window.handleMovementsTypeFilter = window.handleMovementsTypeFilter || handleMovementsTypeFilter;
+  window.toggleAllMovementsModal = window.toggleAllMovementsModal || toggleAllMovementsModal;
+  window.showPendingOrdersModal = window.showPendingOrdersModal || showPendingOrdersModal;
+}

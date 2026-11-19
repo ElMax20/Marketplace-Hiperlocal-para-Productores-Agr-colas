@@ -80,7 +80,21 @@
       'banana',
       'banano criollo de ladera',
       'canasta huerta & frutas',
-      'canasta huerta y frutas'
+      'canasta huerta y frutas',
+      'platano verde',
+      'plátano verde',
+      'platano verde barraganete',
+      'naranja valencia',
+      'maracuya silvestre',
+      'maracuyá silvestre',
+      'leche fresca entera',
+      'huevos campo libre',
+      'canasta agroecológica esencial',
+      'canasta cosecha campesina',
+      'cosecha',
+      'lechuga',
+      'cilantro',
+      'choclo'
     ];
     const tit = (item.title || '').toLowerCase().trim();
     if (myCatalogTitles.some(t => tit.includes(t) || t.includes(tit))) {
@@ -96,31 +110,63 @@
   // ===========================================================================
 
   async function loadOrdersFromSupabase() {
+    let fetched = [];
     try {
       if (window.supabase && typeof window.supabase.fetchApi === 'function') {
         const data = await window.supabase.fetchApi('orders?select=*&order=created_at.desc');
         if (Array.isArray(data)) {
-          rawOrdersList = data;
-          console.log(`[Economía] ${rawOrdersList.length} pedidos cargados de Supabase.`);
-          return;
+          fetched = data;
         }
       }
     } catch (err) {
       console.warn('Aviso consultando orders en Supabase:', err);
     }
 
-    // Fallback de localStorage
+    // Unificar con localStorage (rb_orders_history, rb_last_order y claves por usuario)
+    const ordersMap = new Map();
+    fetched.forEach(o => {
+      const key = o.id || o.order_number;
+      if (key) ordersMap.set(String(key), o);
+    });
+
     try {
       const localHistory = JSON.parse(localStorage.getItem('rb_orders_history') || '[]');
       const lastOrder = JSON.parse(localStorage.getItem('rb_last_order') || 'null');
-      const combined = [...localHistory];
-      if (lastOrder && !combined.some(o => o.id === lastOrder.id)) {
-        combined.unshift(lastOrder);
+      if (lastOrder && (lastOrder.id || lastOrder.order_number)) {
+        const k = String(lastOrder.id || lastOrder.order_number);
+        if (!ordersMap.has(k)) ordersMap.set(k, lastOrder);
       }
-      if (combined.length > 0) {
-        rawOrdersList = combined;
+      if (Array.isArray(localHistory)) {
+        localHistory.forEach(lo => {
+          const k = String(lo.id || lo.order_number);
+          if (k && !ordersMap.has(k)) ordersMap.set(k, lo);
+        });
+      }
+
+      // Escanear todas las llaves de pedidos de usuarios
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('rb_orders_') && k !== 'rb_orders_history') {
+          try {
+            const userOrders = JSON.parse(localStorage.getItem(k) || '[]');
+            if (Array.isArray(userOrders)) {
+              userOrders.forEach(uo => {
+                const uk = String(uo.id || uo.order_number);
+                if (uk && !ordersMap.has(uk)) ordersMap.set(uk, uo);
+              });
+            }
+          } catch (_) {}
+        }
       }
     } catch (_) {}
+
+    rawOrdersList = Array.from(ordersMap.values()).sort((a, b) => {
+      const dateA = new Date(a.created_at || a.delivery_details?.schedule || 0).getTime();
+      const dateB = new Date(b.created_at || b.delivery_details?.schedule || 0).getTime();
+      return dateB - dateA;
+    });
+
+    console.log(`[Economía] ${rawOrdersList.length} pedidos unificados cargados.`);
   }
 
   async function loadExpensesFromSupabase() {
@@ -274,9 +320,34 @@
     const unitBreakdown = {}; // { 'kg': count, 'manojo': count }
 
     periodOrders.forEach(ord => {
-      const items = Array.isArray(ord.items) ? ord.items : [];
+      let items = ord.items;
+      if (typeof items === 'string') {
+        try { items = JSON.parse(items); } catch (_) { items = []; }
+      }
+      if (!Array.isArray(items)) items = [];
+
+      if (items.length === 0 && (ord.producer_id === PRODUCER_USER_ID || !ord.producer_id)) {
+        const orderAmt = Number(ord.subtotal || ord.total_amount || ord.total_price || 0);
+        if (orderAmt > 0) {
+          items = [{
+            title: ord.order_number ? `Pedido #${ord.order_number}` : 'Venta de productos de la finca',
+            quantity: 1,
+            price: orderAmt,
+            subtotal: orderAmt,
+            unit: 'pedido',
+            producer_id: PRODUCER_USER_ID
+          }];
+        }
+      }
+
       let orderProducerSubtotal = 0;
-      let isOrderPending = (ord.payment_status !== 'COMPLETED' || ord.payment_method_type === 'cash_on_delivery' || ord.payment_method === 'CASH_ON_DELIVERY');
+      const isOrderPending = (
+        ord.payment_status === 'pending' ||
+        ord.status === 'pending' ||
+        ord.payment_method_type === 'cash_on_delivery' ||
+        String(ord.payment_method || '').toLowerCase().includes('tienda') ||
+        String(ord.payment_method || '').toLowerCase().includes('contraentrega')
+      );
 
       items.forEach(it => {
         if (!isMyProduct(it)) return;
@@ -1317,7 +1388,8 @@
     renderEconomyDashboard();
   }
 
-  // Exponer a nivel global
+  // Exponer a nivel global con bandera de módulo real
+  window.__rb_real_economy = true;
   window.initEconomyModule = initEconomyModule;
   window.setEconomyPeriod = setEconomyPeriod;
   window.toggleCustomPeriodModal = toggleCustomPeriodModal;

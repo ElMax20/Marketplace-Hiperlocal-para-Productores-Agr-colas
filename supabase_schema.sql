@@ -604,7 +604,7 @@ BEGIN
         END IF;
 
         -- Bloquear la fila para evitar condiciones de carrera (FOR UPDATE)
-        SELECT stock_quantity INTO curr_stock
+        SELECT COALESCE(stock, stock_quantity, 10) INTO curr_stock
         FROM public.products
         WHERE id = p_id
         FOR UPDATE;
@@ -622,8 +622,10 @@ BEGIN
 
         -- Actualizar existencias y disponibilidad en products
         UPDATE public.products
-        SET stock_quantity = new_stock,
+        SET stock = new_stock,
+            stock_quantity = new_stock,
             availability = CASE WHEN new_stock <= 0 THEN 'Agotado' ELSE 'Disponible' END,
+            is_available = (new_stock > 0),
             updated_at = now()
         WHERE id = p_id;
 
@@ -825,6 +827,38 @@ USING (true);
 
 DROP POLICY IF EXISTS "Permitir actualizar productos a productores propietarios" ON public.products;
 CREATE POLICY "Permitir actualizar productos a productores propietarios" 
+ON public.products 
+FOR UPDATE 
+TO public 
+USING (true)
+WITH CHECK (true);
+
+-- 20. Tabla y Políticas Explícitas para order_items (Respaldo granular de ventas por productor)
+CREATE TABLE IF NOT EXISTS public.order_items (
+    id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    order_id bigint,
+    producer_id uuid DEFAULT '00000000-0000-0000-0000-000000000002',
+    product_id bigint,
+    product_title text,
+    unit text,
+    quantity integer DEFAULT 1,
+    unit_price numeric(10,2) DEFAULT 0.00,
+    subtotal numeric(10,2) DEFAULT 0.00,
+    shipping_cost numeric(10,2) DEFAULT 0.00,
+    total_price numeric(10,2) DEFAULT 0.00,
+    delivery_type text DEFAULT 'tienda',
+    payment_method text,
+    status text DEFAULT 'confirmed',
+    created_at timestamp with time zone DEFAULT now()
+);
+
+ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Permitir todo order_items" ON public.order_items;
+CREATE POLICY "Permitir todo order_items" ON public.order_items FOR ALL TO public USING (true) WITH CHECK (true);
+
+-- Política RLS explícita para actualización de existencias y disponibilidad tras compras
+DROP POLICY IF EXISTS "Permitir actualizar stock y disponibilidad en compras" ON public.products;
+CREATE POLICY "Permitir actualizar stock y disponibilidad en compras"
 ON public.products 
 FOR UPDATE 
 TO public 

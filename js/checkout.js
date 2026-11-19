@@ -989,16 +989,65 @@ async function executePurchase() {
     ? 'Tu canasta estará lista para retiro el Sábado de 8:00 AM a 12:00 PM'
     : 'Entrega programada en tu puerta para el Sábado entre 2:00 PM y 6:00 PM';
 
-  const orderItems = checkoutCart.map(item => ({
-    id: item.id,
-    title: item.title,
-    price: Number(item.price || 0),
-    quantity: Number(item.quantity || 1),
-    unit: item.unit || 'kg',
-    farmer: item.farmer || 'Huerta Campesina',
-    subtotal: Number(item.price || 0) * Number(item.quantity || 1),
-    image: item.image || ''
-  }));
+  const PRODUCER_USER_ID = '00000000-0000-0000-0000-000000000002';
+  const nowIso = new Date().toISOString();
+  const deliveryTypeSimple = activeDeliveryMode === 'NODE_PICKUP' ? 'tienda' : 'domicilio';
+  const paymentMethodLabel = activePaymentMethod === 'CARD' ? 'Tarjeta de Crédito / Débito' : 'Pago en Tienda Física / Contraentrega';
+
+  const slugToNumericIdMap = {
+    'tomate-de-huerta': 1,
+    'cebolla-colorada': 2,
+    'pimiento-verde': 3,
+    'zanahoria-tierra': 4,
+    'acelga-fresca': 5,
+    'banano-criollo-de-ladera': 6,
+    'naranja-valencia': 7,
+    'maracuya-silvestre': 8,
+    'leche-fresca-entera': 9,
+    'huevos-campo-libre': 10,
+    'canasta-huerto-familiar': 11,
+    'canasta-agroecologica-esencial': 12,
+    'platano-verde-barraganete': 25,
+    'canasta-cosecha-campesina': 47,
+    'canasta-huerta-y-frutas': 48
+  };
+
+  const orderItems = checkoutCart.map(item => {
+    let pId = Number(item.numericId || item.product_id);
+    if (isNaN(pId) || pId <= 0) {
+      if (!isNaN(Number(item.id))) pId = Number(item.id);
+      else if (item.id && slugToNumericIdMap[item.id]) pId = slugToNumericIdMap[item.id];
+      else pId = item.id;
+    }
+
+    const unitPrice = Number(item.price || 0);
+    const qty = Number(item.quantity || item.qty || 1);
+    const sub = Number((unitPrice * qty).toFixed(2));
+    const prodOwnerId = item.producer_id || PRODUCER_USER_ID;
+
+    return {
+      id: item.id,
+      product_id: pId,
+      product_title: item.title || 'Cosecha fresca',
+      title: item.title || 'Cosecha fresca',
+      producer_id: prodOwnerId,
+      producer_name: item.farmer || item.producer_name || 'Max Productor · Hacienda San José',
+      unit: item.unit || 'kg',
+      quantity: qty,
+      unit_price: unitPrice,
+      price: unitPrice,
+      subtotal: sub,
+      shipping_cost: deliveryFee,
+      total_price: sub,
+      delivery_type: deliveryTypeSimple,
+      payment_method: paymentMethodLabel,
+      status: 'confirmed',
+      created_at: nowIso,
+      farmer: item.farmer || 'Max Productor · Hacienda San José',
+      origin: item.origin || 'Hacienda San José · Daule',
+      image: item.image || ''
+    };
+  });
 
   // Generar datos de tarjeta para detalles
   let cardBrand = 'VISA';
@@ -1022,6 +1071,8 @@ async function executePurchase() {
   const orderRecord = {
     order_number: orderNumber,
     user_id: userId,
+    producer_id: PRODUCER_USER_ID,
+    producer_name: 'Max Productor · Hacienda San José',
     customer_name: customerName,
     customer_email: customerEmail,
     items: orderItems,
@@ -1030,28 +1081,28 @@ async function executePurchase() {
     shipping_cost: deliveryFee,
     total_amount: totalAmount,
     total_price: totalAmount,
-    delivery_type: activeDeliveryMode === 'NODE_PICKUP' ? 'nodo' : 'domicilio',
+    delivery_type: deliveryTypeSimple,
     delivery_type_code: activeDeliveryMode,
     delivery_location: deliveryLocation,
     delivery_address: deliveryLocation,
     delivery_estimated_date: estimatedDate,
     preparation_time_estimate: prepEstimate,
     delivery_address_or_node_id: activeDeliveryMode === 'NODE_PICKUP' ? activeNode?.id : activeAddress?.id,
-    payment_method: activePaymentMethod === 'CARD' ? 'Tarjeta de Crédito / Débito' : 'Pago en Tienda Física / Contraentrega',
+    payment_method: paymentMethodLabel,
     payment_method_type: activePaymentMethod === 'CARD' ? 'card' : 'cash_on_delivery',
     payment_status: 'COMPLETED',
     payment_details: {
       transaction_id: transactionId,
-      payment_method: activePaymentMethod === 'CARD' ? 'Tarjeta de Crédito / Débito' : 'Pago en Tienda Física / Contraentrega',
+      payment_method: paymentMethodLabel,
       brand: activePaymentMethod === 'CARD' ? cardBrand : 'Tienda Física / Contraentrega',
       last4: activePaymentMethod === 'CARD' ? cardLast4 : 'N/A',
       cardholder_name: customerName,
       authorization_code: authCode,
       simulated: true,
-      timestamp: new Date().toISOString()
+      timestamp: nowIso
     },
     delivery_details: {
-      delivery_type: activeDeliveryMode === 'NODE_PICKUP' ? 'nodo' : 'domicilio',
+      delivery_type: deliveryTypeSimple,
       location_name: deliveryLocation,
       address: deliveryLocation,
       city: activeAddress?.city || activeNode?.city || 'Guayaquil',
@@ -1059,7 +1110,8 @@ async function executePurchase() {
       shipping_cost: deliveryFee,
       schedule: estimatedDate
     },
-    status: 'confirmed'
+    status: 'confirmed',
+    created_at: nowIso
   };
 
   // 2. Simulación Bancaria de 2.5 segundos con procesamiento real en Supabase
@@ -1081,28 +1133,157 @@ async function executePurchase() {
         console.error('Error insertando pedido en Supabase:', errDb);
       }
 
-      // Descuento atómico inmediato de existencias en Supabase products (RPC decrement_product_stock + Realtime)
-      if (typeof window.supabase.decrementStock === 'function') {
+      // Inserción granular en tabla order_items
+      if (createdOrderId) {
         try {
-          await window.supabase.decrementStock(checkoutCart);
-        } catch (stockErr) {
-          console.warn('Aviso descontando existencias con decrementStock:', stockErr);
+          const orderItemsRows = orderItems.map(it => ({
+            order_id: createdOrderId,
+            producer_id: it.producer_id,
+            product_id: typeof it.product_id === 'number' ? it.product_id : (parseInt(it.product_id, 10) || null),
+            product_title: it.product_title,
+            unit: it.unit,
+            quantity: it.quantity,
+            unit_price: it.unit_price,
+            subtotal: it.subtotal,
+            shipping_cost: it.shipping_cost,
+            total_price: it.total_price,
+            delivery_type: it.delivery_type,
+            payment_method: it.payment_method,
+            status: it.status,
+            created_at: it.created_at
+          }));
+          await window.supabase.fetchApi('order_items', {
+            method: 'POST',
+            body: JSON.stringify(orderItemsRows)
+          });
+        } catch (_) {}
+      }
+
+      // =========================================================================
+      // DOBLE RESPALDO INFALIBLE: DESCUENTO DE STOCK EN CADA VENTA
+      // =========================================================================
+      const stockOverrides = (function() {
+        try { return JSON.parse(localStorage.getItem('rb_stock_overrides') || '{}'); } catch (_) { return {}; }
+      })();
+
+      // 1. Preparar ítems para RPC decrement_product_stock
+      const rpcItems = checkoutCart.map(it => {
+        let pId = Number(it.numericId || it.product_id);
+        if (isNaN(pId) || pId <= 0) {
+          if (!isNaN(Number(it.id))) pId = Number(it.id);
+          else if (it.id && slugToNumericIdMap[it.id]) pId = slugToNumericIdMap[it.id];
         }
-      } else {
-        for (const it of checkoutCart) {
-          try {
-            const prods = await window.supabase.fetchApi(`products?id=eq.${it.id}&select=stock_quantity`);
-            if (prods && prods.length > 0) {
-              const currentStock = prods[0].stock_quantity || 0;
-              const newStock = Math.max(0, currentStock - (it.quantity || 1));
-              await window.supabase.fetchApi(`products?id=eq.${it.id}`, {
-                method: 'PATCH',
-                body: JSON.stringify({ stock_quantity: newStock, is_available: newStock > 0 })
+        return {
+          product_id: pId || it.id,
+          id: pId || it.id,
+          quantity: Number(it.quantity || it.qty || 1)
+        };
+      });
+
+      let rpcSuccess = false;
+      try {
+        if (typeof window.supabase.rpc === 'function') {
+          const rpcRes = await window.supabase.rpc('decrement_product_stock', { items: rpcItems });
+          if (rpcRes && (rpcRes.success || rpcRes.updated_products)) {
+            rpcSuccess = true;
+            console.log('[Checkout] RPC decrement_product_stock completada:', rpcRes);
+            if (Array.isArray(rpcRes.updated_products)) {
+              rpcRes.updated_products.forEach(up => {
+                const sid = up.product_id || up.id;
+                const nStk = Number(up.new_stock !== undefined ? up.new_stock : up.stock_quantity);
+                stockOverrides[sid] = nStk;
               });
             }
-          } catch (_) {}
+          }
+        }
+      } catch (rpcErr) {
+        console.warn('[Checkout] RPC decrement_product_stock falló o no existe, procediendo a respaldo directo:', rpcErr);
+        rpcSuccess = false;
+      }
+
+      // 2. Si RPC no existe o devuelve error: ejecutar consulta y actualización directa en Supabase
+      for (const item of checkoutCart) {
+        const pQty = Number(item.quantity || item.qty || 1);
+        let resolvedId = item.numericId || (!isNaN(Number(item.id)) ? Number(item.id) : (slugToNumericIdMap[item.id] || item.id));
+
+        if (!rpcSuccess) {
+          try {
+            // Consulta directa de stock actual
+            const prods = await window.supabase.fetchApi(`products?id=eq.${resolvedId}&select=id,stock,stock_quantity,availability,is_available`);
+            if (Array.isArray(prods) && prods.length > 0) {
+              const currentStock = prods[0].stock !== undefined && prods[0].stock !== null
+                ? Number(prods[0].stock)
+                : Number(prods[0].stock_quantity || 0);
+
+              const newStock = Math.max(0, currentStock - pQty);
+              const newAvailability = (newStock === 0 ? 'Agotado' : (prods[0].availability || 'Disponible'));
+
+              // Actualización directa de stock y disponibilidad
+              await window.supabase.fetchApi(`products?id=eq.${resolvedId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                  stock: newStock,
+                  stock_quantity: newStock,
+                  availability: newAvailability,
+                  is_available: newStock > 0
+                })
+              });
+
+              stockOverrides[item.id] = newStock;
+              stockOverrides[resolvedId] = newStock;
+              console.log(`[Checkout Respaldo Directo] Producto ${resolvedId} stock actualizado a ${newStock} (${newAvailability})`);
+            }
+          } catch (directErr) {
+            console.error(`[Checkout Error] No se pudo descontar stock directo del producto ${resolvedId}:`, directErr);
+          }
+        }
+
+        // Asegurar override local
+        if (stockOverrides[item.id] === undefined && stockOverrides[resolvedId] === undefined) {
+          const prev = Number(item.stock || item.stock_quantity || 30);
+          const computed = Math.max(0, prev - pQty);
+          stockOverrides[item.id] = computed;
+          stockOverrides[resolvedId] = computed;
         }
       }
+
+      // 3. Actualizar almacenamiento local para que la UI muestre de inmediato el descuento
+      try {
+        localStorage.setItem('rb_stock_overrides', JSON.stringify(stockOverrides));
+      } catch (_) {}
+
+      // Actualizar memoria global si existe catálogo en memoria
+      if (typeof window.PRODUCTS_DATA !== 'undefined' && Array.isArray(window.PRODUCTS_DATA)) {
+        window.PRODUCTS_DATA.forEach(p => {
+          if (stockOverrides[p.id] !== undefined) {
+            p.stock = stockOverrides[p.id];
+            p.stock_quantity = stockOverrides[p.id];
+            p.availability = p.stock === 0 ? 'Agotado' : 'Disponible';
+            p.is_available = p.stock > 0;
+          } else if (p.numericId && stockOverrides[p.numericId] !== undefined) {
+            p.stock = stockOverrides[p.numericId];
+            p.stock_quantity = stockOverrides[p.numericId];
+            p.availability = p.stock === 0 ? 'Agotado' : 'Disponible';
+            p.is_available = p.stock > 0;
+          }
+        });
+      }
+
+      // Notificar a otras pestañas activas (Mercado, Productor, Economía)
+      try {
+        if ('BroadcastChannel' in window) {
+          const prodChannel = new BroadcastChannel('rb_realtime_products');
+          prodChannel.postMessage({
+            eventType: 'STOCK_DECREMENT',
+            updated_products: Object.entries(stockOverrides).map(([id, stk]) => ({ product_id: id, new_stock: stk, stock_quantity: stk }))
+          });
+          const orderChannel = new BroadcastChannel('rb_realtime_orders');
+          orderChannel.postMessage({
+            eventType: 'ORDER_PLACED',
+            order: orderRecord
+          });
+        }
+      } catch (_) {}
 
       // Si el usuario marcó guardar tarjeta y era tarjeta nueva
       const saveCardChk = document.getElementById('chk-save-card');

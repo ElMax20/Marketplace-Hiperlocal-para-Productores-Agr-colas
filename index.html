@@ -11,10 +11,10 @@
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌱</text></svg>">
   
-  <!-- Google Fonts: Playfair Display + Plus Jakarta Sans -->
+  <!-- Google Fonts: Red Hat Display + Playfair Display + Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -47,7 +47,8 @@
           },
           fontFamily: {
             serif: ['"Playfair Display"', 'Georgia', 'serif'],
-            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            sans: ['"Red Hat Display"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            display: ['"Red Hat Display"', 'sans-serif'],
           }
         }
       }
@@ -285,10 +286,7 @@
                   <!-- Botones Principales -->
                   <div class="flex flex-wrap items-center gap-3.5 pt-1">
                     <a href="mercado.html?categoria=canastas" class="bg-[#1a3d2f] hover:bg-[#255440] text-white text-xs sm:text-sm font-semibold px-6 sm:px-7 py-3.5 rounded-full shadow-md hover:shadow-xl transition-all duration-200 flex items-center gap-2 group active:scale-95">
-                      <span>Explorar Canastas →</span>
-                      <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-                      </svg>
+                      <span>Explorar canastas</span>
                     </a>
                     <a href="#nodos" class="border border-stone-300 hover:border-[#1a3d2f] bg-white/80 hover:bg-white text-stone-800 text-xs sm:text-sm font-semibold px-5 sm:px-6 py-3.5 rounded-full transition-all flex items-center gap-2 shadow-2xs hover:shadow active:scale-95">
                       <svg class="w-4 h-4 text-[#c85a32]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -383,10 +381,7 @@
                   <!-- Botones Principales -->
                   <div class="flex flex-wrap items-center gap-3.5 pt-1">
                     <a href="mercado.html" class="bg-[#c85a32] hover:bg-[#b04a25] text-white text-xs sm:text-sm font-semibold px-6 sm:px-7 py-3.5 rounded-full shadow-md hover:shadow-xl transition-all duration-200 flex items-center gap-2 group active:scale-95">
-                      <span>Comprar en el Mercado →</span>
-                      <svg class="w-4 h-4 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
-                      </svg>
+                      <span>Comprar en el mercado</span>
                     </a>
                     <a href="#agricultores" id="btn-hero-agricultores" onclick="event.preventDefault(); document.getElementById('agricultores')?.scrollIntoView({ behavior: 'smooth', block: 'start' });" class="border border-stone-300 hover:border-[#c85a32] bg-white/80 hover:bg-white text-stone-800 text-xs sm:text-sm font-semibold px-5 sm:px-6 py-3.5 rounded-full transition-all flex items-center gap-2 shadow-2xs hover:shadow active:scale-95 cursor-pointer">
                       <svg class="w-4 h-4 text-[#1a3d2f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

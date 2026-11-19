@@ -1127,21 +1127,29 @@ class SupabaseService {
     const updated = [];
     for (const it of formatted) {
       try {
-        const prods = await this.fetchApi(`products?id=eq.${it.product_id}&select=id,stock_quantity`);
+        const prods = await this.fetchApi(`products?id=eq.${it.product_id}&select=id,stock,stock_quantity,availability,is_available`);
         if (Array.isArray(prods) && prods.length > 0) {
-          const currentStock = Number(prods[0].stock_quantity || 0);
+          const currentStock = prods[0].stock !== undefined && prods[0].stock !== null
+            ? Number(prods[0].stock)
+            : Number(prods[0].stock_quantity || 0);
           const newStock = Math.max(0, currentStock - it.quantity);
+          const newAvailability = newStock === 0 ? 'Agotado' : (prods[0].availability || 'Disponible');
           await this.fetchApi(`products?id=eq.${it.product_id}`, {
             method: 'PATCH',
             body: JSON.stringify({
-              stock_quantity: newStock
+              stock: newStock,
+              stock_quantity: newStock,
+              availability: newAvailability,
+              is_available: newStock > 0
             })
           });
           updated.push({
             product_id: it.product_id,
             previous_stock: currentStock,
             new_stock: newStock,
+            stock: newStock,
             stock_quantity: newStock,
+            availability: newAvailability,
             is_available: newStock > 0
           });
         }

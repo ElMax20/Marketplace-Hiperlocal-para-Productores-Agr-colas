@@ -8,10 +8,10 @@
   <meta http-equiv="Expires" content="0" />
   <title>Portal del Productor | Raíz & Barrio</title>
 
-  <!-- Google Fonts: Newsreader / Plus Jakarta Sans -->
+  <!-- Google Fonts: Red Hat Display + Newsreader / Plus Jakarta Sans -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -20,7 +20,7 @@
       theme: {
         extend: {
           fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            sans: ['"Red Hat Display"', '"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
             serif: ['"Newsreader"', 'Georgia', 'serif']
           },
           colors: {
@@ -616,170 +616,194 @@
                 </div>
               </div>
 
-              <!-- BLOQUE RECOMENDADOR INTELIGENTE DE PRECIOS -->
-              <div class="mt-5 pt-5 border-t border-stone-100 bg-[#FBF9F5] -mx-5 -mb-5 sm:-mx-6 sm:-mb-6 p-5 sm:p-6 rounded-b-2xl border-t border-stone-200/70">
-                <div class="flex items-center justify-between gap-2 mb-2">
+              <!-- BLOQUE RECOMENDADOR INTELIGENTE DE PRECIOS (ACORDEÓN DESPLEGABLE) -->
+              <div class="mt-5 pt-4 border-t border-stone-200/80">
+                <!-- Botón disparador (header del desplegable) -->
+                <button type="button" id="advisor-accordion-toggle" onclick="togglePricingAdvisorAccordion()"
+                  class="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-xl bg-[#F7F2EA] hover:bg-[#efe9de] border border-[#e5decb] text-left transition-all duration-200 cursor-pointer shadow-2xs group focus:outline-none focus:ring-2 focus:ring-[#143628]">
+                  <div class="flex items-center gap-2.5">
+                    <span class="text-base sm:text-lg">💡</span>
+                    <span class="text-xs sm:text-sm font-bold text-stone-900 group-hover:text-[#143628] transition">
+                      Ver recomendación de precio inteligente (IVA 15% y logística)
+                    </span>
+                  </div>
                   <div class="flex items-center gap-2">
-                    <span class="text-base">💡</span>
-                    <h4 class="font-bold text-stone-900 text-xs tracking-tight">Recomendador Inteligente de Precios</h4>
+                    <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 hidden sm:inline-block">
+                      Ecuador · IVA 15%
+                    </span>
+                    <svg id="advisor-accordion-chevron" class="w-4 h-4 text-stone-600 transition-transform duration-300 transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                    </svg>
                   </div>
-                  <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
-                    Ecuador · IVA 15%
-                  </span>
-                </div>
-                <p class="text-[11px] text-stone-500 mb-4 leading-relaxed">
-                  Calcula tu precio sugerido según tus costos de producción agrícola, margen neto deseado y canal de distribución.
-                </p>
+                </button>
 
-                <!-- Inputs del Productor: Costo Unitario & Margen -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <!-- Costo unitario de producción -->
-                  <div>
-                    <label for="new-form-production-cost" class="block text-[11px] font-bold text-stone-700 mb-1">
-                      Costo unitario de producción (USD)
-                    </label>
-                    <div class="relative">
-                      <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">$</span>
-                      <input type="number" id="new-form-production-cost" min="0" step="0.01" placeholder="0.30"
-                        oninput="recalculatePricingAdvisor()"
-                        class="w-full pl-7 pr-3 py-2 bg-white border border-stone-200 rounded-xl text-xs font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#143628] focus:border-transparent transition">
+                <!-- Contenido colapsable (colapsado por defecto) -->
+                <div id="advisor-accordion-content" class="hidden overflow-hidden transition-all duration-300 ease-in-out opacity-0 max-h-0 pt-3">
+                  <div class="bg-[#FBF9F5] p-5 sm:p-6 rounded-2xl border border-stone-200/90 shadow-2xs">
+                    <div class="flex items-center justify-between gap-2 mb-2">
+                      <div class="flex items-center gap-2">
+                        <span class="text-base">💡</span>
+                        <h4 class="font-bold text-stone-900 text-xs tracking-tight">Recomendador Inteligente de Precios</h4>
+                      </div>
+                      <span class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200">
+                        Ecuador · IVA 15%
+                      </span>
                     </div>
-                    <span class="text-[10px] text-stone-400 mt-1 block">Semillas, jornales, agua, abono por unidad</span>
-                  </div>
+                    <p class="text-[11px] text-stone-500 mb-4 leading-relaxed">
+                      Calcula tu precio sugerido según tus costos de producción agrícola, margen neto deseado y canal de distribución.
+                    </p>
 
-                  <!-- Margen de ganancia deseado -->
-                  <div>
-                    <div class="flex items-center justify-between mb-1">
-                      <label for="new-form-margin-percent" class="block text-[11px] font-bold text-stone-700">
-                        Margen de ganancia neto (%)
-                      </label>
-                      <div class="flex items-center gap-1">
-                        <input type="number" id="new-form-margin-percent" min="1" max="300" step="1" value="35"
-                          oninput="handleCustomMarginInput(this.value)"
-                          class="w-12 px-1.5 py-0.5 bg-white border border-stone-200 rounded text-[11px] font-bold text-right text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#143628]">
-                        <span class="text-[11px] font-bold text-stone-500">%</span>
-                      </div>
-                    </div>
-
-                    <!-- Botones rápidos de margen -->
-                    <div class="grid grid-cols-3 gap-1.5">
-                      <button type="button" id="advisor-margin-btn-25" onclick="setAdvisorMargin(25)"
-                        class="advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 transition cursor-pointer">
-                        25%
-                      </button>
-                      <button type="button" id="advisor-margin-btn-35" onclick="setAdvisorMargin(35)"
-                        class="advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-[#143628] text-white border border-[#143628] shadow-2xs transition cursor-pointer">
-                        35% <span class="text-[9px] font-normal opacity-90 hidden sm:inline">★ Rec.</span>
-                      </button>
-                      <button type="button" id="advisor-margin-btn-50" onclick="setAdvisorMargin(50)"
-                        class="advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 transition cursor-pointer">
-                        50%
-                      </button>
-                    </div>
-                    <span class="text-[10px] text-stone-400 mt-1 block">Retorno sobre costo de cultivo</span>
-                  </div>
-                </div>
-
-                <!-- Comparativa en Tiempo Real: Opción A vs Opción B -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-                  <!-- Opción A: Venta en Tienda Física / Retiro en Nodo -->
-                  <div class="bg-white rounded-xl p-3.5 border border-stone-200 shadow-2xs flex flex-col justify-between hover:border-emerald-700/50 transition">
-                    <div>
-                      <div class="flex items-center justify-between gap-1 mb-1">
-                        <span class="text-xs font-bold text-stone-900 flex items-center gap-1">
-                          <span>🏬</span> Tienda / Retiro en Nodo
-                        </span>
-                        <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800">
-                          Sede Urdesa
-                        </span>
-                      </div>
-                      <p class="text-[10px] text-stone-400 mb-2.5">Punto comunitario o retiro directo</p>
-
-                      <div class="space-y-1 text-[11px] text-stone-600 pb-2.5 border-b border-stone-100">
-                        <div class="flex justify-between">
-                          <span class="text-stone-500">Costo base:</span>
-                          <span class="font-medium text-stone-800" id="advisor-shop-cost">$0.00</span>
+                    <!-- Inputs del Productor: Costo Unitario & Margen -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                      <!-- Costo unitario de producción -->
+                      <div>
+                        <label for="new-form-production-cost" class="block text-[11px] font-bold text-stone-700 mb-1">
+                          Costo unitario de producción (USD)
+                        </label>
+                        <div class="relative">
+                          <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-400">$</span>
+                          <input type="number" id="new-form-production-cost" min="0" step="0.01" placeholder="0.30"
+                            oninput="recalculatePricingAdvisor()"
+                            class="w-full pl-7 pr-3 py-2 bg-white border border-stone-200 rounded-xl text-xs font-semibold text-stone-800 focus:outline-none focus:ring-2 focus:ring-[#143628] focus:border-transparent transition">
                         </div>
-                        <div class="flex justify-between">
-                          <span class="text-stone-500">Logística consolidada:</span>
-                          <span class="font-medium text-emerald-700">$0.00 USD</span>
-                        </div>
-                        <div class="flex justify-between">
-                          <span class="text-stone-500">Margen neto (<span id="advisor-shop-margin-label">+35%</span>):</span>
-                          <span class="font-medium text-stone-800" id="advisor-shop-profit">+$0.00</span>
-                        </div>
-                        <div class="flex justify-between">
-                          <span class="text-stone-500">IVA 15% referencia:</span>
-                          <span class="font-medium text-stone-500" id="advisor-shop-iva">$0.00</span>
-                        </div>
+                        <span class="text-[10px] text-stone-400 mt-1 block">Semillas, jornales, agua, abono por unidad</span>
                       </div>
 
-                      <div class="pt-2 flex items-baseline justify-between mb-3">
-                        <span class="text-[11px] font-bold text-stone-700">Precio sugerido:</span>
-                        <div class="font-serif text-lg font-bold text-[#143628]" id="advisor-shop-price">$0.00</div>
-                      </div>
-                    </div>
-
-                    <button type="button" onclick="applySuggestedPrice('shop')"
-                      class="w-full py-2 px-3 rounded-lg bg-[#143628] hover:bg-[#1f4a38] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
-                      <span>Aplicar este precio</span>
-                      <span>✓</span>
-                    </button>
-                  </div>
-
-                  <!-- Opción B: Venta con Entrega a Domicilio -->
-                  <div class="bg-white rounded-xl p-3.5 border border-amber-200/90 shadow-2xs flex flex-col justify-between hover:border-amber-500 transition">
-                    <div>
-                      <div class="flex items-center justify-between gap-1 mb-1">
-                        <span class="text-xs font-bold text-stone-900 flex items-center gap-1">
-                          <span>🛵</span> Entrega a Domicilio
-                        </span>
-                        <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-50 text-amber-800">
-                          Guayaquil Urbano
-                        </span>
-                      </div>
-                      <p class="text-[10px] text-stone-400 mb-2.5">Envío directo o con logística de última milla</p>
-
-                      <div class="space-y-1 text-[11px] text-stone-600 pb-2.5 border-b border-stone-100">
-                        <div class="flex justify-between">
-                          <span class="text-stone-500">Costo base:</span>
-                          <span class="font-medium text-stone-800" id="advisor-delivery-cost">$0.00</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                          <span class="text-stone-500">Logística estimada:</span>
-                          <div class="flex items-center gap-0.5 font-medium text-stone-800">
-                            <span>$</span>
-                            <input type="number" id="new-form-delivery-logistics" min="0" step="0.10" value="1.50"
-                              oninput="recalculatePricingAdvisor()"
-                              class="w-12 px-1 py-0.2 bg-stone-50 border border-stone-200 rounded text-[11px] font-semibold text-right focus:outline-none focus:ring-1 focus:ring-[#143628]">
-                            <span class="text-[10px] text-stone-400">USD</span>
+                      <!-- Margen de ganancia deseado -->
+                      <div>
+                        <div class="flex items-center justify-between mb-1">
+                          <label for="new-form-margin-percent" class="block text-[11px] font-bold text-stone-700">
+                            Margen de ganancia neto (%)
+                          </label>
+                          <div class="flex items-center gap-1">
+                            <input type="number" id="new-form-margin-percent" min="1" max="300" step="1" value="35"
+                              oninput="handleCustomMarginInput(this.value)"
+                              class="w-12 px-1.5 py-0.5 bg-white border border-stone-200 rounded text-[11px] font-bold text-right text-stone-800 focus:outline-none focus:ring-1 focus:ring-[#143628]">
+                            <span class="text-[11px] font-bold text-stone-500">%</span>
                           </div>
                         </div>
-                        <div class="flex justify-between">
-                          <span class="text-stone-500">Margen neto (<span id="advisor-delivery-margin-label">+35%</span>):</span>
-                          <span class="font-medium text-stone-800" id="advisor-delivery-profit">+$0.00</span>
-                        </div>
-                        <div class="flex justify-between">
-                          <span class="text-stone-500">IVA 15% referencia:</span>
-                          <span class="font-medium text-stone-500" id="advisor-delivery-iva">$0.00</span>
-                        </div>
-                      </div>
 
-                      <div class="pt-2 flex items-baseline justify-between mb-1.5">
-                        <span class="text-[11px] font-bold text-stone-700">Precio sugerido:</span>
-                        <div class="font-serif text-lg font-bold text-[#c85a32]" id="advisor-delivery-price">$0.00</div>
+                        <!-- Botones rápidos de margen -->
+                        <div class="grid grid-cols-3 gap-1.5">
+                          <button type="button" id="advisor-margin-btn-25" onclick="setAdvisorMargin(25)"
+                            class="advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 transition cursor-pointer">
+                            25%
+                          </button>
+                          <button type="button" id="advisor-margin-btn-35" onclick="setAdvisorMargin(35)"
+                            class="advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-[#143628] text-white border border-[#143628] shadow-2xs transition cursor-pointer">
+                            35% <span class="text-[9px] font-normal opacity-90 hidden sm:inline">★ Rec.</span>
+                          </button>
+                          <button type="button" id="advisor-margin-btn-50" onclick="setAdvisorMargin(50)"
+                            class="advisor-margin-btn py-1.5 px-2 rounded-lg text-[11px] font-bold bg-white border border-stone-200 text-stone-700 hover:bg-stone-50 transition cursor-pointer">
+                            50%
+                          </button>
+                        </div>
+                        <span class="text-[10px] text-stone-400 mt-1 block">Retorno sobre costo de cultivo</span>
                       </div>
-
-                      <p class="text-[9.5px] text-stone-400 italic mb-2 leading-tight">
-                        Al cliente se le cobra $2.50 de envío estándar en checkout. Usa esta opción si asumes o prorrateas transporte.
-                      </p>
                     </div>
 
-                    <button type="button" onclick="applySuggestedPrice('delivery')"
-                      class="w-full py-2 px-3 rounded-lg bg-[#c85a32] hover:bg-[#b04b25] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
-                      <span>Aplicar este precio</span>
-                      <span>✓</span>
-                    </button>
+                    <!-- Comparativa en Tiempo Real: Opción A vs Opción B -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                      <!-- Opción A: Venta en Tienda Física / Retiro en Nodo ($0.00 envío) -->
+                      <div class="bg-white rounded-xl p-3.5 border border-stone-200 shadow-2xs flex flex-col justify-between hover:border-emerald-700/50 transition">
+                        <div>
+                          <div class="flex items-center justify-between gap-1 mb-1">
+                            <span class="text-xs font-bold text-stone-900 flex items-center gap-1">
+                              <span>🏬</span> Venta en Tienda Física / Nodo
+                            </span>
+                            <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800">
+                              $0.00 envío
+                            </span>
+                          </div>
+                          <p class="text-[10px] text-stone-400 mb-2.5">Punto comunitario o retiro directo</p>
+
+                          <div class="space-y-1 text-[11px] text-stone-600 pb-2.5 border-b border-stone-100">
+                            <div class="flex justify-between">
+                              <span class="text-stone-500">Costo base:</span>
+                              <span class="font-medium text-stone-800" id="advisor-shop-cost">$0.00</span>
+                            </div>
+                            <div class="flex justify-between">
+                              <span class="text-stone-500">Logística consolidada:</span>
+                              <span class="font-medium text-emerald-700">$0.00 USD</span>
+                            </div>
+                            <div class="flex justify-between">
+                              <span class="text-stone-500">Margen neto (<span id="advisor-shop-margin-label">+35%</span>):</span>
+                              <span class="font-medium text-stone-800" id="advisor-shop-profit">+$0.00</span>
+                            </div>
+                            <div class="flex justify-between">
+                              <span class="text-stone-500">IVA 15% referencia:</span>
+                              <span class="font-medium text-stone-500" id="advisor-shop-iva">$0.00</span>
+                            </div>
+                          </div>
+
+                          <div class="pt-2 flex items-baseline justify-between mb-3">
+                            <span class="text-[11px] font-bold text-stone-700">Precio sugerido:</span>
+                            <div class="font-serif text-lg font-bold text-[#143628]" id="advisor-shop-price">$0.00</div>
+                          </div>
+                        </div>
+
+                        <button type="button" onclick="applySuggestedPrice('shop')"
+                          class="w-full py-2 px-3 rounded-lg bg-[#143628] hover:bg-[#1f4a38] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                          <span>Aplicar este precio</span>
+                          <span>✓</span>
+                        </button>
+                      </div>
+
+                      <!-- Opción B: Venta a Domicilio ($1.50 envío) -->
+                      <div class="bg-white rounded-xl p-3.5 border border-amber-200/90 shadow-2xs flex flex-col justify-between hover:border-amber-500 transition">
+                        <div>
+                          <div class="flex items-center justify-between gap-1 mb-1">
+                            <span class="text-xs font-bold text-stone-900 flex items-center gap-1">
+                              <span>🛵</span> Venta a Domicilio
+                            </span>
+                            <span class="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-50 text-amber-800">
+                              $1.50 envío
+                            </span>
+                          </div>
+                          <p class="text-[10px] text-stone-400 mb-2.5">Envío directo o con logística de última milla</p>
+
+                          <div class="space-y-1 text-[11px] text-stone-600 pb-2.5 border-b border-stone-100">
+                            <div class="flex justify-between">
+                              <span class="text-stone-500">Costo base:</span>
+                              <span class="font-medium text-stone-800" id="advisor-delivery-cost">$0.00</span>
+                            </div>
+                            <div class="flex items-center justify-between">
+                              <span class="text-stone-500">Logística estimada:</span>
+                              <div class="flex items-center gap-0.5 font-medium text-stone-800">
+                                <span>$</span>
+                                <input type="number" id="new-form-delivery-logistics" min="0" step="0.10" value="1.50"
+                                  oninput="recalculatePricingAdvisor()"
+                                  class="w-12 px-1 py-0.2 bg-stone-50 border border-stone-200 rounded text-[11px] font-semibold text-right focus:outline-none focus:ring-1 focus:ring-[#143628]">
+                                <span class="text-[10px] text-stone-400">USD</span>
+                              </div>
+                            </div>
+                            <div class="flex justify-between">
+                              <span class="text-stone-500">Margen neto (<span id="advisor-delivery-margin-label">+35%</span>):</span>
+                              <span class="font-medium text-stone-800" id="advisor-delivery-profit">+$0.00</span>
+                            </div>
+                            <div class="flex justify-between">
+                              <span class="text-stone-500">IVA 15% referencia:</span>
+                              <span class="font-medium text-stone-500" id="advisor-delivery-iva">$0.00</span>
+                            </div>
+                          </div>
+
+                          <div class="pt-2 flex items-baseline justify-between mb-1.5">
+                            <span class="text-[11px] font-bold text-stone-700">Precio sugerido:</span>
+                            <div class="font-serif text-lg font-bold text-[#c85a32]" id="advisor-delivery-price">$0.00</div>
+                          </div>
+
+                          <p class="text-[9.5px] text-stone-400 italic mb-2 leading-tight">
+                            Al cliente se le cobra $2.50 de envío estándar en checkout. Usa esta opción si asumes o prorrateas transporte.
+                          </p>
+                        </div>
+
+                        <button type="button" onclick="applySuggestedPrice('delivery')"
+                          class="w-full py-2 px-3 rounded-lg bg-[#c85a32] hover:bg-[#b04b25] text-white text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
+                          <span>Aplicar este precio</span>
+                          <span>✓</span>
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2144,7 +2168,7 @@
   </div>
 
   <!-- Scripts -->
-  <script src="js/economia.js?v=2.0"></script>
-  <script src="js/productor.js?v=5.2"></script>
+  <script src="js/productor.js?v=5.3"></script>
+  <script src="js/economia.js?v=2.1"></script>
 </body>
 </html>
