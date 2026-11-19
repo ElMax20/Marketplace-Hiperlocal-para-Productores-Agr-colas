@@ -1289,13 +1289,9 @@ function initMarketApp() {
             renderProducts();
           }
         }
+      } catch (err) {
+        console.warn('Error en listener realtime mercado:', err);
       }
-            renderProducts();
-    }
-        }
-} catch (err) {
-  console.warn('Error en listener realtime mercado:', err);
-}
     });
   }
 }
@@ -1436,10 +1432,6 @@ async function loadProductsFromSupabase() {
             basket_items: basketItemsData,
             basket_savings_percent: basketSavings,
             availability: (stockQty > 0) ? 'Disponible' : 'Agotado',
-            distanceKm: 38,
-            isOffer: false
-          });
-        }
             distanceKm: 38,
             isOffer: false
           });
