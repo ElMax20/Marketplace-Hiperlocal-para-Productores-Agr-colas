@@ -1082,87 +1082,191 @@
        MODAL DE SOLICITUD DE ALTA TÉCNICA PARA PRODUCTORES AGRÍCOLAS
        ======================================================================= -->
   <div id="producer-technical-modal" class="modal-overlay-gpu fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
-    <div class="modal-card-gpu relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-xl my-auto z-10 modal-scroll border border-stone-200">
+    <div class="modal-card-gpu relative bg-white rounded-3xl max-w-lg w-full shadow-2xl border border-stone-200 overflow-hidden z-10 my-auto max-h-[92vh] flex flex-col">
       
-      <div class="p-6 pb-4 bg-gradient-to-b from-[#FAF7F2] to-white border-b border-stone-200 relative text-left">
+      <!-- Modal Header -->
+      <div class="p-6 pb-4 bg-gradient-to-b from-[#FAF7F2] to-white border-b border-stone-200 relative text-left shrink-0">
         <button type="button" onclick="closeProducerTechnicalModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-700 text-sm font-bold w-8 h-8 rounded-full bg-stone-100 flex items-center justify-center transition">✕</button>
-        <span class="inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#faece6] text-[#c85a32] border border-[#f3d9ce]">
+        <span class="inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#faece6] text-[#C85A28] border border-[#f3d9ce]">
           Acreditación Agronómica
         </span>
-        <h3 class="font-serif text-2xl font-bold text-[#1a3d2f] mt-2">Solicitud de Alta con Director Técnico</h3>
+        <h3 class="font-serif text-2xl font-bold text-[#143628] mt-2">Solicitar Alta con el Director Técnico</h3>
         <p class="text-xs text-stone-600 mt-1 leading-relaxed">
-          Para garantizar la trazabilidad agroecológica y calidad de nuestra red campesina, nuestro equipo técnico coordina una visita de verificación antes de habilitar tus credenciales.
+          Para garantizar la trazabilidad agroecológica y calidad de nuestra red campesina, nuestro equipo técnico coordina una visita de verificación antes de habilitar tus credenciales de productor.
         </p>
       </div>
 
-      <form id="form-producer-technical" onsubmit="handleProducerTechnicalSubmit(event)" class="p-6 space-y-4 text-xs">
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Nombre de la Finca o Huerta *</label>
-          <input 
-            type="text" 
-            id="pt-farm-name" 
-            required 
-            placeholder="Ej: Huerta El Renacer" 
-            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#c85a32] outline-none transition"
-          >
+      <!-- Modal Body (Form & Success Views) -->
+      <div class="p-6 overflow-y-auto flex-1">
+        
+        <!-- Formulario -->
+        <form id="form-producer-technical" onsubmit="handleProducerTechnicalSubmit(event)" class="space-y-4 text-xs">
+          
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">Nombre del agricultor / representante *</label>
+              <input 
+                type="text" 
+                id="pt-full-name" 
+                required 
+                placeholder="Ej: Don José Alvarado" 
+                class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#143628] outline-none transition"
+              >
+            </div>
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">Nombre de la Finca o Huerta *</label>
+              <input 
+                type="text" 
+                id="pt-farm-name" 
+                required 
+                placeholder="Ej: Huerta El Renacer" 
+                class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#143628] outline-none transition"
+              >
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">Correo electrónico de contacto *</label>
+              <input 
+                type="email" 
+                id="pt-email" 
+                required 
+                placeholder="productor@ejemplo.com" 
+                class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#143628] outline-none transition"
+              >
+            </div>
+            <div>
+              <label class="block font-bold text-stone-700 mb-1">WhatsApp / Teléfono directo *</label>
+              <input 
+                type="tel" 
+                id="pt-whatsapp" 
+                required 
+                placeholder="Ej: 099 123 4567" 
+                class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#143628] outline-none transition"
+              >
+            </div>
+          </div>
+
+          <div>
+            <label class="block font-bold text-stone-700 mb-1">Ubicación / Cantón / Parroquia / Sector *</label>
+            <input 
+              type="text" 
+              id="pt-location" 
+              required 
+              placeholder="Ej: Daule, Guayas · Recinto Las Maravillas" 
+              class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#143628] outline-none transition"
+            >
+          </div>
+
+          <div>
+            <label class="block font-bold text-stone-700 mb-1">Productos y cosechas que cultivas *</label>
+            <textarea 
+              id="pt-products" 
+              required 
+              rows="2" 
+              placeholder="Ej: Tomate chonto, lechuga romana, zanahorias, cacao fino de aroma, frutas de temporada" 
+              class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#143628] outline-none transition resize-none"
+            ></textarea>
+          </div>
+
+          <!-- Checkbox Agroecológico -->
+          <label class="flex items-start gap-3 p-3 bg-[#FAF7F2] rounded-xl border border-stone-200 cursor-pointer hover:bg-[#F3EFE8] transition">
+            <input 
+              type="checkbox" 
+              id="pt-agroecological" 
+              class="mt-0.5 rounded text-[#143628] focus:ring-[#143628] w-4 h-4 rounded cursor-pointer accent-[#143628]"
+            >
+            <div>
+              <span class="font-bold text-[#143628] text-xs block">🌱 Cultivo Agroecológico / Limpio</span>
+              <p class="text-[11px] text-stone-600">Mi producción es limpia, libre de pesticidas sintéticos o en proceso de transición orgánica.</p>
+            </div>
+          </label>
+
+          <div>
+            <label class="block font-bold text-stone-700 mb-1">Descripción de tu producción o mensaje adicional (opcional)</label>
+            <textarea 
+              id="pt-notes" 
+              rows="2" 
+              placeholder="Cuéntanos brevemente sobre la historia de tu finca, hectáreas o métodos de cosecha..." 
+              class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#143628] outline-none transition resize-none"
+            ></textarea>
+          </div>
+
+          <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center gap-2.5 text-[11px] text-emerald-800">
+            <span class="text-base">🛡️</span>
+            <span>Tus datos se remitirán directamente a la Dirección Técnica para agendar tu inspección agronómica y evaluar la acreditación.</span>
+          </div>
+
+          <div class="pt-2 flex items-center justify-end gap-2">
+            <button 
+              type="button" 
+              onclick="closeProducerTechnicalModal()" 
+              class="px-4 py-2.5 rounded-xl border border-stone-200 font-semibold text-stone-600 hover:bg-stone-50 transition"
+            >
+              Cancelar
+            </button>
+            <button 
+              type="submit" 
+              id="pt-submit-btn" 
+              class="px-5 py-2.5 rounded-xl bg-[#143628] hover:bg-[#1f4d3a] text-white font-bold shadow-md transition flex items-center gap-2"
+            >
+              <span>Enviar solicitud al Director Técnico</span>
+              <span>➔</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Pantalla de Confirmación Profesional (Éxito) -->
+        <div id="pt-success-state" class="hidden text-center py-6 px-2 space-y-4">
+          <div class="w-16 h-16 mx-auto rounded-full bg-emerald-100 text-[#143628] flex items-center justify-center text-3xl shadow-sm">
+            🌱
+          </div>
+          <div>
+            <span class="inline-block px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200 mb-2">
+              Solicitud Registrada
+            </span>
+            <h4 class="font-serif text-2xl font-bold text-[#143628]">¡Solicitud Enviada con Éxito!</h4>
+            <p class="text-xs text-stone-600 mt-2 max-w-sm mx-auto leading-relaxed">
+              Hemos remitido tu postulación directamente a la <strong>Dirección Técnica de Raíz & Barrio</strong>. Tu solicitud ya está disponible en el panel de evaluación.
+            </p>
+          </div>
+
+          <div class="bg-[#FAF7F2] rounded-2xl p-4 border border-stone-200 text-left text-xs space-y-2 max-w-md mx-auto">
+            <div class="flex items-center justify-between pb-2 border-b border-stone-200/60">
+              <span class="text-stone-500">Finca / Asociación:</span>
+              <span id="pt-success-farm" class="font-bold text-stone-800">-</span>
+            </div>
+            <div class="flex items-center justify-between pb-2 border-b border-stone-200/60">
+              <span class="text-stone-500">Agricultor:</span>
+              <span id="pt-success-name" class="font-bold text-stone-800">-</span>
+            </div>
+            <div class="flex items-center justify-between pb-2 border-b border-stone-200/60">
+              <span class="text-stone-500">Contacto registrado:</span>
+              <span id="pt-success-contact" class="font-medium text-stone-800">-</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-stone-500">Estado de evaluación:</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">● Pendiente de Visita</span>
+            </div>
+          </div>
+
+          <p class="text-[11px] text-stone-500 max-w-sm mx-auto">
+            Nos pondremos en contacto vía WhatsApp o correo electrónico para coordinar la inspección agronómica y entregarte tus credenciales de productor.
+          </p>
+
+          <div class="pt-2">
+            <button 
+              type="button" 
+              onclick="closeProducerTechnicalModal()" 
+              class="px-6 py-2.5 rounded-xl bg-[#143628] hover:bg-[#1f4d3a] text-white font-bold text-xs shadow-md transition"
+            >
+              Entendido y Cerrar
+            </button>
+          </div>
         </div>
 
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Ubicación / Municipio / Vereda *</label>
-          <input 
-            type="text" 
-            id="pt-location" 
-            required 
-            placeholder="Ej: Daule, Guayas · Recinto Las Maravillas" 
-            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#c85a32] outline-none transition"
-          >
-        </div>
-
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">Productos agrícolas que cultivas *</label>
-          <textarea 
-            id="pt-products" 
-            required 
-            rows="2" 
-            placeholder="Ej: Tomate chonto orgánico, lechuga romana, zanahorias, fresas sin agroquímicos" 
-            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#c85a32] outline-none transition resize-none"
-          ></textarea>
-        </div>
-
-        <div>
-          <label class="block font-bold text-stone-700 mb-1">WhatsApp de contacto directo *</label>
-          <input 
-            type="tel" 
-            id="pt-whatsapp" 
-            required 
-            placeholder="Ej: 310 123 4567" 
-            class="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-[#c85a32] outline-none transition"
-          >
-        </div>
-
-        <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex items-center gap-2 text-[11px] text-emerald-800">
-          <span>🛡️</span>
-          <span>Tus datos se remitirán directamente a la Dirección Técnica para agendar tu inspección agronómica.</span>
-        </div>
-
-        <div class="pt-2 flex items-center justify-end gap-2">
-          <button 
-            type="button" 
-            onclick="closeProducerTechnicalModal()" 
-            class="px-4 py-2.5 rounded-xl border border-stone-200 font-semibold text-stone-600 hover:bg-stone-50 transition"
-          >
-            Cancelar
-          </button>
-          <button 
-            type="submit" 
-            id="pt-submit-btn" 
-            class="px-5 py-2.5 rounded-xl bg-[#c85a32] hover:bg-[#b04a25] text-white font-bold shadow-md transition flex items-center gap-1.5"
-          >
-            <span>Enviar solicitud al Director Técnico</span>
-            <span>➔</span>
-          </button>
-        </div>
-      </form>
+      </div>
 
     </div>
   </div>

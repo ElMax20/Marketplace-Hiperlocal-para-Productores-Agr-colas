@@ -69,6 +69,7 @@
   </style>
 
   <!-- Supabase & Auth Zero-Flicker Hydration -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/supabase.js?v=5.1"></script>
   <script src="js/auth.js?v=5.3"></script>
 </head>
@@ -117,6 +118,15 @@
           <button onclick="switchAdminTab('agregar')" id="btn-tab-agregar" class="nav-admin-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition text-left text-stone-600 hover:text-stone-900 hover:bg-stone-100">
             <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <span>Agregar producto</span>
+          </button>
+
+          <!-- Tab: Solicitudes de Productores (En vivo) -->
+          <button onclick="switchAdminTab('solicitudes')" id="btn-tab-solicitudes" class="nav-admin-btn w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition text-left text-stone-600 hover:text-stone-900 hover:bg-stone-100">
+            <div class="flex items-center gap-3">
+              <svg class="w-4 h-4 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              <span>Solicitudes de Productores</span>
+            </div>
+            <span id="badge-pending-applications-count" class="hidden px-2 py-0.5 text-[10px] font-bold rounded-full bg-[#C85A28] text-white">0</span>
           </button>
 
           <!-- Tab 3: Gestionar cuentas -->
@@ -815,6 +825,121 @@
 
           </div>
 
+        </div>
+
+      </section>
+
+      <!-- ===================================================================
+           VISTA: SOLICITUDES DE PRODUCTORES (En Tiempo Real)
+           =================================================================== -->
+      <section id="view-solicitudes" class="admin-view hidden space-y-6">
+        
+        <!-- Header de la sección -->
+        <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <span class="text-[10px] font-bold uppercase tracking-wider text-[#C85A28] block">Acreditación Agronómica y Alta Campesina</span>
+            <h1 class="font-serif text-3xl font-normal text-stone-900 mt-1">Solicitudes de Productores</h1>
+            <p class="text-xs text-stone-500 mt-0.5">Audita, aprueba, rechaza y contacta a los agricultores postulantes en tiempo real.</p>
+          </div>
+          
+          <div class="flex items-center gap-2.5">
+            <span id="realtime-status-badge" class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-800 border border-emerald-200 shadow-2xs">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span>● Sincronizado en tiempo real</span>
+            </span>
+
+            <button onclick="loadProducerApplications(true)" title="Recargar solicitudes manualmente" class="px-3.5 py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 text-xs font-semibold shadow-2xs transition flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <span>Actualizar</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Tarjetas Métricas KPI -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- KPI 1: Pendientes -->
+          <div class="bg-white p-4 rounded-2xl border border-amber-200/80 shadow-2xs">
+            <div class="flex items-center justify-between text-stone-400 mb-1">
+              <span class="text-xs font-medium text-stone-600">Pendientes</span>
+              <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-apps-pending" class="text-2xl font-bold text-amber-900">0</span>
+              <span class="text-[11px] text-amber-700">Por inspeccionar</span>
+            </div>
+          </div>
+
+          <!-- KPI 2: Aprobadas -->
+          <div class="bg-white p-4 rounded-2xl border border-emerald-200/80 shadow-2xs">
+            <div class="flex items-center justify-between text-stone-400 mb-1">
+              <span class="text-xs font-medium text-stone-600">Aprobadas</span>
+              <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-apps-approved" class="text-2xl font-bold text-emerald-900">0</span>
+              <span class="text-[11px] text-emerald-700">Acreditadas en red</span>
+            </div>
+          </div>
+
+          <!-- KPI 3: Rechazadas -->
+          <div class="bg-white p-4 rounded-2xl border border-rose-200/80 shadow-2xs">
+            <div class="flex items-center justify-between text-stone-400 mb-1">
+              <span class="text-xs font-medium text-stone-600">Rechazadas</span>
+              <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-apps-rejected" class="text-2xl font-bold text-rose-900">0</span>
+              <span class="text-[11px] text-rose-700">No aprobadas</span>
+            </div>
+          </div>
+
+          <!-- KPI 4: Total -->
+          <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs">
+            <div class="flex items-center justify-between text-stone-400 mb-1">
+              <span class="text-xs font-medium text-stone-600">Total Solicitudes</span>
+              <span class="text-xs text-stone-400">Total</span>
+            </div>
+            <div class="flex items-baseline gap-2">
+              <span id="kpi-apps-total" class="text-2xl font-bold text-stone-900">0</span>
+              <span class="text-[11px] text-stone-500">Recibidas</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Barra de Filtros y Buscador -->
+        <div class="bg-white p-4 rounded-2xl border border-stone-200 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <!-- Pestañas de filtro con contadores dinámicos -->
+          <div class="flex flex-wrap items-center gap-1.5 text-xs font-medium" id="apps-filter-tabs">
+            <button onclick="setApplicationsFilter('pending')" id="filter-btn-pending" class="px-3.5 py-1.5 rounded-xl transition bg-[#143628] text-white font-bold shadow-2xs">
+              Pendientes (<span id="count-filter-pending">0</span>)
+            </button>
+            <button onclick="setApplicationsFilter('approved')" id="filter-btn-approved" class="px-3.5 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900 hover:bg-stone-100">
+              Aprobadas (<span id="count-filter-approved">0</span>)
+            </button>
+            <button onclick="setApplicationsFilter('rejected')" id="filter-btn-rejected" class="px-3.5 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900 hover:bg-stone-100">
+              Rechazadas (<span id="count-filter-rejected">0</span>)
+            </button>
+            <button onclick="setApplicationsFilter('all')" id="filter-btn-all" class="px-3.5 py-1.5 rounded-xl transition text-stone-600 hover:text-stone-900 hover:bg-stone-100">
+              Todas (<span id="count-filter-all">0</span>)
+            </button>
+          </div>
+
+          <!-- Buscador dinámico rápido -->
+          <div class="relative w-full md:w-80">
+            <input 
+              type="text" 
+              id="search-applications-input" 
+              oninput="handleApplicationsSearch(this.value)"
+              placeholder="Buscar por agricultor, finca, correo, cantón..." 
+              class="w-full pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-[#143628] outline-none transition"
+            >
+            <svg class="w-4 h-4 text-stone-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </div>
+        </div>
+
+        <!-- Contenedor de Tarjetas de Solicitudes -->
+        <div id="applications-cards-container" class="space-y-4">
+          <!-- Renderizado dinámico desde js/admin.js -->
         </div>
 
       </section>
@@ -1805,7 +1930,99 @@
 
   </div>
 
-  <script src="js/admin.js?v=5.1"></script>
+  <!-- =======================================================================
+       MODALES DE GESTIÓN DE SOLICITUDES DE PRODUCTORES
+       ======================================================================= -->
+
+  <!-- Modal: Rechazar Solicitud -->
+  <div id="modal-reject-application" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden text-left p-6 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-100">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-full bg-rose-100 text-[#C85A28] flex items-center justify-center font-bold text-sm">✕</span>
+          <h3 class="font-serif text-lg font-bold text-stone-900">Rechazar Solicitud</h3>
+        </div>
+        <button onclick="closeRejectModal()" class="text-stone-400 hover:text-stone-700 text-sm font-bold w-7 h-7 rounded-full bg-stone-100 flex items-center justify-center transition">✕</button>
+      </div>
+
+      <p class="text-xs text-stone-600">
+        Estás por rechazar la postulación de <strong id="reject-modal-farm" class="text-stone-900">Finca</strong> a cargo de <strong id="reject-modal-name" class="text-stone-900">Agricultor</strong>.
+      </p>
+
+      <div>
+        <label class="block text-xs font-bold text-stone-700 mb-1">Motivo del rechazo (opcional o descriptivo):</label>
+        <textarea 
+          id="reject-reason-input" 
+          rows="3" 
+          placeholder="Ej: Fuera de la zona de cobertura actual en Guayas, falta información agronómica..." 
+          class="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-[#C85A28] outline-none transition resize-none"
+        ></textarea>
+      </div>
+
+      <div class="flex items-center justify-end gap-2 pt-2">
+        <button onclick="closeRejectModal()" class="px-4 py-2 rounded-xl border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-50 transition">
+          Cancelar
+        </button>
+        <button id="btn-confirm-reject" onclick="confirmRejectApplication()" class="px-4 py-2 rounded-xl bg-[#C85A28] hover:bg-[#b04a25] text-white text-xs font-bold shadow-sm transition">
+          Confirmar Rechazo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Opciones de Contacto Directo -->
+  <div id="modal-contact-application" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs">
+    <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl border border-stone-200 overflow-hidden text-left p-6 space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-stone-100">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-full bg-emerald-100 text-[#143628] flex items-center justify-center font-bold text-sm">💬</span>
+          <h3 class="font-serif text-lg font-bold text-stone-900">Contactar al Productor</h3>
+        </div>
+        <button onclick="closeContactModal()" class="text-stone-400 hover:text-stone-700 text-sm font-bold w-7 h-7 rounded-full bg-stone-100 flex items-center justify-center transition">✕</button>
+      </div>
+
+      <div class="p-3 bg-[#FAF7F2] rounded-2xl border border-stone-200 text-xs space-y-1">
+        <p class="font-bold text-stone-900" id="contact-modal-farm">Finca</p>
+        <p class="text-stone-600" id="contact-modal-name">Agricultor</p>
+        <p class="text-stone-500 font-mono text-[11px]" id="contact-modal-details">Teléfono · Correo</p>
+      </div>
+
+      <p class="text-xs text-stone-600">
+        Elige el canal directo con el que deseas comunicarte con el productor:
+      </p>
+
+      <div class="space-y-2 pt-1">
+        <!-- WhatsApp -->
+        <a id="btn-contact-whatsapp" href="#" target="_blank" rel="noopener noreferrer" class="w-full flex items-center justify-between p-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition shadow-sm">
+          <div class="flex items-center gap-2.5">
+            <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+            <span>WhatsApp Directo (Ecuador)</span>
+          </div>
+          <span>➔</span>
+        </a>
+
+        <!-- Correo Electrónico -->
+        <a id="btn-contact-email" href="#" class="w-full flex items-center justify-between p-3 rounded-2xl bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold text-xs transition">
+          <div class="flex items-center gap-2.5">
+            <svg class="w-5 h-5 text-stone-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+            <span>Enviar Correo Electrónico</span>
+          </div>
+          <span>➔</span>
+        </a>
+      </div>
+
+      <div class="pt-2 text-right">
+        <button onclick="closeContactModal()" class="px-4 py-2 rounded-xl border border-stone-200 text-xs font-semibold text-stone-600 hover:bg-stone-50 transition">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Contenedor Toast Notificaciones en Vivo -->
+  <div id="admin-toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2.5 pointer-events-none"></div>
+
+  <script src="js/admin.js?v=5.2"></script>
 </body>
 </html>
 

@@ -1380,7 +1380,7 @@ async function loadProducerProductsFromSupabase() {
           const overrides = JSON.parse(localStorage.getItem('rb_stock_overrides') || '{}');
           if (overrides[id] !== undefined) stock = Number(overrides[id]);
           else if (overrides[code] !== undefined) stock = Number(overrides[code]);
-        } catch (_) {}
+        } catch (_) { }
         let status = 'publicado';
         let statusText = 'Publicado';
         if (p.status === 'borrador' || p.status === 'draft' || isAvailable === false) {

@@ -597,14 +597,20 @@ class SupabaseService {
   /**
    * Envía solicitud de acreditación técnica de un productor agrícola
    */
-  async submitProducerApplication({ farm_name, location, products, whatsapp }) {
+  async submitProducerApplication(data = {}) {
     try {
       const record = {
-        farm_name: farm_name.trim(),
-        location: location.trim(),
-        products: products.trim(),
-        whatsapp: whatsapp.trim(),
-        status: 'pendiente'
+        full_name: (data.full_name || data.farmer_name || '').trim(),
+        farm_name: (data.farm_name || '').trim(),
+        email: (data.email || '').trim().toLowerCase(),
+        phone: (data.phone || data.whatsapp || '').trim(),
+        whatsapp: (data.phone || data.whatsapp || '').trim(),
+        location: (data.location || '').trim(),
+        product_categories: (data.product_categories || data.products || '').trim(),
+        products: (data.product_categories || data.products || '').trim(),
+        is_agroecological: Boolean(data.is_agroecological),
+        notes: (data.notes || '').trim(),
+        status: 'pending'
       };
 
       const res = await this.fetchApi('producer_applications', {
@@ -613,9 +619,187 @@ class SupabaseService {
         body: JSON.stringify(record)
       });
 
-      return (res && res.length > 0) ? res[0] : record;
+      const saved = (res && res.length > 0) ? res[0] : record;
+
+      // Difundir evento cross-tab local para reactividad instantánea
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          const bc = new BroadcastChannel('rb_producer_applications');
+          bc.postMessage({ type: 'INSERT', application: saved });
+          bc.close();
+        }
+      } catch (_) {}
+
+      return saved;
     } catch (e) {
       console.error('Error enviando solicitud de productor:', e);
+      throw e;
+    }
+  }
+
+  /**
+   * Obtiene todas las solicitudes de alta de productores ordenadas de más reciente a más antigua
+   */
+  async getProducerApplications() {
+    try {
+      const res = await this.fetchApi('producer_applications?order=created_at.desc');
+      return Array.isArray(res) ? res : [];
+    } catch (e) {
+      console.error('Error al obtener solicitudes de productores:', e);
+      return [];
+    }
+  }
+
+  /**
+   * Actualiza el estado o datos de una solicitud de productor en Supabase
+   */
+  async updateProducerApplication(id, updates = {}) {
+    try {
+      const res = await this.fetchApi(`producer_applications?id=eq.${id}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify(updates)
+      });
+
+      const updated = (res && res.length > 0) ? res[0] : { id, ...updates };
+
+      // Difundir evento cross-tab local para sincronización reactiva
+      try {
+        if (typeof BroadcastChannel !== 'undefined') {
+          const bc = new BroadcastChannel('rb_producer_applications');
+          bc.postMessage({ type: 'UPDATE', application: updated });
+          bc.close();
+        }
+      } catch (_) {}
+
+      return updated;
+    } catch (e) {
+      console.error('Error al actualizar solicitud de productor:', e);
+      throw e;
+    }
+  }
+
+  /**
+   * Aprueba la solicitud del productor:
+   * 1. Actualiza status='approved' y reviewed_at en producer_applications.
+   * 2. Crea o actualiza el perfil en public.profiles con role='producer' / 'productor'.
+   * 3. Dispara webhook de n8n para notificación y entrega de credenciales.
+   */
+  async approveProducerApplication(applicationId, adminUser = null) {
+    try {
+      const nowIso = new Date().toISOString();
+      const reviewerId = adminUser?.id || '00000000-0000-0000-0000-000000000003';
+
+      // 1. Obtener la solicitud actual
+      const apps = await this.fetchApi(`producer_applications?id=eq.${applicationId}`);
+      if (!apps || apps.length === 0) {
+        throw new Error('No se encontró la solicitud especificada.');
+      }
+      const app = apps[0];
+
+      // 2. Actualizar estado en producer_applications
+      const updateData = {
+        status: 'approved',
+        reviewed_by: reviewerId,
+        reviewed_at: nowIso
+      };
+      const updatedApp = await this.updateProducerApplication(applicationId, updateData);
+
+      // 3. Crear o actualizar perfil en profiles
+      try {
+        const cleanEmail = (app.email || '').trim().toLowerCase();
+        let existingUser = null;
+        if (cleanEmail) {
+          const checkProfiles = await this.fetchApi(`profiles?email=eq.${encodeURIComponent(cleanEmail)}`);
+          if (checkProfiles && checkProfiles.length > 0) {
+            existingUser = checkProfiles[0];
+          }
+        }
+
+        if (existingUser) {
+          await this.fetchApi(`profiles?id=eq.${existingUser.id}`, {
+            method: 'PATCH',
+            body: {
+              role: 'producer',
+              full_name: app.full_name || existingUser.full_name,
+              farm_name: app.farm_name || existingUser.farm_name,
+              phone: app.phone || existingUser.phone,
+              location: app.location || existingUser.location
+            }
+          });
+        } else {
+          const username = cleanEmail ? (cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').toLowerCase() || 'productor') : 'productor';
+          const newProfile = {
+            username: username + '_' + Math.floor(Math.random() * 1000),
+            password: '123',
+            email: cleanEmail,
+            full_name: app.full_name,
+            role: 'producer',
+            farm_name: app.farm_name,
+            phone: app.phone,
+            location: app.location,
+            avatar_url: 'https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/agricultor_1.jpg'
+          };
+          await this.fetchApi('profiles', {
+            method: 'POST',
+            body: JSON.stringify(newProfile)
+          });
+        }
+      } catch (profileErr) {
+        console.warn('Aviso al sincronizar perfil en profiles:', profileErr);
+      }
+
+      // 4. Disparar webhook de n8n
+      try {
+        const webhookUrl = 'https://elmaxi.app.n8n.cloud/webhook/alta-productor-aprobada';
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event: 'producer_approved',
+            application_id: app.id,
+            full_name: app.full_name,
+            farm_name: app.farm_name,
+            email: app.email,
+            phone: app.phone,
+            location: app.location,
+            product_categories: app.product_categories,
+            is_agroecological: app.is_agroecological,
+            notes: app.notes,
+            approved_at: nowIso,
+            approved_by: reviewerId
+          })
+        });
+        console.log('✓ Webhook de n8n notificado con éxito.');
+      } catch (webhookErr) {
+        console.warn('Aviso: Webhook de n8n no respondió (no bloqueante):', webhookErr);
+      }
+
+      return updatedApp;
+    } catch (e) {
+      console.error('Error aprobando solicitud de productor:', e);
+      throw e;
+    }
+  }
+
+  /**
+   * Rechaza la solicitud del productor con motivo opcional
+   */
+  async rejectProducerApplication(applicationId, rejectionReason = '', adminUser = null) {
+    try {
+      const nowIso = new Date().toISOString();
+      const reviewerId = adminUser?.id || '00000000-0000-0000-0000-000000000003';
+
+      const updateData = {
+        status: 'rejected',
+        rejection_reason: rejectionReason.trim() || 'No cumple con los criterios de cobertura o trazabilidad actuales.',
+        reviewed_by: reviewerId,
+        reviewed_at: nowIso
+      };
+
+      return await this.updateProducerApplication(applicationId, updateData);
+    } catch (e) {
+      console.error('Error rechazando solicitud de productor:', e);
       throw e;
     }
   }

@@ -865,3 +865,81 @@ TO public
 USING (true)
 WITH CHECK (true);
 
+-- =============================================================================
+-- 21. Tabla y Políticas para Solicitudes de Alta de Productores Agrícolas
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS public.producer_applications (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    full_name text NOT NULL,
+    farm_name text NOT NULL,
+    email text NOT NULL,
+    phone text NOT NULL,
+    location text NOT NULL,
+    product_categories text,
+    is_agroecological boolean DEFAULT false,
+    notes text,
+    status text NOT NULL DEFAULT 'pending',
+    rejection_reason text,
+    reviewed_by uuid,
+    reviewed_at timestamptz,
+    created_at timestamptz DEFAULT now()
+);
+
+ALTER TABLE public.producer_applications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Permitir insertar solicitudes a todos" ON public.producer_applications;
+CREATE POLICY "Permitir insertar solicitudes a todos"
+ON public.producer_applications
+FOR INSERT
+TO public
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Permitir leer solicitudes" ON public.producer_applications;
+CREATE POLICY "Permitir leer solicitudes"
+ON public.producer_applications
+FOR SELECT
+TO public
+USING (true);
+
+DROP POLICY IF EXISTS "Permitir actualizar solicitudes" ON public.producer_applications;
+CREATE POLICY "Permitir actualizar solicitudes"
+ON public.producer_applications
+FOR UPDATE
+TO public
+USING (true)
+WITH CHECK (true);
+
+-- Habilitar publicación Realtime para producer_applications
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'producer_applications'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.producer_applications;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        NULL;
+END $$;
+
+-- Asegurar tipo de rol 'producer' y campos de contacto en profiles
+DO $$
+BEGIN
+    ALTER TYPE public.user_role ADD VALUE IF NOT EXISTS 'producer';
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
+
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS phone text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS location text;
+
+-- Compatibilidad retroactiva de columnas de contacto y productos
+ALTER TABLE public.producer_applications ADD COLUMN IF NOT EXISTS products text;
+ALTER TABLE public.producer_applications ADD COLUMN IF NOT EXISTS whatsapp text;
+ALTER TABLE public.producer_applications ALTER COLUMN products DROP NOT NULL;
+ALTER TABLE public.producer_applications ALTER COLUMN whatsapp DROP NOT NULL;
+ALTER TABLE public.producer_applications ALTER COLUMN status SET DEFAULT 'pending';
+
+
+

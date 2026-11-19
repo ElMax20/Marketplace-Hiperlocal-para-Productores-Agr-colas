@@ -2326,6 +2326,17 @@ function openProducerTechnicalModal() {
   closeLoginModal();
   const modal = document.getElementById('producer-technical-modal');
   if (modal) {
+    // Restaurar vista del formulario y ocultar vista de éxito
+    const form = document.getElementById('form-producer-technical');
+    const successState = document.getElementById('pt-success-state');
+    if (form) {
+      form.reset();
+      form.classList.remove('hidden');
+    }
+    if (successState) {
+      successState.classList.add('hidden');
+    }
+
     modal.classList.remove('hidden');
     modal.scrollTop = 0;
     document.body.classList.add('modal-open');
@@ -2336,7 +2347,7 @@ function openProducerTechnicalModal() {
       safeRAF(() => {
         modal.classList.add('is-open');
         modal.scrollTop = 0;
-        const first = document.getElementById('pt-farm-name');
+        const first = document.getElementById('pt-full-name') || document.getElementById('pt-farm-name');
         if (first) {
           try {
             first.focus({ preventScroll: true });
@@ -2373,23 +2384,36 @@ async function handleProducerTechnicalSubmit(e) {
     e.stopPropagation();
   }
 
+  const fullName = document.getElementById('pt-full-name')?.value.trim() || '';
   const farmName = document.getElementById('pt-farm-name')?.value.trim() || '';
+  const email = document.getElementById('pt-email')?.value.trim().toLowerCase() || '';
+  const whatsapp = document.getElementById('pt-whatsapp')?.value.trim() || '';
   const location = document.getElementById('pt-location')?.value.trim() || '';
   const products = document.getElementById('pt-products')?.value.trim() || '';
-  const whatsapp = document.getElementById('pt-whatsapp')?.value.trim() || '';
+  const isAgroecological = Boolean(document.getElementById('pt-agroecological')?.checked);
+  const notes = document.getElementById('pt-notes')?.value.trim() || '';
 
-  if (!farmName || !location || !products || !whatsapp) {
-    alert('Por favor completa todos los campos del formulario.');
+  if (!fullName || !farmName || !email || !whatsapp || !location || !products) {
+    alert('Por favor completa todos los campos obligatorios marcados con (*).');
     return false;
   }
 
-  const phoneCheck = validatePhoneNumber(whatsapp);
+  if (!email.includes('@') || !email.includes('.')) {
+    alert('Por favor ingresa un correo electrónico de contacto válido.');
+    return false;
+  }
+
+  const phoneCheck = typeof validatePhoneNumber === 'function' 
+    ? validatePhoneNumber(whatsapp) 
+    : { valid: true, cleanNumber: whatsapp };
+
   if (!phoneCheck.valid) {
-    alert(phoneCheck.message);
+    alert(phoneCheck.message || 'Por favor ingresa un número de WhatsApp o teléfono válido.');
     return false;
   }
 
   const submitBtn = document.getElementById('pt-submit-btn');
+  const originalBtnHtml = submitBtn ? submitBtn.innerHTML : '';
   if (submitBtn) {
     submitBtn.setAttribute('disabled', 'true');
     submitBtn.innerHTML = `
@@ -2397,31 +2421,63 @@ async function handleProducerTechnicalSubmit(e) {
         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
       </svg>
-      <span>Enviando solicitud...</span>
+      <span>Enviando solicitud al Director Técnico...</span>
     `;
   }
 
   try {
+    let result = null;
+    const applicationPayload = {
+      full_name: fullName,
+      farm_name: farmName,
+      email: email,
+      phone: phoneCheck.cleanNumber || whatsapp,
+      location: location,
+      product_categories: products,
+      is_agroecological: isAgroecological,
+      notes: notes
+    };
+
     if (window.supabase && typeof window.supabase.submitProducerApplication === 'function') {
-      await window.supabase.submitProducerApplication({
-        farm_name: farmName,
-        location: location,
-        products: products,
-        whatsapp: phoneCheck.cleanNumber
-      });
+      result = await window.supabase.submitProducerApplication(applicationPayload);
     }
 
-    closeProducerTechnicalModal();
-    alert(`🌱 ¡Solicitud de alta recibida con éxito!\n\nEstimado productor de "${farmName}": nuestro Director Técnico e Ingeniero Agrónomo revisará los datos y se pondrá en contacto al WhatsApp ${whatsapp} para agendar la visita de verificación agronómica.`);
-    
-    document.getElementById('form-producer-technical')?.reset();
+    // Actualizar pantalla de confirmación profesional
+    const form = document.getElementById('form-producer-technical');
+    const successState = document.getElementById('pt-success-state');
+    if (form && successState) {
+      const farmLabel = document.getElementById('pt-success-farm');
+      const nameLabel = document.getElementById('pt-success-name');
+      const contactLabel = document.getElementById('pt-success-contact');
+
+      if (farmLabel) farmLabel.textContent = farmName;
+      if (nameLabel) nameLabel.textContent = fullName;
+      if (contactLabel) contactLabel.textContent = `${phoneCheck.cleanNumber || whatsapp} · ${email}`;
+
+      form.classList.add('hidden');
+      successState.classList.remove('hidden');
+    } else {
+      closeProducerTechnicalModal();
+      alert(`🌱 ¡Solicitud de alta recibida con éxito!\n\nEstimado productor de "${farmName}": nuestro Director Técnico e Ingeniero Agrónomo revisará los datos y se pondrá en contacto al WhatsApp ${whatsapp} o correo ${email} para coordinar la visita de verificación agronómica.`);
+    }
+
+    if (submitBtn) {
+      submitBtn.removeAttribute('disabled');
+      submitBtn.innerHTML = originalBtnHtml || `<span>Enviar solicitud al Director Técnico</span><span>➔</span>`;
+    }
+
+    // Notificación toast si el entorno la soporta
+    if (typeof showToast === 'function') {
+      showToast('🌱 ¡Solicitud enviada al Directorio Técnico!');
+    }
+
     return false;
   } catch (err) {
     console.error('Error enviando solicitud de productor:', err);
     alert('Ocurrió un error al enviar la solicitud: ' + (err.message || 'Error de conexión'));
     if (submitBtn) {
       submitBtn.removeAttribute('disabled');
-      submitBtn.innerHTML = `<span>Enviar solicitud al Director Técnico</span><span>➔</span>`;
+      submitBtn.innerHTML = originalBtnHtml || `<span>Enviar solicitud al Director Técnico</span><span>➔</span>`;
     }
     return false;
   }

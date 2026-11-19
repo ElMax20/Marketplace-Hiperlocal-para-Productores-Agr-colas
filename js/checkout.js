@@ -28,20 +28,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function initCheckout() {
   // 0. Bloqueo estricto de seguridad: Checkout requiere sesión activa obligatoria
-  let loggedIn = (typeof isUserLoggedIn === 'function') ? isUserLoggedIn() : (function() {
+  let loggedIn = (typeof isUserLoggedIn === 'function') ? isUserLoggedIn() : (function () {
     try {
       if (typeof getCurrentUser === 'function') {
         const u = getCurrentUser();
         if (u && u.loggedIn) return true;
       }
-      const raw = localStorage.getItem('rb_cached_profile') || 
-                  localStorage.getItem('rb_current_user') || 
-                  localStorage.getItem('raiz_user');
+      const raw = localStorage.getItem('rb_cached_profile') ||
+        localStorage.getItem('rb_current_user') ||
+        localStorage.getItem('raiz_user');
       if (raw) {
         const p = JSON.parse(raw);
         if (p && (p.loggedIn || p.id)) return true;
       }
-    } catch (_) {}
+    } catch (_) { }
     return false;
   })();
 
@@ -49,7 +49,7 @@ async function initCheckout() {
     try {
       const res = await window.supabase.auth.getSession();
       if (res?.data?.session?.user) loggedIn = true;
-    } catch (_) {}
+    } catch (_) { }
   }
 
   if (!loggedIn) {
@@ -68,9 +68,9 @@ async function initCheckout() {
 
   // 1. Obtener usuario autenticado
   try {
-    const rawUser = localStorage.getItem('rb_cached_profile') || 
-                    localStorage.getItem('rb_current_user') || 
-                    localStorage.getItem('raiz_user');
+    const rawUser = localStorage.getItem('rb_cached_profile') ||
+      localStorage.getItem('rb_current_user') ||
+      localStorage.getItem('raiz_user');
     if (rawUser) {
       checkoutUser = JSON.parse(rawUser);
     } else if (typeof getCachedProfile === 'function') {
@@ -194,7 +194,7 @@ async function loadSupabaseCheckoutData() {
           checkoutAddresses = parsed;
         }
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   // Respaldo desde el perfil activo si contiene dirección en Guayaquil
@@ -400,11 +400,10 @@ function renderPickupNodes() {
     return `
       <div 
         onclick="choosePickupNode('${node.id}')"
-        class="p-2.5 rounded-xl border text-xs cursor-pointer transition flex items-center justify-between ${
-          isSelected 
-            ? 'border-[#1a3d2f] bg-emerald-50 text-stone-900 font-bold' 
-            : 'border-stone-200 bg-white hover:bg-stone-50 text-stone-700'
-        }"
+        class="p-2.5 rounded-xl border text-xs cursor-pointer transition flex items-center justify-between ${isSelected
+        ? 'border-[#1a3d2f] bg-emerald-50 text-stone-900 font-bold'
+        : 'border-stone-200 bg-white hover:bg-stone-50 text-stone-700'
+      }"
       >
         <div>
           <p class="font-bold text-xs">${node.name}</p>
@@ -451,15 +450,14 @@ function renderDeliveryAddresses() {
     container.innerHTML = `
       <div class="text-[11px] text-stone-500 font-semibold mb-1">Elige una de tus direcciones registradas:</div>
       ${checkoutAddresses.map(addr => {
-        const isSelected = activeAddress?.id === addr.id;
-        return `
+      const isSelected = activeAddress?.id === addr.id;
+      return `
           <div 
             onclick="chooseDeliveryAddress('${addr.id}')"
-            class="p-2.5 rounded-xl border text-xs cursor-pointer transition flex items-center justify-between ${
-              isSelected 
-                ? 'border-[#1a3d2f] bg-emerald-50 text-stone-900 font-bold ring-1 ring-[#1a3d2f]/20' 
-                : 'border-stone-200 bg-white hover:bg-stone-50 text-stone-700'
-            }"
+            class="p-2.5 rounded-xl border text-xs cursor-pointer transition flex items-center justify-between ${isSelected
+          ? 'border-[#1a3d2f] bg-emerald-50 text-stone-900 font-bold ring-1 ring-[#1a3d2f]/20'
+          : 'border-stone-200 bg-white hover:bg-stone-50 text-stone-700'
+        }"
           >
             <div>
               <p class="font-bold text-xs">${addr.label || 'Casa'}: <span class="font-normal text-stone-800">${addr.street_address}</span></p>
@@ -468,7 +466,7 @@ function renderDeliveryAddresses() {
             ${isSelected ? '<span class="text-emerald-700 font-bold text-sm">✓</span>' : ''}
           </div>
         `;
-      }).join('')}
+    }).join('')}
     `;
   } else {
     if (btnToggle) btnToggle.classList.add('hidden');
@@ -572,7 +570,7 @@ async function handleSaveNewAddress(event) {
       const existing = JSON.parse(localStorage.getItem(userKey) || '[]');
       existing.unshift(newAddrObj);
       localStorage.setItem(userKey, JSON.stringify(existing));
-    } catch (_) {}
+    } catch (_) { }
   }
 
   checkoutAddresses.unshift(newAddrObj);
@@ -683,11 +681,10 @@ function renderSavedCards() {
     return `
       <label 
         onclick="chooseSavedCard('${card.id}')"
-        class="flex items-center justify-between p-3.5 rounded-xl border-2 cursor-pointer transition ${
-          isSelected 
-            ? 'border-[#1a3d2f] bg-emerald-50/40' 
-            : 'border-stone-200 bg-stone-50/50 hover:bg-stone-50'
-        }"
+        class="flex items-center justify-between p-3.5 rounded-xl border-2 cursor-pointer transition ${isSelected
+        ? 'border-[#1a3d2f] bg-emerald-50/40'
+        : 'border-stone-200 bg-stone-50/50 hover:bg-stone-50'
+      }"
       >
         <div class="flex items-center gap-3">
           <input 
@@ -915,7 +912,7 @@ function updateOrderTotals() {
   const badgeEl = document.getElementById('summary-delivery-fee-badge');
 
   if (subtotalEl) subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
-  
+
   if (activeDeliveryMode === 'NODE_PICKUP') {
     if (feeLabelEl) feeLabelEl.textContent = 'Recogida en nodo:';
     if (feeCostEl) {
@@ -962,8 +959,8 @@ async function executePurchase() {
 
   const userId = checkoutUser?.id || '00000000-0000-0000-0000-000000000001';
   const customerName = checkoutUser?.full_name || checkoutUser?.name || (
-    activePaymentMethod === 'CARD' && isUsingNewCard 
-      ? (document.getElementById('new-card-holder')?.value.trim() || 'Comprador Raíz & Barrio') 
+    activePaymentMethod === 'CARD' && isUsingNewCard
+      ? (document.getElementById('new-card-holder')?.value.trim() || 'Comprador Raíz & Barrio')
       : 'Cliente Raíz & Barrio'
   );
   const customerEmail = checkoutUser?.email || 'facturacion@raizybarrio.co';
@@ -1156,13 +1153,13 @@ async function executePurchase() {
             method: 'POST',
             body: JSON.stringify(orderItemsRows)
           });
-        } catch (_) {}
+        } catch (_) { }
       }
 
       // =========================================================================
       // DOBLE RESPALDO INFALIBLE: DESCUENTO DE STOCK EN CADA VENTA
       // =========================================================================
-      const stockOverrides = (function() {
+      const stockOverrides = (function () {
         try { return JSON.parse(localStorage.getItem('rb_stock_overrides') || '{}'); } catch (_) { return {}; }
       })();
 
@@ -1250,7 +1247,7 @@ async function executePurchase() {
       // 3. Actualizar almacenamiento local para que la UI muestre de inmediato el descuento
       try {
         localStorage.setItem('rb_stock_overrides', JSON.stringify(stockOverrides));
-      } catch (_) {}
+      } catch (_) { }
 
       // Actualizar memoria global si existe catálogo en memoria
       if (typeof window.PRODUCTS_DATA !== 'undefined' && Array.isArray(window.PRODUCTS_DATA)) {
@@ -1283,7 +1280,7 @@ async function executePurchase() {
             order: orderRecord
           });
         }
-      } catch (_) {}
+      } catch (_) { }
 
       // Si el usuario marcó guardar tarjeta y era tarjeta nueva
       const saveCardChk = document.getElementById('chk-save-card');
@@ -1303,7 +1300,7 @@ async function executePurchase() {
               is_default: false
             })
           });
-        } catch (_) {}
+        } catch (_) { }
       }
     }
 
@@ -1319,7 +1316,7 @@ async function executePurchase() {
       const existingHistory = JSON.parse(localStorage.getItem(historyKey) || '[]');
       existingHistory.unshift(savedOrder);
       localStorage.setItem(historyKey, JSON.stringify(existingHistory));
-    } catch (_) {}
+    } catch (_) { }
     localStorage.removeItem('rb_cart');
     localStorage.setItem('raiz_cart', '[]');
 
