@@ -9,7 +9,22 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
   <script>
-    window.location.replace('mis-favoritos.html' + window.location.search);
+    try {
+      var raw = localStorage.getItem('rb_cached_profile') || localStorage.getItem('rb_current_user') || localStorage.getItem('raiz_user');
+      if (raw) {
+        var u = JSON.parse(raw);
+        var r = (u.role || '').toLowerCase();
+        if (r === 'admin' || r === 'administrador') {
+          window.location.replace('admin.html');
+        } else {
+          window.location.replace('mis-favoritos.html' + window.location.search);
+        }
+      } else {
+        window.location.replace('mis-favoritos.html' + window.location.search);
+      }
+    } catch(e) {
+      window.location.replace('mis-favoritos.html' + window.location.search);
+    }
   </script>
 </head>
 <body style="font-family: 'Red Hat Display', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #FAF8F5; color: #143628;">

@@ -2,6 +2,29 @@
  * Raíz & Barrio - Lógica del Panel de Administración
  */
 
+const TAB_ALIASES = {
+  resumen: 'productos',
+  solicitudes: 'solicitudes',
+  productores: 'productos',
+  catalogo: 'productos',
+  productos: 'productos',
+  pedidos: 'cuentas',
+  nodos: 'cuentas',
+  cuentas: 'cuentas',
+  configuracion: 'perfil',
+  config: 'perfil',
+  perfil: 'perfil',
+  agregar: 'agregar',
+  roles: 'roles',
+  auditoria: 'auditoria'
+};
+
+function resolveAdminTab(input) {
+  if (!input) return 'productos';
+  const clean = String(input).toLowerCase().trim().replace(/^#/, '');
+  return TAB_ALIASES[clean] || (['productos', 'agregar', 'solicitudes', 'cuentas', 'roles', 'auditoria', 'perfil'].includes(clean) ? clean : 'productos');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // Verificación de sesión de Administrador
   const user = getCurrentUser();
@@ -14,15 +37,24 @@ document.addEventListener('DOMContentLoaded', () => {
   // Inicializar módulo de Solicitudes de Productores en tiempo real
   initProducerApplicationsModule();
 
-  // Leer tab de URL hash si existe
+  // Leer tab de URL search param (?tab=...) o hash (#...)
+  const urlParams = new URLSearchParams(window.location.search);
+  const tabParam = urlParams.get('tab');
   const hash = window.location.hash.replace('#', '');
-  if (['productos', 'agregar', 'solicitudes', 'cuentas', 'roles', 'auditoria', 'perfil'].includes(hash)) {
-    switchAdminTab(hash);
-  } else {
-    switchAdminTab('productos');
-  }
+  const initialTab = tabParam || hash || 'productos';
+
+  switchAdminTab(initialTab);
 
   updatePreviewCard();
+});
+
+// Soporte para navegación con botones Atrás/Adelante del navegador
+window.addEventListener('popstate', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const tabParam = urlParams.get('tab') || window.location.hash.replace('#', '');
+  if (tabParam) {
+    switchAdminTab(tabParam);
+  }
 });
 
 const BREADCRUMB_MAP = {
@@ -37,9 +69,12 @@ const BREADCRUMB_MAP = {
 
 /**
  * Cambia la pestaña activa del panel de administración
- * @param {'productos' | 'agregar' | 'solicitudes' | 'cuentas' | 'roles' | 'auditoria' | 'perfil'} tabId 
+ * Soporta identificadores reales o alias (resumen, productores, pedidos, configuracion)
+ * @param {'productos' | 'agregar' | 'solicitudes' | 'cuentas' | 'roles' | 'auditoria' | 'perfil' | string} rawTab 
  */
-function switchAdminTab(tabId) {
+function switchAdminTab(rawTab) {
+  const tabId = resolveAdminTab(rawTab);
+
   // Ocultar todas las vistas
   document.querySelectorAll('.admin-view').forEach(view => {
     view.classList.add('hidden');
@@ -70,17 +105,25 @@ function switchAdminTab(tabId) {
 
   // Si entra en solicitudes y no se han renderizado
   if (tabId === 'solicitudes') {
-    if (_allProducerApplications.length === 0) {
-      loadProducerApplications();
-    } else {
-      renderProducerApplications();
+    if (typeof _allProducerApplications !== 'undefined') {
+      if (_allProducerApplications.length === 0) {
+        loadProducerApplications();
+      } else {
+        renderProducerApplications();
+      }
     }
   }
 
-  // Actualizar hash de la URL
-  window.location.hash = tabId;
+  // Sincronizar parámetro en la URL sin recargar para soportar links directos
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', rawTab || tabId);
+    window.history.replaceState({}, '', url.toString());
+  } catch (e) {}
+
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+window.switchAdminTab = switchAdminTab;
 
 /**
  * Actualiza la tarjeta de previsualización en vivo en "Agregar producto"
@@ -453,6 +496,20 @@ function updateApplicationsCounters() {
       sidebarBadge.classList.add('hidden');
     }
   }
+
+  // Sincronizar contador para el badge del dropdown global de administración
+  try {
+    localStorage.setItem('rb_pending_apps_count', String(pendingCount));
+  } catch (e) {}
+
+  if (typeof window.updateAdminPendingBadges === 'function') {
+    window.updateAdminPendingBadges(pendingCount);
+  }
+
+  try {
+    const bc = new BroadcastChannel('rb_producer_applications');
+    bc.postMessage({ type: 'counters_updated', pendingCount: pendingCount });
+  } catch (e) {}
 }
 
 /**

@@ -44,8 +44,12 @@ async function initProfilePage() {
     return;
   }
 
-  // Si el usuario autenticado es Productor, redirigir a su espacio exclusivo
+  // Proteger ruta de comprador contra rol Administrador y Productor
   const userRole = (user.role || '').toLowerCase();
+  if (userRole === 'admin' || userRole === 'administrador') {
+    window.location.replace('admin.html?tab=configuracion');
+    return;
+  }
   if (userRole === 'productor' || userRole === 'producer' || userRole.includes('productor')) {
     window.location.replace('productor.html#perfil-seguridad');
     return;

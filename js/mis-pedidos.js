@@ -517,7 +517,16 @@ async function initMisPedidos() {
   const isDemo = urlParams.get('demo') === '1';
   const allowGuest = urlParams.get('guest') === '1' || urlParams.get('empty') === '1';
 
-  // 1. Verifica la sesión activa del usuario; si no está autenticado, redirige a index.html
+  // 1. Proteger ruta contra rol Administrador
+  if (user) {
+    const role = (user.role || '').toLowerCase();
+    if (role === 'admin' || role === 'administrador') {
+      window.location.replace('admin.html');
+      return;
+    }
+  }
+
+  // 2. Verifica la sesión activa del usuario; si no está autenticado, redirige a index.html
   if (!user && !isDemo && !allowGuest) {
     window.location.replace('index.html?openLogin=true');
     return;

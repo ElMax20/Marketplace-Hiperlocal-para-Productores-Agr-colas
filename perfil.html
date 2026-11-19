@@ -52,6 +52,10 @@
           var u = JSON.parse(raw);
           if (u && (u.loggedIn || u.id)) {
             var r = (u.role || '').toLowerCase();
+            if (r === 'admin' || r === 'administrador') {
+              window.location.replace('admin.html?tab=configuracion');
+              return;
+            }
             if (r === 'productor' || r === 'producer' || r.indexOf('productor') !== -1) {
               window.location.replace('productor.html#perfil-seguridad');
               return;

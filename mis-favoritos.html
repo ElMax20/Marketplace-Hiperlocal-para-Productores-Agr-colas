@@ -24,7 +24,13 @@
                     localStorage.getItem('rb_current_user') || 
                     localStorage.getItem('raiz_user');
         if (raw) {
-          window.__PRELOADED_USER = JSON.parse(raw);
+          const u = JSON.parse(raw);
+          window.__PRELOADED_USER = u;
+          const r = (u.role || '').toLowerCase();
+          if (r === 'admin' || r === 'administrador') {
+            window.location.replace('admin.html');
+            return;
+          }
         }
       } catch(e) {}
     })();

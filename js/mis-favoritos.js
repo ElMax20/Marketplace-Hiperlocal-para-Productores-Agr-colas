@@ -27,13 +27,20 @@ async function initMisFavoritos() {
     return;
   }
 
-  // 2. Inicializar contador del carrito
+  // 2. Proteger ruta contra rol Administrador
+  const role = (user.role || '').toLowerCase();
+  if (role === 'admin' || role === 'administrador') {
+    window.location.replace('admin.html');
+    return;
+  }
+
+  // 3. Inicializar contador del carrito
   updateCartBadge();
 
-  // 3. Renderizado inmediato con caché local (Zero-Flicker)
+  // 4. Renderizado inmediato con caché local (Zero-Flicker)
   await reloadFavoritesUI();
 
-  // 4. Sincronización en vivo con Supabase
+  // 5. Sincronización en vivo con Supabase
   if (window.FavoritesService && typeof window.FavoritesService.syncWithSupabase === 'function') {
     await window.FavoritesService.syncWithSupabase();
     await reloadFavoritesUI();

@@ -315,6 +315,142 @@ window.signOut = logoutUser;
 // RENDERIZADO ZERO-FLICKER DEL NAVBAR (HTML Generado)
 // =============================================================================
 
+/**
+ * Obtiene el número de solicitudes de productores pendientes en caché o 0
+ */
+function getPendingApplicationsCount() {
+  try {
+    const raw = localStorage.getItem('rb_pending_apps_count');
+    if (raw !== null && raw !== undefined) {
+      const parsed = parseInt(raw, 10);
+      return isNaN(parsed) ? 0 : parsed;
+    }
+  } catch (e) {}
+  return 0;
+}
+window.getPendingApplicationsCount = getPendingApplicationsCount;
+
+/**
+ * Actualiza visualmente el badge de solicitudes pendientes en cualquier menú desplegable abierto o futuro
+ */
+function updateAdminPendingBadges(count) {
+  const num = Number(count) || 0;
+  try {
+    localStorage.setItem('rb_pending_apps_count', String(num));
+  } catch (e) {}
+  const badges = document.querySelectorAll('#admin-dropdown-pending-badge');
+  badges.forEach(b => {
+    b.textContent = num;
+    if (num > 0) {
+      b.classList.remove('hidden');
+      b.classList.add('inline-flex');
+    } else {
+      b.classList.add('hidden');
+      b.classList.remove('inline-flex');
+    }
+  });
+}
+window.updateAdminPendingBadges = updateAdminPendingBadges;
+
+/**
+ * Maneja la navegación de administración en el menú desplegable:
+ * Si el usuario ya está en admin.html, activa switchAdminTab sin recarga completa.
+ * Si está en otra página, navega a admin.html?tab=... de forma estándar.
+ */
+function handleAdminNav(event, tabAlias) {
+  const path = (window.location && window.location.pathname) ? window.location.pathname.toLowerCase() : '';
+  const isOnAdmin = path.endsWith('/admin.html') || path.endsWith('\\admin.html') || path.includes('admin.html');
+  
+  if (isOnAdmin && typeof window.switchAdminTab === 'function') {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+    window.switchAdminTab(tabAlias);
+    const dropdown = document.getElementById('auth-user-dropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+    return false;
+  }
+  return true;
+}
+window.handleAdminNav = handleAdminNav;
+
+/**
+ * Oculta o desactiva el carrito de compras en el Navbar cuando el usuario autenticado es Administrador
+ */
+function syncAdminCartVisibility(isAdmin) {
+  const cartSelectors = [
+    '#cart-toggle-btn',
+    '#open-cart-btn',
+    '#cart-btn',
+    '#floating-cart-btn',
+    '#market-cart-btn',
+    '#cart-drawer',
+    '#cart-backdrop',
+    'button[aria-label="Abrir carrito"]',
+    'button[aria-label="Carrito de compras"]',
+    'button[title*="carrito" i]'
+  ];
+
+  cartSelectors.forEach(sel => {
+    try {
+      document.querySelectorAll(sel).forEach(el => {
+        if (isAdmin) {
+          el.style.setProperty('display', 'none', 'important');
+          el.setAttribute('aria-hidden', 'true');
+          el.setAttribute('tabindex', '-1');
+        } else {
+          el.style.removeProperty('display');
+          el.removeAttribute('aria-hidden');
+          el.removeAttribute('tabindex');
+        }
+      });
+    } catch (e) {}
+  });
+
+  ['cart-badge', 'cart-counter', 'nav-cart-counter'].forEach(id => {
+    try {
+      const badge = document.getElementById(id);
+      if (badge) {
+        const btn = badge.closest('button') || badge.closest('a');
+        if (btn) {
+          if (isAdmin) {
+            btn.style.setProperty('display', 'none', 'important');
+            btn.setAttribute('aria-hidden', 'true');
+            btn.setAttribute('tabindex', '-1');
+          } else {
+            btn.style.removeProperty('display');
+            btn.removeAttribute('aria-hidden');
+            btn.removeAttribute('tabindex');
+          }
+        }
+      }
+    } catch (e) {}
+  });
+}
+window.syncAdminCartVisibility = syncAdminCartVisibility;
+
+/**
+ * Refresca en segundo plano el contador de solicitudes pendientes para admins
+ */
+async function refreshAdminPendingBadge() {
+  try {
+    const raw = localStorage.getItem('rb_cached_profile') || localStorage.getItem('rb_current_user');
+    if (!raw) return;
+    const u = JSON.parse(raw);
+    const role = (u?.role || '').toLowerCase();
+    if (role !== 'admin' && role !== 'administrador') return;
+
+    if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+      const res = await window.supabase.fetchApi('producer_applications?status=eq.pending&select=id');
+      if (Array.isArray(res)) {
+        updateAdminPendingBadges(res.length);
+      }
+    }
+  } catch (e) {}
+}
+window.refreshAdminPendingBadge = refreshAdminPendingBadge;
+
 function renderProfileHTML(profile) {
   const rawAvatar = profile.avatar_url || profile.avatar || '';
   const hasRealPhoto = Boolean(rawAvatar && typeof rawAvatar === 'string' && rawAvatar.trim() !== '' && !rawAvatar.includes('data:image/svg+xml') && !rawAvatar.includes('lucia_torres.jpg') && !rawAvatar.includes('elena_moreno.jpg'));
@@ -324,62 +460,82 @@ function renderProfileHTML(profile) {
   const role = (profile.role || 'cliente').toLowerCase();
   const initials = userName.trim().split(/\s+/).slice(0, 2).map(p => p[0]?.toUpperCase() || '').join('') || 'U';
   
-  let profileLink = '#';
-  let profileLabel = 'Mi perfil';
   const isProducer = role === 'productor' || role === 'producer' || role.includes('productor');
   const isAdmin = role === 'admin' || role === 'administrador';
 
-  if (isAdmin) {
-    profileLink = 'admin.html';
-    profileLabel = 'Panel de Administración';
-  } else if (isProducer) {
-    profileLink = 'productor.html';
-    profileLabel = 'Espacio de Productor';
-  }
-
+  const displayRoleName = isAdmin ? 'Administrador' : (isProducer ? 'Productor' : 'Comprador');
   const roleLabelDesc = isProducer 
     ? 'Mi cuenta · Productor' 
-    : (isAdmin ? 'Mi cuenta · Admin' : 'Mi cuenta · Comprador');
+    : (isAdmin ? 'Mi cuenta · Administrador' : 'Mi cuenta · Comprador');
 
-  const roleBadge = isAdmin ? `
-    <a href="${profileLink}" class="flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition">
-      <span>📊</span>
-      <span>${profileLabel}</span>
-    </a>
-  ` : '';
+  let menuOptionsHTML = '';
 
-  const menuOptionsHTML = isProducer ? `
-    <a href="productor.html#mis-productos" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
-      <span>📦</span>
-      <span>Mi panel / Mis productos</span>
-    </a>
-    <a href="productor.html#nuevo-producto" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
-      <span>➕</span>
-      <span>Publicar producto</span>
-    </a>
-    <a href="productor.html#mi-economia" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
-      <span class="font-bold text-xs">$</span>
-      <span>Mi economía</span>
-    </a>
-    <a href="productor.html#perfil-seguridad" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
-      <span>⚙️</span>
-      <span>Configuración</span>
-    </a>
-  ` : `
-    ${roleBadge}
-    <a href="mis-pedidos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
-      <span>📦</span>
-      <span>Mis pedidos</span>
-    </a>
-    <a href="mis-favoritos.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
-      <span>❤️</span>
-      <span>Mis favoritos</span>
-    </a>
-    <a href="perfil.html" class="w-full text-left flex items-center gap-2 px-4 py-2 hover:bg-stone-50 text-stone-800 transition cursor-pointer font-medium">
-      <span>⚙️</span>
-      <span>Configuración</span>
-    </a>
-  `;
+  if (isAdmin) {
+    const pendingCount = getPendingApplicationsCount();
+    const badgeVisibility = pendingCount > 0 ? 'inline-flex' : 'hidden';
+
+    menuOptionsHTML = `
+      <a href="admin.html?tab=resumen" onclick="return handleAdminNav(event, 'resumen');" class="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-[#FAF8F5] text-stone-800 hover:text-[#143628] transition cursor-pointer font-medium group">
+        <span class="text-base select-none shrink-0">📊</span>
+        <span class="truncate">Panel de Administración</span>
+      </a>
+      <a href="admin.html?tab=solicitudes" onclick="return handleAdminNav(event, 'solicitudes');" class="w-full text-left flex items-center justify-between px-3.5 py-2.5 hover:bg-[#FAF8F5] text-stone-800 hover:text-[#143628] transition cursor-pointer font-medium group">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="text-base select-none shrink-0">🌱</span>
+          <span class="truncate">Solicitudes de Productores</span>
+        </div>
+        <span id="admin-dropdown-pending-badge" class="${badgeVisibility} items-center justify-center bg-[#C85A28] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] h-[18px] shadow-2xs shrink-0">
+          ${pendingCount}
+        </span>
+      </a>
+      <a href="admin.html?tab=productores" onclick="return handleAdminNav(event, 'productores');" class="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-[#FAF8F5] text-stone-800 hover:text-[#143628] transition cursor-pointer font-medium group">
+        <span class="text-base select-none shrink-0">🚜</span>
+        <span class="truncate">Productores y Catálogo</span>
+      </a>
+      <a href="admin.html?tab=pedidos" onclick="return handleAdminNav(event, 'pedidos');" class="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-[#FAF8F5] text-stone-800 hover:text-[#143628] transition cursor-pointer font-medium group">
+        <span class="text-base select-none shrink-0">📍</span>
+        <span class="truncate">Nodos y Pedidos</span>
+      </a>
+      <a href="admin.html?tab=configuracion" onclick="return handleAdminNav(event, 'configuracion');" class="w-full text-left flex items-center gap-2.5 px-3.5 py-2.5 hover:bg-[#FAF8F5] text-stone-800 hover:text-[#143628] transition cursor-pointer font-medium group">
+        <span class="text-base select-none shrink-0">⚙️</span>
+        <span class="truncate">Configuración de Admin</span>
+      </a>
+    `;
+  } else if (isProducer) {
+    menuOptionsHTML = `
+      <a href="productor.html#mis-productos" class="w-full text-left flex items-center gap-2 px-3.5 py-2 hover:bg-[#FAF8F5] text-stone-800 transition cursor-pointer font-medium">
+        <span>📦</span>
+        <span>Mi panel / Mis productos</span>
+      </a>
+      <a href="productor.html#nuevo-producto" class="w-full text-left flex items-center gap-2 px-3.5 py-2 hover:bg-[#FAF8F5] text-stone-800 transition cursor-pointer font-medium">
+        <span>➕</span>
+        <span>Publicar producto</span>
+      </a>
+      <a href="productor.html#mi-economia" class="w-full text-left flex items-center gap-2 px-3.5 py-2 hover:bg-[#FAF8F5] text-stone-800 transition cursor-pointer font-medium">
+        <span class="font-bold text-xs">$</span>
+        <span>Mi economía</span>
+      </a>
+      <a href="productor.html#perfil-seguridad" class="w-full text-left flex items-center gap-2 px-3.5 py-2 hover:bg-[#FAF8F5] text-stone-800 transition cursor-pointer font-medium">
+        <span>⚙️</span>
+        <span>Configuración</span>
+      </a>
+    `;
+  } else {
+    menuOptionsHTML = `
+      <a href="mis-pedidos.html" class="w-full text-left flex items-center gap-2 px-3.5 py-2 hover:bg-[#FAF8F5] text-stone-800 transition cursor-pointer font-medium">
+        <span>📦</span>
+        <span>Mis pedidos</span>
+      </a>
+      <a href="mis-favoritos.html" class="w-full text-left flex items-center gap-2 px-3.5 py-2 hover:bg-[#FAF8F5] text-stone-800 transition cursor-pointer font-medium">
+        <span>❤️</span>
+        <span>Mis favoritos</span>
+      </a>
+      <a href="perfil.html" class="w-full text-left flex items-center gap-2 px-3.5 py-2 hover:bg-[#FAF8F5] text-stone-800 transition cursor-pointer font-medium">
+        <span>⚙️</span>
+        <span>Configuración</span>
+      </a>
+    `;
+  }
 
   return `
     <div class="relative flex items-center gap-2">
@@ -408,15 +564,15 @@ function renderProfileHTML(profile) {
       </button>
 
       <!-- Dropdown flotante al pulsar el avatar -->
-      <div id="auth-user-dropdown" class="hidden absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-xl border border-stone-100 py-1.5 z-50 text-xs text-stone-700">
-        <div class="px-4 py-2 border-b border-stone-100">
+      <div id="auth-user-dropdown" class="hidden absolute right-0 top-full mt-2 w-60 sm:w-64 bg-white rounded-2xl shadow-xl border border-stone-100 py-1.5 z-50 text-xs text-stone-700">
+        <div class="px-4 py-2.5 border-b border-stone-100">
           <p class="font-bold text-stone-900 truncate">${userName}</p>
-          <p class="text-[10px] text-stone-500 capitalize">${role}</p>
+          <p class="text-[10px] text-stone-500 capitalize">${displayRoleName}</p>
         </div>
         ${menuOptionsHTML}
         <div class="my-1 border-t border-stone-100"></div>
-        <button onclick="logoutUser()" class="w-full text-left flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 transition cursor-pointer font-medium">
-          <span>🚪</span>
+        <button onclick="logoutUser()" class="w-full text-left flex items-center gap-2.5 px-3.5 py-2 text-red-600 hover:bg-red-50 transition cursor-pointer font-medium">
+          <span class="text-base select-none">🚪</span>
           <span>Cerrar sesión</span>
         </button>
       </div>
@@ -500,6 +656,12 @@ function renderNavbarAuthSync(containerOrId, pageType) {
     // 1. Ambos existen: pintado síncrono instantáneo del perfil
     container.innerHTML = renderProfileHTML(cached);
     container.style.visibility = 'visible';
+    const role = (cached.role || '').toLowerCase();
+    const isAdmin = role === 'admin' || role === 'administrador';
+    syncAdminCartVisibility(isAdmin);
+    if (isAdmin) {
+      setTimeout(refreshAdminPendingBadge, 50);
+    }
   } else if (hasToken && !cached) {
     // 2. Token presente pero sin caché: estado neutro invisible o esqueleto
     container.innerHTML = renderNeutralSkeletonHTML();
@@ -508,6 +670,7 @@ function renderNavbarAuthSync(containerOrId, pageType) {
     // 3. Usuario invitado sin sesión
     container.innerHTML = renderGuestHTML(type);
     container.style.visibility = 'visible';
+    syncAdminCartVisibility(false);
   }
 }
 window.renderNavbarAuthSync = renderNavbarAuthSync;
@@ -2501,7 +2664,44 @@ function updateAuthUI() {
   containers.forEach(container => {
     renderNavbarAuthSync(container);
   });
+
+  const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : (window.getCachedProfile ? window.getCachedProfile() : null);
+  const role = (u?.role || '').toLowerCase();
+  const isAdmin = (role === 'admin' || role === 'administrador');
+  syncAdminCartVisibility(isAdmin);
+  if (isAdmin) {
+    refreshAdminPendingBadge();
+  }
 }
+
+// Escuchar cambios de solicitudes pendientes desde otras pestañas
+try {
+  const bc = new BroadcastChannel('rb_producer_applications');
+  bc.onmessage = (ev) => {
+    if (ev && ev.data && typeof ev.data.pendingCount !== 'undefined') {
+      updateAdminPendingBadges(ev.data.pendingCount);
+    } else {
+      refreshAdminPendingBadge();
+    }
+  };
+} catch (e) {}
+
+window.addEventListener('storage', (e) => {
+  if (e.key === 'rb_pending_apps_count') {
+    updateAdminPendingBadges(e.newValue || 0);
+  }
+});
+
+// Asegurar visibilidad correcta del carrito al cargar el DOM
+document.addEventListener('DOMContentLoaded', () => {
+  const u = (typeof getCurrentUser === 'function') ? getCurrentUser() : (window.getCachedProfile ? window.getCachedProfile() : null);
+  const role = (u?.role || '').toLowerCase();
+  const isAdmin = (role === 'admin' || role === 'administrador');
+  if (isAdmin) {
+    syncAdminCartVisibility(true);
+    refreshAdminPendingBadge();
+  }
+});
 
 function toggleAuthDropdown(event) {
   if (event) event.stopPropagation();
