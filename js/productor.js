@@ -293,13 +293,15 @@ async function initProducerSession() {
         }
 
         const row = eventPayload.new || eventPayload;
-        if (row && row.id) {
-          const prod = producerProducts.find(p => p.id == row.id || p.numericId == row.id);
+        if (row && (row.id || row.numericId)) {
+          const rowId = row.id || row.numericId;
+          const prod = producerProducts.find(p => p.id == rowId || p.numericId == rowId);
           if (prod) {
-            if (row.stock_quantity !== undefined) {
-              prod.stock = Number(row.stock_quantity);
+            if (row.stock !== undefined || row.stock_quantity !== undefined || row.new_stock !== undefined) {
+              const newStk = Number(row.new_stock !== undefined ? row.new_stock : (row.stock !== undefined ? row.stock : row.stock_quantity));
+              prod.stock = newStk;
               if (prod.status !== 'borrador') {
-                const isAvail = row.is_available !== false && prod.stock > 0;
+                const isAvail = newStk > 0;
                 prod.status = isAvail ? 'publicado' : 'agotado';
                 prod.statusText = isAvail ? 'Publicado' : 'Agotado';
               }
@@ -1383,10 +1385,10 @@ async function loadProducerProductsFromSupabase() {
         } catch (_) { }
         let status = 'publicado';
         let statusText = 'Publicado';
-        if (p.status === 'borrador' || p.status === 'draft' || isAvailable === false) {
+        if (p.status === 'borrador' || p.status === 'draft') {
           status = 'borrador';
           statusText = 'Borrador';
-        } else if (stock <= 0) {
+        } else if (stock <= 0 || (p.availability || '').toLowerCase().includes('agotado')) {
           status = 'agotado';
           statusText = 'Agotado';
         }
@@ -2339,7 +2341,13 @@ async function adjustProducerStock(code, delta, event) {
 
   const currentStock = parseInt(prod.stock, 10) || 0;
   const newStock = Math.max(0, currentStock + delta);
+  const targetId = prod.numericId || prod.id;
+  const availability = newStock === 0 ? 'Agotado' : 'Disponible';
+  const isAvailable = newStock > 0;
+
   prod.stock = newStock;
+  prod.stock_quantity = newStock;
+  prod.availability = availability;
 
   if (newStock === 0) {
     prod.status = 'agotado';
@@ -2349,13 +2357,42 @@ async function adjustProducerStock(code, delta, event) {
     prod.statusText = 'Publicado';
   }
 
+  // Guardar override local inmediato para coherencia cross-page
+  try {
+    const overrides = JSON.parse(localStorage.getItem('rb_stock_overrides') || '{}');
+    if (prod.id) overrides[prod.id] = newStock;
+    if (prod.numericId) overrides[prod.numericId] = newStock;
+    if (prod.code) overrides[prod.code] = newStock;
+    if (targetId) overrides[String(targetId)] = newStock;
+    localStorage.setItem('rb_stock_overrides', JSON.stringify(overrides));
+  } catch (_) {}
+
   renderProducerProducts();
 
   try {
-    if (window.supabase && typeof window.supabase.from === 'function') {
-      const targetId = prod.numericId || prod.id;
-      if (targetId) {
-        await window.supabase.from('products').update({ stock: newStock }).eq('id', targetId);
+    if (window.supabase && typeof window.supabase.updateProductStock === 'function' && targetId) {
+      await window.supabase.updateProductStock(targetId, newStock);
+    } else if (window.supabase && typeof window.supabase.fetchApi === 'function' && targetId) {
+      await window.supabase.fetchApi(`products?id=eq.${targetId}`, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify({
+          stock: newStock,
+          stock_quantity: newStock,
+          availability: availability,
+          is_available: true
+        })
+      });
+      if (typeof window.supabase.broadcastProductChange === 'function') {
+        window.supabase.broadcastProductChange({
+          eventType: 'UPDATE',
+          id: targetId,
+          numericId: targetId,
+          stock: newStock,
+          stock_quantity: newStock,
+          availability: availability,
+          is_available: true
+        });
       }
     }
   } catch (err) {
@@ -2943,7 +2980,9 @@ async function publishNewProduct() {
         price: priceNum,
         production_cost: costNum,
         unit: unit,
+        stock: stockNum,
         stock_quantity: stockNum,
+        availability: stockNum === 0 ? 'Agotado' : 'Disponible',
         is_available: isSavePublished,
         status: isSavePublished ? 'published' : 'draft',
         image_url: coverUrl,
@@ -3005,7 +3044,9 @@ async function publishNewProduct() {
         price: priceNum,
         production_cost: costNum,
         unit: unit,
+        stock: stockNum,
         stock_quantity: stockNum,
+        availability: stockNum === 0 ? 'Agotado' : 'Disponible',
         is_available: isSavePublished,
         status: isSavePublished ? 'published' : 'draft',
         image_url: coverUrl,
@@ -3019,6 +3060,13 @@ async function publishNewProduct() {
       if (window.supabase && typeof window.supabase.updateProduct === 'function' && editingProductId) {
         await window.supabase.updateProduct(editingProductId, payload);
       }
+
+      try {
+        const overrides = JSON.parse(localStorage.getItem('rb_stock_overrides') || '{}');
+        overrides[editingProductId] = stockNum;
+        overrides[String(editingProductId)] = stockNum;
+        localStorage.setItem('rb_stock_overrides', JSON.stringify(overrides));
+      } catch (_) {}
 
       if (prod) {
         prod.title = title;
@@ -3111,7 +3159,9 @@ async function saveProductDraft() {
         price: priceNum,
         production_cost: costNum,
         unit: unit,
+        stock: stockNum,
         stock_quantity: stockNum,
+        availability: stockNum === 0 ? 'Agotado' : 'Disponible',
         is_available: false,
         status: 'draft',
         image_url: coverUrl,
@@ -3168,7 +3218,9 @@ async function saveProductDraft() {
         price: priceNum,
         production_cost: costNum,
         unit: unit,
+        stock: stockNum,
         stock_quantity: stockNum,
+        availability: stockNum === 0 ? 'Agotado' : 'Disponible',
         is_available: false,
         status: 'draft',
         image_url: coverUrl,
@@ -3526,13 +3578,16 @@ async function saveEditedProductModal(event) {
       }
     }
 
+    const availability = stockNum === 0 ? 'Agotado' : 'Disponible';
     const payload = {
       category_id: categoryId,
       title: title,
       description: desc,
       price: priceNum,
       unit: unit,
+      stock: stockNum,
       stock_quantity: stockNum,
+      availability: availability,
       is_available: isPublished,
       image_url: finalImageUrl,
       is_seasonal: isSeasonal,
@@ -3542,6 +3597,14 @@ async function saveEditedProductModal(event) {
     if (window.supabase && typeof window.supabase.updateProduct === 'function' && prod.id) {
       await window.supabase.updateProduct(prod.id, payload);
     }
+
+    try {
+      const overrides = JSON.parse(localStorage.getItem('rb_stock_overrides') || '{}');
+      if (prod.id) overrides[prod.id] = stockNum;
+      if (prod.numericId) overrides[prod.numericId] = stockNum;
+      if (prod.code) overrides[prod.code] = stockNum;
+      localStorage.setItem('rb_stock_overrides', JSON.stringify(overrides));
+    } catch (_) {}
 
     // Actualizar datos del producto en memoria
     prod.title = title;

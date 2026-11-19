@@ -1177,28 +1177,43 @@ async function executePurchase() {
         };
       });
 
+      // 1. Intentar RPC primaria process_purchase_stock (SECURITY DEFINER atómica)
       let rpcSuccess = false;
       try {
         if (typeof window.supabase.rpc === 'function') {
-          const rpcRes = await window.supabase.rpc('decrement_product_stock', { items: rpcItems });
-          if (rpcRes && (rpcRes.success || rpcRes.updated_products)) {
-            rpcSuccess = true;
-            console.log('[Checkout] RPC decrement_product_stock completada:', rpcRes);
-            if (Array.isArray(rpcRes.updated_products)) {
-              rpcRes.updated_products.forEach(up => {
-                const sid = up.product_id || up.id;
-                const nStk = Number(up.new_stock !== undefined ? up.new_stock : up.stock_quantity);
-                stockOverrides[sid] = nStk;
-              });
-            }
-          }
+          await window.supabase.rpc('process_purchase_stock', { items: rpcItems });
+          rpcSuccess = true;
+          console.log('[Checkout] RPC process_purchase_stock ejecutada con éxito');
         }
-      } catch (rpcErr) {
-        console.warn('[Checkout] RPC decrement_product_stock falló o no existe, procediendo a respaldo directo:', rpcErr);
-        rpcSuccess = false;
+      } catch (rpcErr1) {
+        console.warn('[Checkout] RPC process_purchase_stock no disponible o falló:', rpcErr1);
       }
 
-      // 2. Si RPC no existe o devuelve error: ejecutar consulta y actualización directa en Supabase
+      // 1.b Si process_purchase_stock falló, intentar decrement_product_stock
+      if (!rpcSuccess) {
+        try {
+          if (typeof window.supabase.rpc === 'function') {
+            const rpcRes = await window.supabase.rpc('decrement_product_stock', { items: rpcItems });
+            if (rpcRes && (rpcRes.success || rpcRes.updated_products)) {
+              rpcSuccess = true;
+              console.log('[Checkout] RPC decrement_product_stock completada:', rpcRes);
+              if (Array.isArray(rpcRes.updated_products)) {
+                rpcRes.updated_products.forEach(up => {
+                  const sid = up.product_id || up.id;
+                  const nStk = Number(up.new_stock !== undefined ? up.new_stock : up.stock_quantity);
+                  stockOverrides[sid] = nStk;
+                  stockOverrides[String(sid)] = nStk;
+                });
+              }
+            }
+          }
+        } catch (rpcErr2) {
+          console.warn('[Checkout] RPC decrement_product_stock falló o no existe, procediendo a respaldo directo:', rpcErr2);
+          rpcSuccess = false;
+        }
+      }
+
+      // 2. Si las RPCs no existieron o devolvieron error: ejecutar consulta y actualización directa en Supabase
       for (const item of checkoutCart) {
         const pQty = Number(item.quantity || item.qty || 1);
         let resolvedId = item.numericId || (!isNaN(Number(item.id)) ? Number(item.id) : (slugToNumericIdMap[item.id] || item.id));
@@ -1222,12 +1237,13 @@ async function executePurchase() {
                   stock: newStock,
                   stock_quantity: newStock,
                   availability: newAvailability,
-                  is_available: newStock > 0
+                  is_available: true
                 })
               });
 
               stockOverrides[item.id] = newStock;
               stockOverrides[resolvedId] = newStock;
+              stockOverrides[String(resolvedId)] = newStock;
               console.log(`[Checkout Respaldo Directo] Producto ${resolvedId} stock actualizado a ${newStock} (${newAvailability})`);
             }
           } catch (directErr) {
@@ -1241,6 +1257,7 @@ async function executePurchase() {
           const computed = Math.max(0, prev - pQty);
           stockOverrides[item.id] = computed;
           stockOverrides[resolvedId] = computed;
+          stockOverrides[String(resolvedId)] = computed;
         }
       }
 
@@ -1267,13 +1284,27 @@ async function executePurchase() {
       }
 
       // Notificar a otras pestañas activas (Mercado, Productor, Economía)
+      const decrementPayload = {
+        eventType: 'STOCK_DECREMENT',
+        updated_products: Object.entries(stockOverrides).map(([id, stk]) => ({
+          product_id: id,
+          id: id,
+          new_stock: stk,
+          stock: stk,
+          stock_quantity: stk,
+          availability: stk === 0 ? 'Agotado' : 'Disponible',
+          is_available: true
+        }))
+      };
+
+      if (window.supabase && typeof window.supabase.broadcastProductChange === 'function') {
+        window.supabase.broadcastProductChange(decrementPayload);
+      }
+
       try {
         if ('BroadcastChannel' in window) {
           const prodChannel = new BroadcastChannel('rb_realtime_products');
-          prodChannel.postMessage({
-            eventType: 'STOCK_DECREMENT',
-            updated_products: Object.entries(stockOverrides).map(([id, stk]) => ({ product_id: id, new_stock: stk, stock_quantity: stk }))
-          });
+          prodChannel.postMessage(decrementPayload);
           const orderChannel = new BroadcastChannel('rb_realtime_orders');
           orderChannel.postMessage({
             eventType: 'ORDER_PLACED',

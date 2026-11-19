@@ -1238,10 +1238,10 @@ function initMarketApp() {
             const pId = String(up.product_id || up.id);
             const prod = PRODUCTS_DATA.find(p => String(p.id) === pId || (p.numericId && String(p.numericId) === pId));
             if (prod) {
-              const newStk = Number(up.new_stock !== undefined ? up.new_stock : up.stock_quantity);
+              const newStk = Number(up.new_stock !== undefined ? up.new_stock : (up.stock !== undefined ? up.stock : up.stock_quantity));
               prod.stock = newStk;
               prod.stock_quantity = newStk;
-              prod.availability = (newStk <= 0) ? 'Agotado' : 'Disponible · Supabase';
+              prod.availability = (newStk <= 0) ? 'Agotado' : 'Disponible';
               anyUpdated = true;
             }
           });
@@ -1260,20 +1260,22 @@ function initMarketApp() {
         }
 
         const row = eventPayload.new || eventPayload;
-        if (row && row.id) {
+        if (row && (row.id || row.numericId)) {
+          const rowId = String(row.id || row.numericId);
           // Si el producto fue pasado a borrador o desactivado, retirarlo de inmediato del catálogo
-          if (row.is_available === false || row.status === 'draft' || row.status === 'borrador' || row.is_active === false) {
-            PRODUCTS_DATA = PRODUCTS_DATA.filter(p => String(p.id) !== String(row.id) && String(p.numericId) !== String(row.id));
+          if (row.status === 'draft' || row.status === 'borrador' || row.is_active === false) {
+            PRODUCTS_DATA = PRODUCTS_DATA.filter(p => String(p.id) !== rowId && String(p.numericId) !== rowId);
             renderProducts();
             return;
           }
 
-          const prod = PRODUCTS_DATA.find(p => String(p.id) === String(row.id) || (p.numericId && Number(p.numericId) === Number(row.id)));
+          const prod = PRODUCTS_DATA.find(p => String(p.id) === rowId || (p.numericId && String(p.numericId) === rowId));
           if (prod) {
-            if (row.stock_quantity !== undefined) {
-              prod.stock = Number(row.stock_quantity);
-              prod.stock_quantity = Number(row.stock_quantity);
-              prod.availability = (prod.stock <= 0) ? 'Agotado' : 'Disponible';
+            if (row.stock !== undefined || row.stock_quantity !== undefined || row.new_stock !== undefined) {
+              const newStk = Number(row.new_stock !== undefined ? row.new_stock : (row.stock !== undefined ? row.stock : row.stock_quantity));
+              prod.stock = newStk;
+              prod.stock_quantity = newStk;
+              prod.availability = (newStk <= 0) ? 'Agotado' : (row.availability || 'Disponible');
             }
             if (row.price !== undefined) prod.price = Number(row.price);
             if (row.title) prod.title = row.title;
@@ -1282,7 +1284,11 @@ function initMarketApp() {
             if (row.unit) prod.unit = row.unit;
             if (row.is_available !== undefined) {
               prod.is_available = row.is_available;
-              prod.availability = (prod.stock <= 0) ? 'Agotado' : 'Disponible';
+              if (prod.stock <= 0) prod.availability = 'Agotado';
+            }
+            renderProducts();
+          }
+        }
             }
             renderProducts();
           }
@@ -1351,7 +1357,7 @@ async function loadProductsFromSupabase() {
         );
 
         // Regla estricta: Los productos en borrador son 100% invisibles en el catálogo y búsqueda
-        const isDraft = (dbP.is_available === false || dbP.is_active === false || dbP.status === 'draft' || dbP.status === 'borrador');
+        const isDraft = (dbP.is_active === false || dbP.status === 'draft' || dbP.status === 'borrador');
         if (isDraft) {
           if (existingIdx !== -1) {
             PRODUCTS_DATA.splice(existingIdx, 1);
@@ -1533,8 +1539,8 @@ function renderProducts() {
   }
 
   let filtered = PRODUCTS_DATA.filter(p => {
-    // 0. Regla estricta: Ocultar 100% productos en borrador para compradores (nunca deben verse ni como Agotado)
-    if (p.is_available === false || p.is_active === false || p.status === 'draft' || p.status === 'borrador') {
+    // 0. Regla estricta: Ocultar 100% productos en borrador para compradores (los agotados sí se muestran con badge Agotado)
+    if (p.is_active === false || p.status === 'draft' || p.status === 'borrador') {
       return false;
     }
 

@@ -941,5 +941,192 @@ ALTER TABLE public.producer_applications ALTER COLUMN products DROP NOT NULL;
 ALTER TABLE public.producer_applications ALTER COLUMN whatsapp DROP NOT NULL;
 ALTER TABLE public.producer_applications ALTER COLUMN status SET DEFAULT 'pending';
 
+-- =============================================================================
+-- 22. GESTIÓN ATÓMICA DE STOCK, RPC Y REALTIME PARA PRODUCTOS
+-- =============================================================================
+
+-- Habilitar replicación Realtime en products
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables 
+        WHERE pubname = 'supabase_realtime' AND schemaname = 'public' AND tablename = 'products'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.products;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN NULL;
+END $$;
+
+ALTER TABLE public.products REPLICA IDENTITY FULL;
+
+-- Función RPC process_purchase_stock (SECURITY DEFINER para compras sin bloqueo RLS)
+CREATE OR REPLACE FUNCTION public.process_purchase_stock(items jsonb)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    item jsonb;
+    v_id text;
+    v_clean_id text;
+    v_qty integer;
+BEGIN
+    IF jsonb_typeof(items) != 'array' THEN
+        RETURN;
+    END IF;
+
+    FOR item IN SELECT * FROM jsonb_array_elements(items)
+    LOOP
+        v_id := COALESCE(item->>'product_id', item->>'id');
+        v_qty := GREATEST(0, COALESCE((item->>'quantity')::integer, (item->>'qty')::integer, 0));
+        
+        IF v_id IS NULL OR v_qty <= 0 THEN
+            CONTINUE;
+        END IF;
+
+        v_clean_id := REGEXP_REPLACE(v_id, '^PR-0*', '');
+        IF v_clean_id = '' THEN
+            v_clean_id := '0';
+        END IF;
+
+        UPDATE public.products
+        SET 
+            stock = GREATEST(0, COALESCE(stock, stock_quantity::integer, 0) - v_qty),
+            stock_quantity = GREATEST(0, COALESCE(stock, stock_quantity::integer, 0) - v_qty),
+            availability = CASE 
+                WHEN GREATEST(0, COALESCE(stock, stock_quantity::integer, 0) - v_qty) = 0 THEN 'Agotado' 
+                ELSE 'Disponible' 
+            END,
+            updated_at = now()
+        WHERE id::text = v_id 
+           OR id::text = v_clean_id;
+    END LOOP;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.process_purchase_stock(jsonb) TO authenticated, anon, public;
+
+-- Función decrement_product_stock con retorno JSON
+CREATE OR REPLACE FUNCTION public.decrement_product_stock(items jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+    item jsonb;
+    v_id text;
+    v_clean_id text;
+    v_qty integer;
+    v_curr_stock integer;
+    v_new_stock integer;
+    updated_items jsonb := '[]'::jsonb;
+BEGIN
+    IF jsonb_typeof(items) != 'array' THEN
+        RETURN jsonb_build_object('success', false, 'error', 'items must be a JSON array');
+    END IF;
+
+    FOR item IN SELECT * FROM jsonb_array_elements(items)
+    LOOP
+        v_id := COALESCE(item->>'product_id', item->>'id');
+        v_qty := GREATEST(0, COALESCE((item->>'quantity')::integer, (item->>'qty')::integer, 0));
+
+        IF v_id IS NULL OR v_qty <= 0 THEN
+            CONTINUE;
+        END IF;
+
+        v_clean_id := REGEXP_REPLACE(v_id, '^PR-0*', '');
+        IF v_clean_id = '' THEN
+            v_clean_id := '0';
+        END IF;
+
+        SELECT COALESCE(stock, stock_quantity::integer, 10) INTO v_curr_stock
+        FROM public.products
+        WHERE id::text = v_id OR id::text = v_clean_id
+        LIMIT 1;
+
+        IF NOT FOUND THEN
+            CONTINUE;
+        END IF;
+
+        v_new_stock := GREATEST(0, v_curr_stock - v_qty);
+
+        UPDATE public.products
+        SET 
+            stock = v_new_stock,
+            stock_quantity = v_new_stock,
+            availability = CASE WHEN v_new_stock = 0 THEN 'Agotado' ELSE 'Disponible' END,
+            updated_at = now()
+        WHERE id::text = v_id OR id::text = v_clean_id;
+
+        updated_items := updated_items || jsonb_build_object(
+            'product_id', v_id,
+            'previous_stock', v_curr_stock,
+            'new_stock', v_new_stock,
+            'stock', v_new_stock,
+            'stock_quantity', v_new_stock,
+            'availability', CASE WHEN v_new_stock = 0 THEN 'Agotado' ELSE 'Disponible' END
+        );
+    END LOOP;
+
+    RETURN jsonb_build_object(
+        'success', true,
+        'updated_products', updated_items
+    );
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.decrement_product_stock(jsonb) TO authenticated, anon, public;
+
+-- Trigger para mantener stock, stock_quantity y availability perfectamente sincronizados
+CREATE OR REPLACE FUNCTION public.sync_product_stock_and_availability()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    IF NEW.stock IS DISTINCT FROM OLD.stock THEN
+        NEW.stock_quantity := NEW.stock;
+    ELSIF NEW.stock_quantity IS DISTINCT FROM OLD.stock_quantity THEN
+        NEW.stock := NEW.stock_quantity::integer;
+    END IF;
+
+    IF COALESCE(NEW.stock, NEW.stock_quantity::integer, 0) <= 0 THEN
+        NEW.stock := 0;
+        NEW.stock_quantity := 0;
+        NEW.availability := 'Agotado';
+    ELSE
+        IF NEW.availability = 'Agotado' THEN
+            NEW.availability := 'Disponible';
+        END IF;
+    END IF;
+
+    NEW.updated_at := now();
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_sync_product_stock ON public.products;
+CREATE TRIGGER trg_sync_product_stock
+BEFORE UPDATE ON public.products
+FOR EACH ROW
+EXECUTE FUNCTION public.sync_product_stock_and_availability();
+
+-- Sincronizar valores existentes en la base de datos
+UPDATE public.products 
+SET stock = COALESCE(stock_quantity::integer, stock, 10),
+    availability = CASE WHEN COALESCE(stock_quantity::integer, stock, 10) = 0 THEN 'Agotado' ELSE 'Disponible' END;
+
+-- Políticas RLS para actualización de productos
+DROP POLICY IF EXISTS "Permitir actualizar stock y disponibilidad en compras" ON public.products;
+CREATE POLICY "Permitir actualizar stock y disponibilidad en compras" 
+ON public.products 
+FOR UPDATE 
+TO public 
+USING (true) 
+WITH CHECK (true);
+
+
 
 

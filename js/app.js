@@ -853,6 +853,15 @@ async function initCosechaDeHoy() {
     const reviewWord = p.realReviewsCount === 1 ? 'reseña' : 'reseñas';
     const prodId = p.id || p.numericId;
 
+    let stockQty = Number(p.stock !== undefined ? p.stock : (p.stock_quantity !== undefined ? p.stock_quantity : 30));
+    try {
+      const overrides = JSON.parse(localStorage.getItem('rb_stock_overrides') || '{}');
+      if (overrides[prodId] !== undefined) stockQty = Number(overrides[prodId]);
+      else if (p.id && overrides[p.id] !== undefined) stockQty = Number(overrides[p.id]);
+    } catch (_) {}
+
+    const isOutOfStock = stockQty <= 0 || (p.availability || '').toLowerCase().includes('agotado');
+
     return `
       <div 
         class="card-hover bg-white rounded-2xl border border-stone-200 overflow-hidden flex flex-col justify-between group cursor-pointer transition-all duration-300 hover:shadow-md hover:border-stone-300 relative"
@@ -867,13 +876,13 @@ async function initCosechaDeHoy() {
           <img 
             src="${imgUrl}" 
             alt="${titleStr}" 
-            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${isOutOfStock ? 'grayscale-[35%] opacity-85' : ''}"
             loading="lazy" 
             decoding="async"
             onerror="this.src='https://hvjqgvplbmshpucnuzfy.supabase.co/storage/v1/object/public/assets/images/hero_basket.jpg'"
           >
-          <span class="absolute top-3 left-3 bg-[#c85a32] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
-            Cosecha destacada
+          <span class="absolute top-3 left-3 ${isOutOfStock ? 'bg-red-600' : 'bg-[#c85a32]'} text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow">
+            ${isOutOfStock ? 'Agotado' : 'Cosecha destacada'}
           </span>
         </div>
         <div class="p-4 flex-1 flex flex-col justify-between">
@@ -890,16 +899,22 @@ async function initCosechaDeHoy() {
               <span class="text-lg font-bold text-[#1a3d2f]">$${priceDisplay}</span>
               <span class="text-xs text-stone-500">/ ${unitStr}</span>
             </div>
-            <div class="flex items-center gap-1.5">
-              <div class="qty-stepper flex items-center border border-stone-200 rounded-lg bg-stone-50">
-                <button class="btn-minus px-2 py-1 text-stone-600 hover:text-stone-900 text-xs font-bold">-</button>
-                <input type="text" value="1" readonly class="w-7 text-center bg-transparent text-xs font-bold text-stone-800">
-                <button class="btn-plus px-2 py-1 text-stone-600 hover:text-stone-900 text-xs font-bold">+</button>
-              </div>
-              <button class="btn-add-product bg-[#1a3d2f] hover:bg-[#255440] text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">
-                + Añadir
+            ${isOutOfStock ? `
+              <button disabled class="bg-stone-200 text-stone-400 px-3 py-1.5 rounded-lg text-xs font-bold shadow-none cursor-not-allowed opacity-70">
+                Agotado
               </button>
-            </div>
+            ` : `
+              <div class="flex items-center gap-1.5">
+                <div class="qty-stepper flex items-center border border-stone-200 rounded-lg bg-stone-50">
+                  <button class="btn-minus px-2 py-1 text-stone-600 hover:text-stone-900 text-xs font-bold">-</button>
+                  <input type="text" value="1" readonly class="w-7 text-center bg-transparent text-xs font-bold text-stone-800">
+                  <button class="btn-plus px-2 py-1 text-stone-600 hover:text-stone-900 text-xs font-bold">+</button>
+                </div>
+                <button class="btn-add-product bg-[#1a3d2f] hover:bg-[#255440] text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-sm transition">
+                  + Añadir
+                </button>
+              </div>
+            `}
           </div>
         </div>
       </div>

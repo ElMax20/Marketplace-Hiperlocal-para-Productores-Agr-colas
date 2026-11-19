@@ -275,7 +275,7 @@ function previewProfileImage(event) {
   }
 
   const reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = function (e) {
     const preview = document.getElementById('profile-img-preview');
     if (preview) {
       preview.src = e.target.result;
@@ -500,9 +500,9 @@ function formatAppDate(dateStr) {
     if (diffMinutes < 60) return `Hace ${diffMinutes} min`;
     if (diffHours < 24) return `Hace ${diffHours} h`;
     if (diffDays === 1) return 'Ayer, ' + date.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
-    
-    return date.toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' }) + 
-           ' · ' + date.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
+
+    return date.toLocaleDateString('es-EC', { day: '2-digit', month: 'short', year: 'numeric' }) +
+      ' · ' + date.toLocaleTimeString('es-EC', { hour: '2-digit', minute: '2-digit' });
   } catch (_) {
     return dateStr;
   }
@@ -815,9 +815,9 @@ async function confirmRejectApplication() {
     // Actualizar estado local
     const index = _allProducerApplications.findIndex(a => a.id === id);
     if (index !== -1) {
-      _allProducerApplications[index] = { 
-        ..._allProducerApplications[index], 
-        ...updated, 
+      _allProducerApplications[index] = {
+        ..._allProducerApplications[index],
+        ...updated,
         status: 'rejected',
         rejection_reason: reason
       };
@@ -920,7 +920,7 @@ function initProducerApplicationsRealtime() {
         }
       };
     }
-  } catch (_) {}
+  } catch (_) { }
 }
 
 /**
