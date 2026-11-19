@@ -73,38 +73,31 @@ function getStoredFavorites() {
 }
 
 /**
- * Resuelve la información completa de cada producto favorito
+ * Resuelve la información completa de cada producto favorito directamente desde Supabase
  */
 async function resolveFavoriteProducts(favIds) {
   if (!Array.isArray(favIds) || favIds.length === 0) return [];
 
-  const catalog = window.PRODUCTS_DATA || (typeof PRODUCTS_DATA !== 'undefined' ? PRODUCTS_DATA : []);
-  const resolved = [];
-  const missingIds = [];
-
-  for (const favId of favIds) {
-    const strId = String(favId).trim();
-    // 1. Buscar en catálogo estático en memoria
-    const match = catalog.find(p => p.id === strId || String(p.numericId) === strId);
-    if (match) {
-      resolved.push(formatProduct(match));
-    } else {
-      missingIds.push(strId);
+  // 1. Supabase como fuente única de verdad
+  let dbProducts = [];
+  if (window.supabase && typeof window.supabase.fetchApi === 'function') {
+    try {
+      dbProducts = await window.supabase.fetchApi('products?select=*&order=id.asc');
+    } catch (err) {
+      console.warn('Aviso cargando catálogo de Supabase en favoritos:', err);
     }
   }
 
-  // 2. Si hay productos de base de datos no incluidos en PRODUCTS_DATA, consultarlos en Supabase
-  if (missingIds.length > 0 && window.supabase && typeof window.supabase.fetchApi === 'function') {
-    try {
-      for (const mId of missingIds) {
-        const query = isNaN(Number(mId)) ? `id=eq.${mId}` : `id=eq.${mId}`;
-        const res = await window.supabase.fetchApi(`products?${query}&select=*`);
-        if (Array.isArray(res) && res.length > 0) {
-          resolved.push(formatProduct(res[0]));
-        }
-      }
-    } catch (err) {
-      console.warn('Error resolviendo productos faltantes en Supabase:', err);
+  const catalog = (Array.isArray(dbProducts) && dbProducts.length > 0)
+    ? dbProducts
+    : (window.PRODUCTS_DATA || (typeof PRODUCTS_DATA !== 'undefined' ? PRODUCTS_DATA : []));
+
+  const resolved = [];
+  for (const favId of favIds) {
+    const strId = String(favId).trim();
+    const match = catalog.find(p => String(p.id) === strId || String(p.numericId) === strId);
+    if (match) {
+      resolved.push(formatProduct(match));
     }
   }
 
@@ -112,12 +105,16 @@ async function resolveFavoriteProducts(favIds) {
 }
 
 /**
- * Normaliza los campos de un producto para la tarjeta de Favoritos
+ * Normaliza los campos de un producto para la tarjeta de Favoritos con stock verificado
  */
 function formatProduct(p) {
   const id = p.id || String(p.numericId);
   const numericId = p.numericId || p.id;
   const title = p.title || 'Producto de cercanía';
+
+  // Stock y Disponibilidad
+  const stock = Number(p.stock !== undefined && p.stock !== null ? p.stock : (p.stock_quantity !== undefined && p.stock_quantity !== null ? p.stock_quantity : 0));
+  const isOutOfStock = stock <= 0 || (p.availability || '').toLowerCase().includes('agotado');
 
   // Presentación / Subtítulo
   let presentation = p.subtitle || p.unit || '1 kg · selección de temporada';
@@ -176,6 +173,8 @@ function formatProduct(p) {
     price: priceNum,
     priceDisplay,
     unit,
+    stock,
+    isOutOfStock,
     image,
     raw: p
   };
@@ -270,18 +269,43 @@ function renderFavoritesView(products) {
                 <span class="text-2xl font-bold text-stone-900">$${prod.priceDisplay}</span>
                 <span class="text-xs text-stone-500 font-medium uppercase tracking-wider">USD / ${escapeHtml(prod.unit)}</span>
               </div>
+
+              <!-- Estado de Stock en Tiempo Real -->
+              <div class="mt-2.5">
+                ${prod.isOutOfStock ? `
+                  <p class="text-[10px] text-red-600 font-bold flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                    <span>Agotado</span>
+                  </p>
+                ` : `
+                  <p class="text-[10px] text-emerald-700 font-medium flex items-center gap-1">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    <span>Disponible · (${prod.stock} un.)</span>
+                  </p>
+                `}
+              </div>
             </div>
 
             <!-- Acciones: Añadir al carrito & Quitar de favoritos -->
             <div class="mt-4 pt-2">
-              <button 
-                type="button" 
-                id="btn-add-${prod.id}"
-                onclick="handleAddToCart('${prod.id}')" 
-                class="w-full bg-[#143628] hover:bg-[#204a37] text-white text-xs font-bold py-3 px-4 rounded-full transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-98 cursor-pointer"
-              >
-                + Añadir al carrito
-              </button>
+              ${prod.isOutOfStock ? `
+                <button 
+                  type="button" 
+                  disabled
+                  class="w-full bg-stone-200 text-stone-400 text-xs font-bold py-3 px-4 rounded-full transition-all flex items-center justify-center gap-1.5 shadow-none cursor-not-allowed opacity-70"
+                >
+                  Agotado
+                </button>
+              ` : `
+                <button 
+                  type="button" 
+                  id="btn-add-${prod.id}"
+                  onclick="handleAddToCart('${prod.id}')" 
+                  class="w-full bg-[#143628] hover:bg-[#204a37] text-white text-xs font-bold py-3 px-4 rounded-full transition-all flex items-center justify-center gap-1.5 shadow-sm active:scale-98 cursor-pointer"
+                >
+                  + Añadir al carrito
+                </button>
+              `}
 
               <button 
                 type="button" 
@@ -431,3 +455,15 @@ window.handleAddToCart = handleAddToCart;
 window.handleRemoveFavorite = handleRemoveFavorite;
 window.updateCartBadge = updateCartBadge;
 window.showToast = showToast;
+
+// Suscripción bidireccional en tiempo real al inventario en Favoritos
+if (window.supabase && typeof window.supabase.subscribeToProducts === 'function') {
+  window.supabase.subscribeToProducts((eventPayload) => {
+    try {
+      console.log('[Favoritos Realtime] Actualización de stock recibida:', eventPayload);
+      if (typeof loadAndRenderFavorites === 'function') {
+        loadAndRenderFavorites();
+      }
+    } catch (_) {}
+  });
+}

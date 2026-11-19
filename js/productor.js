@@ -33,6 +33,51 @@ let basketSavingsPercent = 0;
 
 // Filtro activo en Mis Productos (todos, publicado, borrador, agotado)
 let currentFilter = 'todos';
+
+/**
+ * Limpia y normaliza etiquetas de unidades para evitar palabras duplicadas como 'kilogramokg'
+ * @param {string} unitRaw - Cadena original de la unidad (ej. 'Kilogramo (kg)', 'Manojo · 250 g aprox.')
+ * @param {boolean} forStockCount - Si es true, retorna plural para existencias (ej. 'manojos', 'unidades')
+ */
+function formatCleanUnit(unitRaw, forStockCount = false) {
+  if (!unitRaw) return forStockCount ? 'unidades' : 'kg';
+  let str = String(unitRaw).trim();
+  str = str.split('·')[0].split('-')[0].trim();
+  const lower = str.toLowerCase();
+
+  if (lower.includes('kilogramo') || lower === 'kg' || lower.includes('(kg)')) {
+    return 'kg';
+  }
+  if (lower.includes('libra') || lower === 'lb' || lower.includes('(lb)')) {
+    return 'lb';
+  }
+  if (lower.includes('manojo')) {
+    return forStockCount ? 'manojos' : 'manojo';
+  }
+  if (lower.includes('atado')) {
+    return forStockCount ? 'atados' : 'atado';
+  }
+  if (lower.includes('canasta')) {
+    return forStockCount ? 'canastas' : 'canasta';
+  }
+  if (lower.includes('caja')) {
+    return forStockCount ? 'cajas' : 'caja';
+  }
+  if (lower.includes('litro')) {
+    return forStockCount ? 'litros' : 'litro';
+  }
+  if (lower.includes('unidad') || lower === 'un' || lower === 'ud') {
+    return forStockCount ? 'unidades' : 'unidad';
+  }
+
+  const parenMatch = str.match(/\(([^)]+)\)/);
+  if (parenMatch && parenMatch[1]) {
+    return parenMatch[1].trim();
+  }
+
+  return str.toLowerCase();
+}
+window.formatCleanUnit = formatCleanUnit;
 let currentSearchQuery = '';
 
 // Variables para OTP 2FA de contraseña
@@ -268,22 +313,26 @@ async function initProducerSession() {
       try {
         console.log('[Productor Realtime] Cambio de inventario recibido:', eventPayload);
 
-        // 1. Manejo de decremento de existencias desde checkout
+        // 1. Manejo de decremento de stock desde checkout
         if (eventPayload.updated_products && Array.isArray(eventPayload.updated_products)) {
           let anyUpdated = false;
           eventPayload.updated_products.forEach(up => {
             const pId = up.product_id || up.id;
-            const prod = producerProducts.find(p => p.id == pId || p.numericId == pId);
-            if (prod) {
-              const newStk = Number(up.new_stock !== undefined ? up.new_stock : up.stock_quantity);
-              prod.stock = newStk;
-              if (prod.status !== 'borrador') {
-                const isAvail = newStk > 0;
-                prod.status = isAvail ? 'publicado' : 'agotado';
-                prod.statusText = isAvail ? 'Publicado' : 'Agotado';
+            const updateItem = (p) => {
+              if (p.id == pId || p.numericId == pId || p.code == pId) {
+                const newStk = Number(up.new_stock !== undefined ? up.new_stock : (up.stock !== undefined ? up.stock : up.stock_quantity));
+                p.stock = newStk;
+                p.stock_quantity = newStk;
+                if (p.status !== 'borrador') {
+                  const isAvail = newStk > 0;
+                  p.status = isAvail ? 'publicado' : 'agotado';
+                  p.statusText = isAvail ? 'Publicado' : 'Agotado';
+                }
+                anyUpdated = true;
               }
-              anyUpdated = true;
-            }
+            };
+            producerProducts.forEach(updateItem);
+            allLoadedProducts.forEach(updateItem);
           });
           if (anyUpdated) {
             renderProducerProducts();
@@ -295,19 +344,28 @@ async function initProducerSession() {
         const row = eventPayload.new || eventPayload;
         if (row && (row.id || row.numericId)) {
           const rowId = row.id || row.numericId;
-          const prod = producerProducts.find(p => p.id == rowId || p.numericId == rowId);
-          if (prod) {
-            if (row.stock !== undefined || row.stock_quantity !== undefined || row.new_stock !== undefined) {
-              const newStk = Number(row.new_stock !== undefined ? row.new_stock : (row.stock !== undefined ? row.stock : row.stock_quantity));
-              prod.stock = newStk;
-              if (prod.status !== 'borrador') {
-                const isAvail = newStk > 0;
-                prod.status = isAvail ? 'publicado' : 'agotado';
-                prod.statusText = isAvail ? 'Publicado' : 'Agotado';
+          let anyUpdated = false;
+          const updateSingle = (p) => {
+            if (p.id == rowId || p.numericId == rowId || p.code == rowId) {
+              if (row.stock !== undefined || row.stock_quantity !== undefined || row.new_stock !== undefined) {
+                const newStk = Number(row.new_stock !== undefined ? row.new_stock : (row.stock !== undefined ? row.stock : row.stock_quantity));
+                p.stock = newStk;
+                p.stock_quantity = newStk;
+                if (p.status !== 'borrador') {
+                  const isAvail = newStk > 0;
+                  p.status = isAvail ? 'publicado' : 'agotado';
+                  p.statusText = isAvail ? 'Publicado' : 'Agotado';
+                }
               }
+              if (row.price !== undefined) p.price = Number(row.price);
+              if (row.title) p.title = row.title;
+              if (row.unit) p.unit = row.unit;
+              anyUpdated = true;
             }
-            if (row.price !== undefined) prod.price = Number(row.price);
-            if (row.title) prod.title = row.title;
+          };
+          producerProducts.forEach(updateSingle);
+          allLoadedProducts.forEach(updateSingle);
+          if (anyUpdated) {
             renderProducerProducts();
             updateKPIs();
           }
@@ -1377,11 +1435,14 @@ async function loadProducerProductsFromSupabase() {
         const id = p.id || p.numericId || 1;
         const code = `PR-${String(id).padStart(3, '0')}`;
         const isAvailable = p.is_available !== false;
-        let stock = Number(p.stock ?? (p.stock_quantity ?? 30));
+        // El stock en Supabase es la fuente única de verdad
+        let stock = Number(p.stock !== undefined && p.stock !== null ? p.stock : (p.stock_quantity !== undefined && p.stock_quantity !== null ? p.stock_quantity : 30));
         try {
           const overrides = JSON.parse(localStorage.getItem('rb_stock_overrides') || '{}');
-          if (overrides[id] !== undefined) stock = Number(overrides[id]);
-          else if (overrides[code] !== undefined) stock = Number(overrides[code]);
+          overrides[id] = stock;
+          overrides[code] = stock;
+          overrides[String(id)] = stock;
+          localStorage.setItem('rb_stock_overrides', JSON.stringify(overrides));
         } catch (_) { }
         let status = 'publicado';
         let statusText = 'Publicado';
@@ -1400,8 +1461,9 @@ async function loadProducerProductsFromSupabase() {
         else if (p.category_id === 4) catName = 'Lácteos & Huevos';
         else if (p.category_id === 5) catName = 'Despensa Artesanal';
 
-        const unit = p.unit || 'kg';
-        const unitLabel = unit.replace(/[^a-zA-Z]/g, '').toLowerCase() || 'kg';
+        const unit = p.unit || 'Kilogramo (kg)';
+        const unitLabel = formatCleanUnit(unit, true);
+        const unitPriceLabel = formatCleanUnit(unit, false);
 
         const isSeasonal = Boolean(p.is_seasonal || p.isSeasonal || (p.season_label && p.season_label !== 'Disponible todo el año'));
         const seasonLabel = p.season_label || p.seasonLabel || 'Disponible todo el año';
@@ -1511,7 +1573,7 @@ function renderProducerProducts() {
 
       const completenessBadge = isComplete
         ? `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">✓ Listo para publicar</span>`
-        : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-[#FAECE6] text-[#C85A28] border border-[#F3D9CE]">⚠ ${!hasPhoto ? 'Falta foto' : (!hasPrice ? 'Falta precio' : 'Faltan existencias')}</span>`;
+        : `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-semibold bg-[#FAECE6] text-[#C85A28] border border-[#F3D9CE]">⚠ ${!hasPhoto ? 'Falta foto' : (!hasPrice ? 'Falta precio' : 'Falta stock')}</span>`;
 
       return `
         <div class="bg-white p-4 sm:p-5 rounded-2xl border border-amber-200/90 shadow-2xs hover:shadow-md transition flex flex-col sm:flex-row sm:items-center justify-between gap-4 group">
@@ -1540,7 +1602,7 @@ function renderProducerProducts() {
               </h4>
 
               <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-stone-500 mt-1">
-                <span class="font-semibold text-stone-700">$${formatUSD(prod.price)} / ${escapeHtml(prod.unitLabel || 'unidad')} · USD</span>
+                <span class="font-semibold text-stone-700">$${formatUSD(prod.price)} / ${escapeHtml(formatCleanUnit(prod.unit, false))} · USD</span>
                 <span class="text-stone-300">•</span>
                 <span>${escapeHtml(prod.category || 'Verduras & Raíces')}</span>
                 <span class="text-stone-300">•</span>
@@ -1656,16 +1718,16 @@ function renderProducerProducts() {
 
             <div class="flex items-baseline gap-1 mb-3">
               <span class="text-xl font-bold text-stone-900">$${formatUSD(prod.price)}</span>
-              <span class="text-xs text-stone-400 font-medium">/ ${escapeHtml(prod.unitLabel)} · USD</span>
+              <span class="text-xs text-stone-400 font-medium">/ ${escapeHtml(formatCleanUnit(prod.unit, false))} · USD</span>
             </div>
 
-            <!-- Existencias y Gestión Rápida de Stock -->
+            <!-- Stock y Gestión Rápida -->
             <div class="flex items-center justify-between text-xs pt-3 border-t border-stone-100">
-              <span class="text-stone-500 font-medium">Existencias</span>
+              <span class="text-stone-500 font-medium">Stock</span>
               <div class="flex items-center gap-1">
                 <button type="button" onclick="adjustProducerStock('${prod.code}', -1, event)" class="w-6 h-6 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs cursor-pointer transition select-none" title="Disminuir 1 stock">-</button>
                 <span class="font-bold min-w-[55px] text-center ${prod.stock <= 0 ? 'text-red-600' : prod.stock <= 5 ? 'text-amber-600' : 'text-stone-800'}">
-                  ${prod.stock} ${escapeHtml(prod.unitLabel)}
+                  ${prod.stock} ${escapeHtml(formatCleanUnit(prod.unit, true))}
                 </span>
                 <button type="button" onclick="adjustProducerStock('${prod.code}', 1, event)" class="w-6 h-6 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center font-bold text-xs cursor-pointer transition select-none" title="Aumentar 1 stock">+</button>
                 <button type="button" onclick="quickRestockProduct('${prod.code}', 15, event)" class="ml-1 px-2 py-0.5 rounded-md bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-bold border border-emerald-200 cursor-pointer transition" title="Reponer 15 unidades">+15</button>
@@ -2357,6 +2419,16 @@ async function adjustProducerStock(code, delta, event) {
     prod.statusText = 'Publicado';
   }
 
+  // Actualizar también en allLoadedProducts
+  const inAll = allLoadedProducts.find(p => p.code === code || p.id == targetId || p.numericId == targetId);
+  if (inAll) {
+    inAll.stock = newStock;
+    inAll.stock_quantity = newStock;
+    inAll.availability = availability;
+    inAll.status = prod.status;
+    inAll.statusText = prod.statusText;
+  }
+
   // Guardar override local inmediato para coherencia cross-page
   try {
     const overrides = JSON.parse(localStorage.getItem('rb_stock_overrides') || '{}');
@@ -2368,6 +2440,7 @@ async function adjustProducerStock(code, delta, event) {
   } catch (_) {}
 
   renderProducerProducts();
+  updateKPIs();
 
   try {
     if (window.supabase && typeof window.supabase.updateProductStock === 'function' && targetId) {
@@ -2399,7 +2472,7 @@ async function adjustProducerStock(code, delta, event) {
     console.warn('Error actualizando stock en Supabase:', err);
   }
 
-  showProducerToast(`✓ Stock de ${prod.title} ajustado a ${newStock} ${prod.unitLabel || 'unidades'}.`);
+  showProducerToast(`✓ Stock de ${prod.title} ajustado a ${newStock} ${formatCleanUnit(prod.unit, true)}.`);
 }
 
 async function quickRestockProduct(code, amount = 15, event) {
@@ -2929,7 +3002,7 @@ async function publishNewProduct() {
   const rawStock = (stockInput ? stockInput.value : '').replace(/[^0-9]/g, '');
   const stockNum = parseInt(rawStock, 10);
   if (isNaN(stockNum) || stockNum < 0) {
-    showProducerToast('Por favor ingresa las existencias numéricas disponibles.', true);
+    showProducerToast('Por favor ingresa el stock numérico disponible.', true);
     if (stockInput) stockInput.focus();
     return;
   }
@@ -2959,7 +3032,7 @@ async function publishNewProduct() {
     const categoryId = catSelect ? parseInt(catSelect.value, 10) : 2;
     const origin = (originInput ? originInput.value : '').trim() || 'Hacienda San José · Daule';
     const isSavePublished = !statusSelect || statusSelect.value === 'published';
-    const unitLabel = unit.split('·')[0].trim().toLowerCase() || 'kg';
+    const unitLabel = formatCleanUnit(unit, true);
     const activeProducerId = getActiveProducerId();
     const costInput = document.getElementById('new-form-production-cost');
     const costNum = costInput ? (parseFloat(costInput.value) || 0) : 0;
@@ -3138,7 +3211,7 @@ async function saveProductDraft() {
     }
     const coverImg = uploadedImages.find(img => img.isCover) || uploadedImages[0];
     const coverUrl = coverImg ? coverImg.url : 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=600&auto=format&fit=crop&q=80';
-    const unitLabel = unit.split('·')[0].trim().toLowerCase() || 'kg';
+    const unitLabel = formatCleanUnit(unit, true);
 
     const seasonSelect = document.getElementById('new-form-season-label');
     const seasonCheck = document.getElementById('new-form-is-seasonal');
@@ -3534,7 +3607,7 @@ async function saveEditedProductModal(event) {
   const rawStock = (stockInput ? stockInput.value : '').replace(/[^0-9]/g, '');
   const stockNum = parseInt(rawStock, 10);
   if (isNaN(stockNum) || stockNum < 0) {
-    showProducerToast('Ingresa las existencias disponibles.', true);
+    showProducerToast('Ingresa el stock disponible.', true);
     if (stockInput) stockInput.focus();
     return;
   }
@@ -3542,7 +3615,7 @@ async function saveEditedProductModal(event) {
   const desc = (descInput ? descInput.value : '').trim();
   const categoryId = catSelect ? parseInt(catSelect.value, 10) : 2;
   const unit = unitSelect ? unitSelect.value : 'Kilogramo (kg)';
-  const unitLabel = unit.split('·')[0].trim().toLowerCase() || 'kg';
+  const unitLabel = formatCleanUnit(unit, true);
   const seasonLabel = seasonSelect ? seasonSelect.value : 'Disponible todo el año';
   const isSeasonal = seasonLabel !== 'Disponible todo el año';
   const isPublished = statusSelect ? statusSelect.value === 'published' : true;
@@ -3651,7 +3724,7 @@ async function reponerStockDirectly(code) {
   const prod = producerProducts.find(p => p.code === code);
   if (!prod) return;
 
-  const newStock = prompt(`Ingresa las nuevas existencias disponibles para "${prod.title}" (${prod.unitLabel}):`, '25');
+  const newStock = prompt(`Ingresa el nuevo stock disponible para "${prod.title}" (${formatCleanUnit(prod.unit, true)}):`, '25');
   if (newStock === null) return;
   const num = parseInt(newStock, 10);
   if (isNaN(num) || num <= 0) {

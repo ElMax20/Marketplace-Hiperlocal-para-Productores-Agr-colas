@@ -767,7 +767,7 @@ async function initCosechaDeHoy() {
         const { data, error } = await window.supabase
           .from('products')
           .select('*')
-          .eq('is_available', true);
+          .order('id', { ascending: true });
         if (!error && Array.isArray(data) && data.length > 0) {
           products = data;
         }
@@ -892,6 +892,20 @@ async function initCosechaDeHoy() {
             <div class="flex items-center gap-1 text-[11px] text-amber-500 mt-1">
               <span>${starsHtml}</span>
               <span class="text-stone-500 font-medium">(${scoreStr} · ${p.realReviewsCount} ${reviewWord})</span>
+            </div>
+            <!-- Estado de Stock en Tiempo Real -->
+            <div class="mt-2">
+              ${isOutOfStock ? `
+                <p class="text-[10px] text-red-600 font-bold flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                  <span>Agotado</span>
+                </p>
+              ` : `
+                <p class="text-[10px] text-emerald-700 font-medium flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  <span>Disponible · (${stockQty} un.)</span>
+                </p>
+              `}
             </div>
           </div>
           <div class="mt-4 pt-3 border-t border-stone-100 flex items-center justify-between">

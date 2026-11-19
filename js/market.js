@@ -1061,7 +1061,7 @@ async function initFavoritesFromStorage() {
         localStorage.setItem('raiz_favorites', JSON.stringify(favorites));
         renderProducts();
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 }
 
@@ -1121,7 +1121,7 @@ async function toggleProductFavorite(productId, event) {
         if (numId) {
           await window.supabase.fetchApi(`favorites?user_id=eq.${user.id}&product_id=eq.${encodeURIComponent(numId)}`, { method: 'DELETE' });
         }
-      } catch (_) {}
+      } catch (_) { }
     }
   } else {
     // Agregar al inicio para fijarlo en el primer espacio del catálogo
@@ -1139,13 +1139,13 @@ async function toggleProductFavorite(productId, event) {
             product_id: primaryId
           }
         });
-      } catch (_) {}
+      } catch (_) { }
     }
   }
 
   try {
     localStorage.setItem('raiz_favorites', JSON.stringify(favorites));
-  } catch (e) {}
+  } catch (e) { }
 
   renderProducts();
 
@@ -1230,7 +1230,7 @@ function initMarketApp() {
     window.supabase.subscribeToProducts((eventPayload) => {
       try {
         console.log('[Mercado Realtime] Actualización de producto:', eventPayload);
-        
+
         // 1. Manejo de decremento de stock en lote desde checkout
         if (eventPayload.updated_products && Array.isArray(eventPayload.updated_products)) {
           let anyUpdated = false;
@@ -1289,13 +1289,13 @@ function initMarketApp() {
             renderProducts();
           }
         }
-            }
-            renderProducts();
-          }
-        }
-      } catch (err) {
-        console.warn('Error en listener realtime mercado:', err);
       }
+            renderProducts();
+    }
+        }
+} catch (err) {
+  console.warn('Error en listener realtime mercado:', err);
+}
     });
   }
 }
@@ -1350,8 +1350,8 @@ async function loadProductsFromSupabase() {
 
       dbProducts.forEach(dbP => {
         const catName = categoryMap[dbP.category_id] || 'verduras';
-        const existingIdx = PRODUCTS_DATA.findIndex(p => 
-          String(p.id) === String(dbP.id) || 
+        const existingIdx = PRODUCTS_DATA.findIndex(p =>
+          String(p.id) === String(dbP.id) ||
           (p.numericId && Number(p.numericId) === Number(dbP.id)) ||
           p.title.toLowerCase() === dbP.title.toLowerCase()
         );
@@ -1384,11 +1384,14 @@ async function loadProductsFromSupabase() {
           ];
         }
         const basketSavings = Number(dbP.basket_savings_percent || dbP.basketSavingsPercent || (isBasket ? 15 : 0));
-        let stockQty = Number(dbP.stock ?? (dbP.stock_quantity ?? 30));
+        // El stock de Supabase es la fuente única de verdad
+        let stockQty = Number(dbP.stock !== undefined && dbP.stock !== null ? dbP.stock : (dbP.stock_quantity !== undefined && dbP.stock_quantity !== null ? dbP.stock_quantity : 30));
         try {
           const overrides = JSON.parse(localStorage.getItem('rb_stock_overrides') || '{}');
-          if (overrides[dbP.id] !== undefined) stockQty = Number(overrides[dbP.id]);
-        } catch (_) {}
+          overrides[dbP.id] = stockQty;
+          overrides[String(dbP.id)] = stockQty;
+          localStorage.setItem('rb_stock_overrides', JSON.stringify(overrides));
+        } catch (_) { }
 
         if (existingIdx !== -1) {
           // Preservar el slug ID original (ej: 'tomate-huerta') para mantener coherencia en las URLs
@@ -1409,7 +1412,7 @@ async function loadProductsFromSupabase() {
             basket_savings_percent: basketSavings,
             subtitle: `${dbP.unit || 'kg'} · Cosechado en finca`,
             origin: dbP.description || PRODUCTS_DATA[existingIdx].origin,
-            availability: (stockQty > 0) ? 'Disponible · Supabase' : 'Agotado'
+            availability: (stockQty > 0) ? 'Disponible' : 'Agotado'
           };
         } else {
           PRODUCTS_DATA.push({
@@ -1432,7 +1435,11 @@ async function loadProductsFromSupabase() {
             is_basket: isBasket,
             basket_items: basketItemsData,
             basket_savings_percent: basketSavings,
-            availability: (stockQty > 0) ? 'Disponible · Supabase' : 'Agotado',
+            availability: (stockQty > 0) ? 'Disponible' : 'Agotado',
+            distanceKm: 38,
+            isOffer: false
+          });
+        }
             distanceKm: 38,
             isOffer: false
           });
@@ -1783,11 +1790,10 @@ function renderProducts() {
           <button 
             type="button"
             onclick="toggleProductFavorite('${p.id}', event)" 
-            class="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all duration-200 z-20 cursor-pointer ${
-              isFav 
-                ? 'bg-white text-[#c85a32] ring-2 ring-[#c85a32]/30 scale-105 hover:scale-115' 
-                : 'bg-white/95 border border-stone-200/80 text-stone-400 hover:text-[#c85a32] hover:bg-white hover:scale-110'
-            }"
+            class="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all duration-200 z-20 cursor-pointer ${isFav
+        ? 'bg-white text-[#c85a32] ring-2 ring-[#c85a32]/30 scale-105 hover:scale-115'
+        : 'bg-white/95 border border-stone-200/80 text-stone-400 hover:text-[#c85a32] hover:bg-white hover:scale-110'
+      }"
             title="${isFav ? 'Quitar de favoritos' : 'Fijar en el primer espacio de favoritos'}"
             aria-label="${isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}"
           >
@@ -1851,7 +1857,7 @@ function renderProducts() {
             ` : `
               <p class="text-[10px] text-emerald-700 font-medium flex items-center gap-1 mb-3">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                <span>${p.availability || 'Disponible'} (${stock} un.)</span>
+                <span>Disponible · (${stock} un.)</span>
               </p>
             `}
 
@@ -1932,11 +1938,10 @@ function renderPaginationControls(totalPages, currPage, totalItems) {
     <button 
       type="button" 
       ${isFirstPage ? 'disabled' : `onclick="goToPage(${currPage - 1})"`} 
-      class="px-2.5 h-8 rounded-lg border border-stone-200 text-stone-700 flex items-center justify-center gap-1 transition ${
-        isFirstPage 
-          ? 'opacity-40 cursor-not-allowed pointer-events-none' 
-          : 'hover:bg-stone-50 cursor-pointer active:scale-95'
-      }"
+      class="px-2.5 h-8 rounded-lg border border-stone-200 text-stone-700 flex items-center justify-center gap-1 transition ${isFirstPage
+      ? 'opacity-40 cursor-not-allowed pointer-events-none'
+      : 'hover:bg-stone-50 cursor-pointer active:scale-95'
+    }"
       aria-label="Página anterior"
     >
       <span>‹</span>
@@ -1978,11 +1983,10 @@ function renderPaginationControls(totalPages, currPage, totalItems) {
     <button 
       type="button" 
       ${isLastPage ? 'disabled' : `onclick="goToPage(${currPage + 1})"`} 
-      class="px-2.5 h-8 rounded-lg border border-stone-200 text-stone-700 flex items-center justify-center gap-1 transition ${
-        isLastPage 
-          ? 'opacity-40 cursor-not-allowed pointer-events-none' 
-          : 'hover:bg-stone-50 cursor-pointer active:scale-95'
-      }"
+      class="px-2.5 h-8 rounded-lg border border-stone-200 text-stone-700 flex items-center justify-center gap-1 transition ${isLastPage
+      ? 'opacity-40 cursor-not-allowed pointer-events-none'
+      : 'hover:bg-stone-50 cursor-pointer active:scale-95'
+    }"
       aria-label="Página siguiente"
     >
       <span class="hidden sm:inline">Siguiente</span>
@@ -2557,7 +2561,7 @@ function initCartFromStorage() {
   if (stored) {
     try {
       cart = JSON.parse(stored);
-    } catch(e) {
+    } catch (e) {
       cart = [];
     }
   }
@@ -2582,7 +2586,7 @@ function addProductToCart(productId) {
   const existing = cart.find(item => String(item.id) === String(productId));
   if (existing) {
     if (existing.quantity >= currentStock) {
-      showToast(`Has alcanzado el límite de existencias disponibles (${currentStock} un.) de "${product.title}".`);
+      showToast(`Has alcanzado el límite de stock disponible (${currentStock} un.) de "${product.title}".`);
       return;
     }
     existing.quantity += 1;
@@ -2609,7 +2613,7 @@ function incrementProduct(productId) {
   if (item && product) {
     const currentStock = Number(product.stock_quantity ?? (product.stock ?? 30));
     if (item.quantity >= currentStock) {
-      showToast(`No hay más existencias disponibles (${currentStock} un.) de "${product.title}".`);
+      showToast(`No hay más stock disponible (${currentStock} un.) de "${product.title}".`);
       return;
     }
     item.quantity += 1;
@@ -2756,7 +2760,7 @@ function getCurrentUser() {
         return parsed;
       }
     }
-  } catch(e) {
+  } catch (e) {
     return null;
   }
   return null;
@@ -2917,7 +2921,7 @@ async function handleLogin(e) {
   if (window.supabase && typeof window.supabase.login === 'function') {
     try {
       dbUser = await window.supabase.login(inputVal, passVal);
-    } catch(err) {
+    } catch (err) {
       console.error('Error al verificar login en Supabase:', err);
     }
   }

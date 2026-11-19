@@ -1180,7 +1180,7 @@ function initProductPage() {
           const seasonLabel = dbRow.season_label || 'Cosecha fresca';
           const priceNum = Number(dbRow.price);
           const origPrice = dbRow.original_price ? Number(dbRow.original_price) : Math.round(priceNum * 1.15 * 100) / 100;
-          const stockQty = Number(dbRow.stock_quantity ?? (dbRow.stock ?? 25));
+          const stockQty = Number(dbRow.stock !== undefined && dbRow.stock !== null ? dbRow.stock : (dbRow.stock_quantity !== undefined && dbRow.stock_quantity !== null ? dbRow.stock_quantity : 0));
           const unit = dbRow.unit || 'kg';
 
           currentProduct = {
@@ -1200,7 +1200,7 @@ function initProductPage() {
             originalPrice: origPrice > priceNum ? origPrice : null,
             discount: null,
             stock: stockQty,
-            stockText: `En stock: ${stockQty} unidades de ${unit}`,
+            stockText: stockQty <= 0 ? 'Agotado' : `Disponible · (${stockQty} un.)`,
             description: dbRow.description || 'Producto cosechado en finca con prácticas agroecológicas limpias.',
             care: 'Conservar en un lugar fresco y seco o refrigerado según corresponda. Consumir fresco para disfrutar al máximo sus propiedades naturales.',
             shippingCost: 0.35,
@@ -1366,7 +1366,7 @@ function updateQty(delta) {
   const newQty = currentQuantity + delta;
   if (newQty < 1) return;
   if (currentProduct && newQty > currentProduct.stock) {
-    showToast(`Existencias máximas disponibles: ${currentProduct.stock}`);
+    showToast(`Stock máximo disponible: ${currentProduct.stock}`);
     return;
   }
   currentQuantity = newQty;
@@ -2056,4 +2056,66 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+// Suscripción bidireccional en tiempo real al inventario en la página de Detalle de Producto
+if (window.supabase && typeof window.supabase.subscribeToProducts === 'function') {
+  window.supabase.subscribeToProducts((eventPayload) => {
+    try {
+      if (!currentProduct) return;
+      const targetId = String(currentProduct.numericId || currentProduct.id);
+
+      if (eventPayload.updated_products && Array.isArray(eventPayload.updated_products)) {
+        const up = eventPayload.updated_products.find(u => String(u.product_id || u.id) === targetId);
+        if (up) {
+          const nStk = Number(up.new_stock !== undefined ? up.new_stock : (up.stock !== undefined ? up.stock : up.stock_quantity));
+          currentProduct.stock = nStk;
+          currentProduct.stockText = nStk <= 0 ? 'Agotado' : `Disponible · (${nStk} un.)`;
+          const stockEl = document.getElementById('prod-stock');
+          if (stockEl) stockEl.textContent = currentProduct.stockText;
+          updateProductActionButtons(nStk);
+        }
+      } else {
+        const row = eventPayload.new || eventPayload;
+        if (row && String(row.id || row.numericId) === targetId) {
+          if (row.stock !== undefined || row.stock_quantity !== undefined || row.new_stock !== undefined) {
+            const nStk = Number(row.new_stock !== undefined ? row.new_stock : (row.stock !== undefined ? row.stock : row.stock_quantity));
+            currentProduct.stock = nStk;
+            currentProduct.stockText = nStk <= 0 ? 'Agotado' : `Disponible · (${nStk} un.)`;
+            const stockEl = document.getElementById('prod-stock');
+            if (stockEl) stockEl.textContent = currentProduct.stockText;
+            updateProductActionButtons(nStk);
+          }
+        }
+      }
+    } catch (_) {}
+  });
+}
+
+function updateProductActionButtons(stock) {
+  const addBtn = document.getElementById('btn-add-to-cart');
+  const buyBtn = document.getElementById('btn-buy-now');
+  if (stock <= 0) {
+    if (addBtn) {
+      addBtn.disabled = true;
+      addBtn.textContent = 'Agotado';
+      addBtn.className = 'w-full py-3.5 px-6 rounded-full font-bold text-sm bg-stone-200 text-stone-400 cursor-not-allowed opacity-70';
+    }
+    if (buyBtn) {
+      buyBtn.disabled = true;
+      buyBtn.textContent = 'Agotado';
+      buyBtn.className = 'w-full py-3.5 px-6 rounded-full font-bold text-sm bg-stone-200 text-stone-400 cursor-not-allowed opacity-70';
+    }
+  } else {
+    if (addBtn) {
+      addBtn.disabled = false;
+      addBtn.textContent = '+ Añadir al carrito';
+      addBtn.className = 'w-full py-3.5 px-6 rounded-full font-bold text-sm bg-[#143628] hover:bg-[#1f4a38] text-white transition shadow-sm';
+    }
+    if (buyBtn) {
+      buyBtn.disabled = false;
+      buyBtn.textContent = 'Comprar ahora';
+      buyBtn.className = 'w-full py-3.5 px-6 rounded-full font-bold text-sm border-2 border-[#143628] text-[#143628] hover:bg-emerald-50 transition';
+    }
+  }
 }
